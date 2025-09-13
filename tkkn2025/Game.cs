@@ -1,0 +1,57 @@
+using System;
+
+namespace tkkn2025
+{
+    /// <summary>
+    /// Represents a single game instance with its duration, particle count, and settings
+    /// </summary>
+    public class Game
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public TimeSpan Duration => EndTime?.Subtract(StartTime) ?? TimeSpan.Zero;
+        public int FinalParticleCount { get; set; }
+        public GameConfig Settings { get; set; } = new GameConfig();
+        public bool IsCompleted => EndTime.HasValue;
+        
+        /// <summary>
+        /// Gets the duration in seconds for easier comparison and display
+        /// </summary>
+        public double DurationSeconds => Duration.TotalSeconds;
+
+        public Game()
+        {
+            StartTime = DateTime.Now;
+        }
+
+        public Game(GameConfig settings)
+        {
+            StartTime = DateTime.Now;
+            Settings = new GameConfig
+            {
+                ShipSpeed = settings.ShipSpeed,
+                ParticleSpeed = settings.ParticleSpeed,
+                StartingParticles = settings.StartingParticles,
+                GenerationRate = settings.GenerationRate,
+                IncreaseRate = settings.IncreaseRate,
+                ParticleSpeedVariance = settings.ParticleSpeedVariance,
+                ParticleRandomizerPercentage = settings.ParticleRandomizerPercentage
+            };
+        }
+
+        /// <summary>
+        /// Marks the game as completed and records the final state
+        /// </summary>
+        /// <param name="finalParticleCount">The number of particles when the game ended</param>
+        public void Complete(int finalParticleCount)
+        {
+            EndTime = DateTime.Now;
+            FinalParticleCount = finalParticleCount;
+        }
+
+        public override string ToString()
+        {
+            return $"Game: {DurationSeconds:F1}s, {FinalParticleCount} particles";
+        }
+    }
+}
