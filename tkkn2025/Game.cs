@@ -31,11 +31,13 @@ namespace tkkn2025
             {
                 ShipSpeed = settings.ShipSpeed,
                 ParticleSpeed = settings.ParticleSpeed,
+                ParticleTurnSpeed = settings.ParticleTurnSpeed,
                 StartingParticles = settings.StartingParticles,
-                GenerationRate = settings.GenerationRate,
-                IncreaseRate = settings.IncreaseRate,
+                LevelDuration = settings.LevelDuration,
+                NewParticlesPerLevel = settings.NewParticlesPerLevel,
                 ParticleSpeedVariance = settings.ParticleSpeedVariance,
-                ParticleRandomizerPercentage = settings.ParticleRandomizerPercentage
+                ParticleRandomizerPercentage = settings.ParticleRandomizerPercentage,
+                ParticleChase_Initial = settings.ParticleChase_Initial
             };
         }
 

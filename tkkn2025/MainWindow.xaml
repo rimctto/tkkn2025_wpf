@@ -3,8 +3,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:gameObjects="clr-namespace:tkkn2025.GameObjects"
     xmlns:local="clr-namespace:tkkn2025"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:settingsModels="clr-namespace:tkkn2025.Settings.Models"
+    xmlns:ui="clr-namespace:tkkn2025.UI"
     Title="TKKN 2025"
     Width="1050"
     Height="700"
@@ -20,446 +23,184 @@
         </Grid.ColumnDefinitions>
 
         <!--  Game Area  -->
-        <Canvas
-            Name="GameCanvas"
-            Grid.Column="0"
-            Background="Black"
-            Focusable="True"
-            MouseDown="GameCanvas_MouseDown" />
+        <Grid>
+            <Canvas
+                Name="GameCanvas"
+                Grid.Column="0"
+                Background="Black"
+                Focusable="True"
+                MouseDown="GameCanvas_MouseDown">
 
+                <!--  Start Screen - shown when game is not running  -->
+
+
+            </Canvas>
+
+            <ui:StartScreen x:Name="StartScreen" Visibility="Visible"/>
+            
+        </Grid>
         <!--  Settings Panel  -->
         <Border
             Grid.Column="1"
             Padding="10"
-            Background="Gray">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            Background="#FF151515">
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-                <!--  Game Stats  -->
                 <StackPanel>
+                    <Button
+                        Name="StartButton"
+                        Background="Green"
+                        Content="Press SPACE to Start"
+                        Foreground="White" />
+
+                    <TextBlock
+                        Name="GameTimeText"
+                        HorizontalAlignment="Center"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="Time: 0s" />
+
+                    <TextBlock
+                        Name="ParticleCountText"
+                        HorizontalAlignment="Center"
+                        Foreground="White"
+                        Text="Particles: 0" />
+
+                    <TextBlock
+                        Name="FpsText"
+                        HorizontalAlignment="Center"
+                        FontWeight="Bold"
+                        Foreground="Yellow"
+                        Text="FPS: 0" />
+
+                    <!--  Session Stats  -->
+                    <TextBlock
+                        Margin="0,5,0,0"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="Session Stats" />
+
+                    <TextBlock
+                        Name="SessionStatsText"
+                        Margin="0,0,0,10"
+                        HorizontalAlignment="Center"
+                        FontSize="12"
+                        Foreground="LightBlue"
+                        Text="No games played yet" />
+
+                    <!--  Music Control  -->
+                    <Button
+                        Name="MusicToggleButton"
+                        Margin="0,5,0,10"
+                        Background="DarkSlateBlue"
+                        Click="MusicToggleButton_Click"
+                        Content="🎵 Music: ON"
+                        Foreground="White" />
+
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+
                     <StackPanel>
-                        <Button
-                            Name="StartButton"
-                            Background="Green"
-                            Content="Press SPACE to Start"
-                            Foreground="White" />
 
-                        <TextBlock
-                            Name="GameTimeText"
-                            HorizontalAlignment="Center"
-                            FontWeight="Bold"
-                            Foreground="White"
-                            Text="Time: 0s" />
+                        <!--  Game Settings  -->
+                        <StackPanel>
 
-                        <TextBlock
-                            Name="ParticleCountText"
-                            HorizontalAlignment="Center"
-                            Foreground="White"
-                            Text="Particles: 0" />
+                            <!--  Header  -->
+                            <TextBlock
+                                Margin="0,5,0,0"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="Game Settings" />
 
-                        <TextBlock
-                            Name="FpsText"
-                            HorizontalAlignment="Center"
-                            FontWeight="Bold"
-                            Foreground="Yellow"
-                            Text="FPS: 0" />
+                            <!--  Settings Management Buttons  -->
+                            <StackPanel
+                                Margin="0,5,0,0"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal">
+                                <Button
+                                    Name="SaveSettingsButton"
+                                    Width="60"
+                                    Padding="5,2"
+                                    Background="DarkGray"
+                                    Click="SaveSettingsButton_Click"
+                                    Content="Save"
+                                    FontSize="10"
+                                    Foreground="White" />
+                                <Button
+                                    Name="LoadSettingsButton"
+                                    Width="60"
+                                    Margin="5,0,0,0"
+                                    Padding="5,2"
+                                    Background="DarkGray"
+                                    Click="LoadSettingsButton_Click"
+                                    Content="Load"
+                                    FontSize="10"
+                                    Foreground="White" />
+                                <Button
+                                    Name="ResetSettingsButton"
+                                    Width="60"
+                                    Margin="5,0,0,0"
+                                    Padding="5,2"
+                                    Background="DarkGray"
+                                    Click="ResetSettingsButton_Click"
+                                    Content="Default"
+                                    FontSize="10"
+                                    Foreground="White" />
+                            </StackPanel>
 
-                        <!--  Session Stats  -->
-                        <TextBlock
-                            Margin="0,5,0,0"
-                            FontSize="14"
-                            FontWeight="Bold"
-                            Foreground="White"
-                            Text="Session Stats" />
-
-                        <TextBlock
-                            Name="SessionStatsText"
-                            Margin="0,0,0,10"
-                            HorizontalAlignment="Center"
-                            FontSize="12"
-                            Foreground="LightBlue"
-                            Text="No games played yet" />
-
-                        <!--  Game Settings Header  -->
-                        <TextBlock
-                            Margin="0,5,0,0"
-                            FontSize="14"
-                            FontWeight="Bold"
-                            Foreground="White"
-                            Text="Game Settings" />
-
-                        <!--  Settings Management Buttons  -->
-                        <StackPanel
-                            Margin="0,5,0,0"
-                            HorizontalAlignment="Center"
-                            Orientation="Horizontal">
-                            <Button
-                                Name="SaveSettingsButton"
-                                Width="60"
-                                Padding="5,2"
-                                Background="DarkGray"
-                                Click="SaveSettingsButton_Click"
-                                Content="Save"
+                            <!--  Config Status  -->
+                            <TextBlock
+                                Name="ConfigStatusText"
+                                Margin="0,5,0,10"
+                                HorizontalAlignment="Center"
                                 FontSize="10"
-                                Foreground="White" />
-                            <Button
-                                Name="LoadSettingsButton"
-                                Width="60"
-                                Margin="5,0,0,0"
-                                Padding="5,2"
-                                Background="DarkGray"
-                                Click="LoadSettingsButton_Click"
-                                Content="Load"
-                                FontSize="10"
-                                Foreground="White" />
-                            <Button
-                                Name="ResetSettingsButton"
-                                Width="60"
-                                Margin="5,0,0,0"
-                                Padding="5,2"
-                                Background="DarkGray"
-                                Click="ResetSettingsButton_Click"
-                                Content="Default"
-                                FontSize="10"
-                                Foreground="White" />
+                                Foreground="LightGray"
+                                Text="" />
+
                         </StackPanel>
 
-                        <!--  Config Status  -->
-                        <TextBlock
-                            Name="ConfigStatusText"
-                            Margin="0,5,0,10"
-                            HorizontalAlignment="Center"
-                            FontSize="10"
-                            Foreground="LightGray"
-                            Text="" />
-
-                    </StackPanel>
-
-                    <!--  Basic Settings  -->
-                    <Expander Foreground="White" IsExpanded="True">
-                        <Expander.Header>
-                            <TextBlock FontSize="14" Text="Basic Settings" />
-                        </Expander.Header>
 
                         <StackPanel>
 
-                            <!--  Ship Speed Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
+                            <!--  Basic Settings  -->
+                            <Expander Foreground="White" IsExpanded="False">
+                                <Expander.Header>
+                                    <TextBlock FontSize="14" Text="Basic Settings" />
+                                </Expander.Header>
 
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Ship Speed:" />
-                                <TextBox
-                                    Name="ShipSpeedTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="200"
-                                    TextAlignment="Center"
-                                    TextChanged="ShipSpeedTextBox_TextChanged" />
-                                <Slider
-                                    Name="ShipSpeedSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="500"
-                                    Minimum="50"
-                                    ValueChanged="ShipSpeedSlider_ValueChanged"
-                                    Value="200" />
-                            </Grid>
+                                <settingsModels:SettingList DataContext="{Binding BasicSettings}" />
+                            </Expander>
 
-                            <!--  Particle Speed Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
+                            <!--  Particle Settings  -->
+                            <Expander Foreground="White" IsExpanded="False">
+                                <Expander.Header>
+                                    <TextBlock FontSize="14" Text="Particle Settings" />
+                                </Expander.Header>
 
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Particle Speed:" />
-                                <TextBox
-                                    Name="ParticleSpeedTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="100"
-                                    TextAlignment="Center"
-                                    TextChanged="ParticleSpeedTextBox_TextChanged" />
-                                <Slider
-                                    Name="ParticleSpeedSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="300"
-                                    Minimum="25"
-                                    ValueChanged="ParticleSpeedSlider_ValueChanged"
-                                    Value="100" />
-                            </Grid>
+                                <settingsModels:SettingList DataContext="{Binding ParticleSettings}" />
+                            </Expander>
 
-                            <!--  Particle Speed Variance Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
+                            <!--  PowerUp Settings  -->
+                            <Expander Foreground="White" IsExpanded="False">
+                                <Expander.Header>
+                                    <TextBlock FontSize="14" Text="Particle Settings" />
+                                </Expander.Header>
 
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Speed Variance (%):" />
-                                <TextBox
-                                    Name="ParticleSpeedVarianceTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="15"
-                                    TextAlignment="Center"
-                                    TextChanged="ParticleSpeedVarianceTextBox_TextChanged" />
-                                <Slider
-                                    Name="ParticleSpeedVarianceSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="100"
-                                    Minimum="0"
-                                    ValueChanged="ParticleSpeedVarianceSlider_ValueChanged"
-                                    Value="15" />
-                            </Grid>
+                                <settingsModels:SettingList DataContext="{Binding ParticleSettings}" />
+                            </Expander>
 
-                            <!--  Particle Randomizer Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
 
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Random Particle %" />
-                                <TextBox
-                                    Name="ParticleRandomizerPercentageTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="30"
-                                    TextAlignment="Center"
-                                    TextChanged="ParticleRandomizerPercentageTextBox_TextChanged" />
-                                <Slider
-                                    Name="ParticleRandomizerPercentageSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="100"
-                                    Minimum="0"
-                                    ValueChanged="ParticleRandomizerPercentageSlider_ValueChanged"
-                                    Value="30" />
-                            </Grid>
-
-                            <!--  Starting Particles Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Starting Particles:" />
-                                <TextBox
-                                    Name="StartingParticlesTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="30"
-                                    TextAlignment="Center"
-                                    TextChanged="StartingParticlesTextBox_TextChanged" />
-                                <Slider
-                                    Name="StartingParticlesSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="100"
-                                    Minimum="1"
-                                    ValueChanged="StartingParticlesSlider_ValueChanged"
-                                    Value="30" />
-                            </Grid>
-
-                            <!--  Level Duration  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="Level Duration (s):" />
-                                <TextBox
-                                    Name="GenerationRateTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="5"
-                                    TextAlignment="Center"
-                                    TextChanged="GenerationRateTextBox_TextChanged" />
-                                <Slider
-                                    Name="GenerationRateSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="20"
-                                    Minimum="1"
-                                    ValueChanged="GenerationRateSlider_ValueChanged"
-                                    Value="5" />
-                            </Grid>
-
-                            <!--  Increase Rate Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="60" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Foreground="White"
-                                    Text="New Particles / Level" />
-                                <TextBox
-                                    Name="IncreaseRateTextBox"
-                                    Grid.Row="0"
-                                    Grid.Column="1"
-                                    Margin="5,0,0,0"
-                                    Background="DarkGray"
-                                    BorderBrush="Gray"
-                                    Foreground="White"
-                                    Text="10"
-                                    TextAlignment="Center"
-                                    TextChanged="IncreaseRateTextBox_TextChanged" />
-                                <Slider
-                                    Name="IncreaseRateSlider"
-                                    Grid.Row="1"
-                                    Grid.Column="0"
-                                    Grid.ColumnSpan="2"
-                                    Margin="0,5,0,0"
-                                    Maximum="50"
-                                    Minimum="1"
-                                    ValueChanged="IncreaseRateSlider_ValueChanged"
-                                    Value="10" />
-                            </Grid>
-
-                            <!--  Particle Chase Setting  -->
-                            <Grid Margin="0,0,0,15">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock
-                                    Grid.Column="0"
-                                    VerticalAlignment="Center"
-                                    Foreground="White"
-                                    Text="Particles Spawn towarShip:" />
-                                <CheckBox
-                                    Name="ParticleChaseCheckBox"
-                                    Grid.Column="1"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Checked="ParticleChaseCheckBox_Changed"
-                                    IsChecked="True"
-                                    Unchecked="ParticleChaseCheckBox_Changed" />
-                            </Grid>
                         </StackPanel>
-                    </Expander>
-
-                    <!--  New Settings  -->
-                    <Expander Foreground="White" Visibility="Collapsed">
-                        <Expander.Header>
-                            <TextBlock FontSize="14" Text="New Settings" />
-                        </Expander.Header>
-
-                        <!--  Settings  -->
-                        <StackPanel />
-                    </Expander>
-
-                    <!--  New Settings  -->
-                    <Expander Foreground="White" Visibility="Collapsed">
-                        <Expander.Header>
-                            <TextBlock FontSize="14" Text="Basic Settings" />
-                        </Expander.Header>
-
-                        <!--  Settings  -->
-                        <StackPanel />
-                    </Expander>
-                </StackPanel>
-            </ScrollViewer>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
         </Border>
     </Grid>
 </Window>

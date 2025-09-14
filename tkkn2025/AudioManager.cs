@@ -11,6 +11,31 @@ namespace tkkn2025
     {
         private MediaPlayer music = new MediaPlayer();
         private bool isInitialized = false;
+        private bool _musicEnabled = true;
+
+        /// <summary>
+        /// Gets or sets whether music is enabled
+        /// </summary>
+        public bool MusicEnabled 
+        { 
+            get => _musicEnabled;
+            set 
+            {
+                if (_musicEnabled != value)
+                {
+                    _musicEnabled = value;
+                    if (_musicEnabled)
+                    {
+                        Play();
+                    }
+                    else
+                    {
+                        Pause();
+                    }
+                    System.Diagnostics.Debug.WriteLine($"🎵 Music enabled: {_musicEnabled}");
+                }
+            }
+        }
 
         public void Initialize()
         {
@@ -67,8 +92,16 @@ namespace tkkn2025
 
         private void Music_MediaOpened(object? sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("🎵 Media opened successfully! Starting playback...");
-            music.Play();
+            System.Diagnostics.Debug.WriteLine("🎵 Media opened successfully!");
+            if (_musicEnabled)
+            {
+                System.Diagnostics.Debug.WriteLine("Starting playback...");
+                music.Play();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Music is disabled, not starting playback");
+            }
         }
 
         private void Music_MediaFailed(object? sender, ExceptionEventArgs e)
@@ -79,9 +112,13 @@ namespace tkkn2025
 
         private void Music_MediaEnded(object? sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("🔄 Media ended, restarting loop...");
-            music.Position = TimeSpan.Zero;
-            music.Play();
+            System.Diagnostics.Debug.WriteLine("🔄 Media ended");
+            if (_musicEnabled)
+            {
+                System.Diagnostics.Debug.WriteLine("Restarting loop...");
+                music.Position = TimeSpan.Zero;
+                music.Play();
+            }
         }
 
         private void DebugAudioPaths()
@@ -118,10 +155,14 @@ namespace tkkn2025
 
         public void Play()
         {
-            if (isInitialized && music != null)
+            if (isInitialized && music != null && _musicEnabled)
             {
                 music.Play();
                 System.Diagnostics.Debug.WriteLine("▶️ Music play requested");
+            }
+            else if (!_musicEnabled)
+            {
+                System.Diagnostics.Debug.WriteLine("▶️ Music play requested but music is disabled");
             }
         }
 

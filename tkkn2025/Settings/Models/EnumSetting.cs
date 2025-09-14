@@ -1,4 +1,5 @@
 using System;
+using tkkn2025.Settings.Models;
 
 namespace tkkn2025.Settings
 {
@@ -26,6 +27,11 @@ namespace tkkn2025.Settings
         /// The category this setting belongs to
         /// </summary>
         public abstract string Category { get; }
+
+        /// <summary>
+        /// Description of what this setting does
+        /// </summary>
+        public abstract string Description { get; }
 
         /// <summary>
         /// Non-generic access to value
@@ -56,8 +62,9 @@ namespace tkkn2025.Settings
         /// <param name="displayName">Display name for UI</param>
         /// <param name="category">Category grouping</param>
         /// <param name="defaultValue">Default enum value</param>
-        public EnumSetting(string name, string displayName, string category, T defaultValue)
-            : base(name, displayName, category, defaultValue) { }
+        /// <param name="description">Description of what this setting does</param>
+        public EnumSetting(string name, string displayName, string category, T defaultValue, string description = "")
+            : base(name, displayName, category, defaultValue, description) { }
 
         /// <summary>
         /// Strongly-typed access to the enum value (alias for Value property)

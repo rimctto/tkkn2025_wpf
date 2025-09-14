@@ -9,12 +9,14 @@ namespace tkkn2025
     {
         public double ShipSpeed { get; set; } = 200.0;
         public double ParticleSpeed { get; set; } = 175.0;
+        public double ParticleTurnSpeed { get; set; } = 0.5;
         public int StartingParticles { get; set; } = 30;
-        public double GenerationRate { get; set; } = 5.0;
-        public double IncreaseRate { get; set; } = 15.0;
+        public double LevelDuration { get; set; } = 5.0;
+        public double NewParticlesPerLevel { get; set; } = 15.0;
         public double ParticleSpeedVariance { get; set; } = 15.0;
         public double ParticleRandomizerPercentage { get; set; } = 30.0;
         public bool ParticleChase_Initial { get; set; } = true;
+        public bool MusicEnabled { get; set; } = true;
     }
 
     /// <summary>

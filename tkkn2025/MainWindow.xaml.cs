@@ -9,6 +9,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using tkkn2025.Settings;
+using System.Collections.Generic;
+using tkkn2025.Settings.Models;
+using System.ComponentModel;
+using tkkn2025.GameObjects;
+using System.Numerics;
+using tkkn2025.GameObjects.PowerUps;
 
 namespace tkkn2025
 {
@@ -19,7 +26,8 @@ namespace tkkn2025
     {
         // Game objects
         private Polygon ship = null!;
-        private List<Patricle> particles = null!;
+        private ParticleManager particleController = null!;
+        private PowerUpManager powerUpManager = null!;
         private Random random = null!;
         
         // Game state
@@ -33,28 +41,19 @@ namespace tkkn2025
         private DateTime lastParticleGeneration = DateTime.Now;
         private DateTime gameStartTime;
 
-        // Game settings - Current slider values (can be changed anytime)
-        private double currentShipSpeed;
-        private double currentParticleSpeed;
-        private int currentStartingParticles;
-        private double currentGenerationRate;
-        private double currentIncreaseRate;
-        private double currentParticleSpeedVariance;
-        private double currentParticleRandomizerPercentage;
-        private bool currentParticleChase_Initial;
+        // Settings Manager for MVVM data binding
+        public SettingsManager SettingsManager { get => settingsManager; set => settingsManager = value; }
+        private SettingsManager settingsManager = null!;
 
-        // Active game settings - Only applied when game starts
+        // Active game settings - snapshot taken when game starts
         private double activeShipSpeed;
-        private double activeParticleSpeed;
-        private int activeStartingParticles;
-        private double activeGenerationRate;
-        private double activeIncreaseRate;
-        private double activeParticleSpeedVariance;
-        private double activeParticleRandomizerPercentage;
-        private bool activeParticleChase_Initial;
+        private double activeLevelDuration;
+        private double activeNewParticlesPerLevel;
         
-        // Configuration and session management
-        private GameConfig gameConfig = null!;
+        // Power-up effects
+        private double currentSpeedMultiplier = 1.0;
+        
+        // Session management
         private Session currentSession = null!;
         private Game? currentGame = null;
         
@@ -65,13 +64,7 @@ namespace tkkn2025
         private DateTime lastUIUpdate = DateTime.Now;
         private DateTime lastFPSUpdate = DateTime.Now;
         private int frameCount = 0;
-        
-        // Current game values
-        private int currentParticleCount = 0;
-        
-        // Performance optimizations
-        private readonly Queue<Patricle> particlePool = new Queue<Patricle>();
-        
+
         public MainWindow()
         {
             InitializeComponent();
@@ -80,8 +73,12 @@ namespace tkkn2025
             InitializeSession();
 
             // Ensure window can receive keyboard input
-            this.Loaded += (s, e) => this.Focus();
+            this.Loaded += (s, e) => {
+                this.Focus();
+                UpdateMusicButtonText(); // Update button text when window is loaded
+            };
             
+           
             // Save settings when window is closing
             this.Closing += (s, e) => SaveGameSettings();
             
@@ -98,102 +95,39 @@ namespace tkkn2025
         {
             try
             {
-                // Load configuration from file or use defaults
-                gameConfig = ConfigManager.LoadConfig();
+                var gameSettings = new GameSettings();
                 
-                // Apply loaded settings to current settings
-                ApplyConfigToCurrentSettings(gameConfig);
-
-                // Show status
+                // Try to load from existing config file for backward compatibility
                 if (ConfigManager.ConfigFileExists())
                 {
-                    UpdateConfigStatus("Settings loaded from config file", Brushes.LightGreen);
+                    var legacyConfig = ConfigManager.LoadConfig();
+                    gameSettings.FromGameConfig(legacyConfig);
+                    UpdateConfigStatus("Settings loaded from legacy config file", Brushes.LightGreen);
                 }
                 else
                 {
                     UpdateConfigStatus("Using default settings", Brushes.LightBlue);
                 }
+
+                // Create SettingsManager and set as DataContext
+                SettingsManager = new SettingsManager(gameSettings);
+                this.DataContext = SettingsManager;
             }
             catch (Exception ex)
             {
                 UpdateConfigStatus($"Error loading config: {ex.Message}", Brushes.LightCoral);
                 // Use defaults if loading fails
-                gameConfig = SettingsManager.GetDefaultSettings();
-                ApplyConfigToCurrentSettings(gameConfig);
+                SettingsManager = new SettingsManager();
+                this.DataContext = SettingsManager;
             }
         }
-
-        /// <summary>
-        /// Applies a GameConfig to the current settings variables
-        /// </summary>
-        /// <param name="config">Configuration to apply</param>
-        private void ApplyConfigToCurrentSettings(GameConfig config)
-        {
-            currentShipSpeed = config.ShipSpeed;
-            currentParticleSpeed = config.ParticleSpeed;
-            currentStartingParticles = config.StartingParticles;
-            currentGenerationRate = config.GenerationRate;
-            currentIncreaseRate = config.IncreaseRate;
-            currentParticleSpeedVariance = config.ParticleSpeedVariance;
-            currentParticleRandomizerPercentage = config.ParticleRandomizerPercentage;
-            currentParticleChase_Initial = config.ParticleChase_Initial;
-        }
-
-        /// <summary>
-        /// Creates a GameConfig from current settings variables
-        /// </summary>
-        /// <returns>GameConfig with current values</returns>
-        private GameConfig CreateConfigFromCurrentSettings()
-        {
-            return new GameConfig
-            {
-                ShipSpeed = currentShipSpeed,
-                ParticleSpeed = currentParticleSpeed,
-                StartingParticles = currentStartingParticles,
-                GenerationRate = currentGenerationRate,
-                IncreaseRate = currentIncreaseRate,
-                ParticleSpeedVariance = currentParticleSpeedVariance,
-                ParticleRandomizerPercentage = currentParticleRandomizerPercentage,
-                ParticleChase_Initial = currentParticleChase_Initial
-            };
-        }
-
-        /// <summary>
-        /// Updates all UI controls with current settings values
-        /// </summary>
-        private void UpdateAllUIControls()
-        {
-            // Update sliders
-            ShipSpeedSlider.Value = currentShipSpeed;
-            ParticleSpeedSlider.Value = currentParticleSpeed;
-            ParticleSpeedVarianceSlider.Value = currentParticleSpeedVariance;
-            ParticleRandomizerPercentageSlider.Value = currentParticleRandomizerPercentage;
-            StartingParticlesSlider.Value = currentStartingParticles;
-            GenerationRateSlider.Value = currentGenerationRate;
-            IncreaseRateSlider.Value = currentIncreaseRate;
-
-            // Update checkbox
-            ParticleChaseCheckBox.IsChecked = currentParticleChase_Initial;
-
-            // Update text boxes
-            UpdateDisplayValues();
-        }
-        
+         
         private void SaveGameSettings()
         {
             try
             {
-                // Update config with current slider values
-                gameConfig.ShipSpeed = currentShipSpeed;
-                gameConfig.ParticleSpeed = currentParticleSpeed;
-                gameConfig.StartingParticles = currentStartingParticles;
-                gameConfig.GenerationRate = currentGenerationRate;
-                gameConfig.IncreaseRate = currentIncreaseRate;
-                gameConfig.ParticleSpeedVariance = currentParticleSpeedVariance;
-                gameConfig.ParticleRandomizerPercentage = currentParticleRandomizerPercentage;
-                gameConfig.ParticleChase_Initial = currentParticleChase_Initial;
-                
-                // Save to file
+                // Save settings using the new system
+                var gameConfig = SettingsManager.ToGameConfig();
                 bool success = ConfigManager.SaveConfig(gameConfig);
                 if (success)
                 {
@@ -236,30 +170,93 @@ namespace tkkn2025
         private void InitializeGame()
         {
             audioManager.Initialize();
+            
+            // Set initial music state from settings
+            if (SettingsManager?.GameSettings?.MusicEnabled != null)
+            {
+                audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                UpdateMusicButtonText();
+            }
 
-            particles = new List<Patricle>();
             random = new Random();
+            
+            // Initialize particle controller
+            particleController = new ParticleManager(GameCanvas);
+            particleController.CollisionDetected += OnCollisionDetected;
+            
+            // Initialize power-up manager
+            powerUpManager = new PowerUpManager(GameCanvas, random);
+            powerUpManager.PowerUpCollected += OnPowerUpCollected;
+            powerUpManager.PowerUpEffectStarted += OnPowerUpEffectStarted;
+            powerUpManager.PowerUpEffectEnded += OnPowerUpEffectEnded;
+            powerUpManager.PowerUpStored += OnPowerUpStored;
+            powerUpManager.SingularityActivated += OnSingularityActivated;
             
             // Use CompositionTarget.Rendering for smooth game loop
             CompositionTarget.Rendering += GameLoop;
 
-            // Update all UI controls with current settings
-            UpdateAllUIControls();
-
             CreateShip();
         }
-
-        private void UpdateDisplayValues()
+        
+        private void OnCollisionDetected()
         {
-            ShipSpeedTextBox.Text = currentShipSpeed.ToString("F0");
-            ParticleSpeedTextBox.Text = currentParticleSpeed.ToString("F0");
-            ParticleSpeedVarianceTextBox.Text = currentParticleSpeedVariance.ToString("F0");
-            ParticleRandomizerPercentageTextBox.Text = currentParticleRandomizerPercentage.ToString("F0");
-            StartingParticlesTextBox.Text = currentStartingParticles.ToString();
-            GenerationRateTextBox.Text = currentGenerationRate.ToString("F0");
-            IncreaseRateTextBox.Text = currentIncreaseRate.ToString("F0");
+            StopGame();
+            var survivedTime = (DateTime.Now - gameStartTime).TotalSeconds;
+            
+            // Show game over message with session stats
+            var sessionStats = currentSession.GetSessionStats();
+            MessageBox.Show($"Game Over! You survived for {survivedTime:F1} seconds!\n\n{sessionStats}", 
+                           "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void OnPowerUpCollected(string powerUpType)
+        {
+            System.Diagnostics.Debug.WriteLine($"Power-up collected: {powerUpType}");
+            if (powerUpType == "Singularity")
+            {
+                UpdateConfigStatus($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
+            }
+            else if (powerUpType == "Repulsor")
+            {
+                UpdateConfigStatus($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
+            }
+            else
+            {
+                UpdateConfigStatus($"Collected {powerUpType}!", Brushes.Gold);
+            }
+        }
+
+        private void OnPowerUpEffectStarted(string effectType, double duration)
+        {
+            System.Diagnostics.Debug.WriteLine($"Power-up effect started: {effectType} for {duration} seconds");
+            UpdateConfigStatus($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
+        }
+
+        private void OnPowerUpEffectEnded(string effectType)
+        {
+            System.Diagnostics.Debug.WriteLine($"Power-up effect ended: {effectType}");
+            UpdateConfigStatus($"{effectType} effect ended", Brushes.LightGray);
+        }
+
+        private void OnPowerUpStored(string powerUpType)
+        {
+            System.Diagnostics.Debug.WriteLine($"Power-up stored: {powerUpType}");
+            int count = powerUpManager.GetStoredPowerUpCount(powerUpType);
+            UpdateConfigStatus($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
+        }
+
+        private void OnSingularityActivated(Vector2 position)
+        {
+            System.Diagnostics.Debug.WriteLine($"Singularity activated at {position}");
+            UpdateConfigStatus("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
         }
         
+        private void OnRepulsorActivated(Vector2 position)
+        {
+            System.Diagnostics.Debug.WriteLine($"Repulsor activated at {position}");
+            UpdateConfigStatus("Repulsor activated! Repelling field follows you for 5 seconds", Brushes.LimeGreen);
+        }
+      
         private void CreateShip()
         {
             ship = new Polygon();
@@ -280,10 +277,18 @@ namespace tkkn2025
                 shipPosition = centerScreen;
                 Canvas.SetLeft(ship, shipPosition.X);
                 Canvas.SetTop(ship, shipPosition.Y);
+                
+                // Update particle controller with canvas dimensions
+                particleController.UpdateCanvasDimensions();
+                
+                // Update power-up manager with canvas dimensions
+                powerUpManager.UpdateCanvasDimensions();
+         
             };
             
             GameCanvas.Children.Add(ship);
         }
+     
         
         private void GameLoop(object? sender, EventArgs e)
         {
@@ -296,15 +301,32 @@ namespace tkkn2025
             // Limit delta time to prevent huge jumps
             deltaTime = Math.Min(deltaTime, 1.0 / 30.0); // Max 30 FPS equivalent
             
-            UpdateFPS();
-            UpdateShipPosition(deltaTime);
-            UpdateParticles(deltaTime);
-            CheckCollisions();
+            // Update current speed multiplier from power-ups
+            currentSpeedMultiplier = powerUpManager.GetSpeedMultiplier();
             
-            // Handle particle generation timing using ACTIVE settings
-            if ((now - lastParticleGeneration).TotalSeconds >= activeGenerationRate)
+            // Apply speed multiplier to delta time for time-based effects
+            var effectiveDeltaTime = deltaTime * currentSpeedMultiplier;
+            
+            UpdateFPS();
+            UpdateShipPosition(effectiveDeltaTime);
+            
+            // Update power-ups (use normal delta time for power-up timing)
+            var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
+            powerUpManager.Update(deltaTime, shipVector);
+            
+            // Check power-up collisions
+            powerUpManager.CheckCollisions(shipPosition);
+            
+            // Update particles through controller (with speed multiplier and power-up manager)
+            particleController.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
+            
+            // Check collisions through controller
+            particleController.CheckCollisions(shipPosition);
+            
+            // Handle particle generation timing (use normal delta time for consistent spawning)
+            if ((now - lastParticleGeneration).TotalSeconds >= activeLevelDuration)
             {
-                GenerateMoreParticles();
+                particleController.GenerateMoreParticles(activeNewParticlesPerLevel);
                 lastParticleGeneration = now;
             }
             
@@ -329,36 +351,36 @@ namespace tkkn2025
             lastUIUpdate = DateTime.Now;
             lastFPSUpdate = DateTime.Now;
             frameCount = 0;
+            currentSpeedMultiplier = 1.0;
             
-            // Apply current slider values to active game settings (settings are locked for this game)
-            activeShipSpeed = currentShipSpeed;
-            activeParticleSpeed = currentParticleSpeed;
-            activeStartingParticles = currentStartingParticles;
-            activeGenerationRate = currentGenerationRate;
-            activeIncreaseRate = currentIncreaseRate;
-            activeParticleSpeedVariance = currentParticleSpeedVariance;
-            activeParticleRandomizerPercentage = currentParticleRandomizerPercentage;
-            activeParticleChase_Initial = currentParticleChase_Initial;
+            // Hide the start screen when game starts
+            StartScreen.Visibility = Visibility.Hidden;
+            
+            // Update canvas dimensions for all managers at the start of each game
+            particleController.UpdateCanvasDimensions();
+            powerUpManager.UpdateCanvasDimensions();
+            
+            // Update center screen position based on current canvas size
+            centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
+            
+            // Snapshot current settings as active settings for this game
+            var gameSettings = SettingsManager.GameSettings;
+            activeShipSpeed = gameSettings.ShipSpeed.Value;
+            activeLevelDuration = gameSettings.LevelDuration.Value;
+            activeNewParticlesPerLevel = gameSettings.NewParticlesPerLevel.Value;
+            
+            // Initialize particle controller with game settings
+            particleController.InitializeGameSettings(SettingsManager);
             
             // Create game configuration for this game
-            var gameSettings = new GameConfig
-            {
-                ShipSpeed = activeShipSpeed,
-                ParticleSpeed = activeParticleSpeed,
-                StartingParticles = activeStartingParticles,
-                GenerationRate = activeGenerationRate,
-                IncreaseRate = activeIncreaseRate,
-                ParticleSpeedVariance = activeParticleSpeedVariance,
-                ParticleRandomizerPercentage = activeParticleRandomizerPercentage,
-                ParticleChase_Initial = activeParticleChase_Initial
-            };
+            var gameConfig = SettingsManager.ToGameConfig();
             
             // Start a new game in the session
-            currentGame = currentSession.StartNewGame(gameSettings);
+            currentGame = currentSession.StartNewGame(gameConfig);
             
             System.Diagnostics.Debug.WriteLine($"Started new game #{currentSession.Games.Count} with settings: " +
-                                             $"Ship:{activeShipSpeed}, Particles:{activeParticleSpeed}, " +
-                                             $"Starting:{activeStartingParticles}");
+                                             $"Ship:{activeShipSpeed}, Particles:{gameSettings.ParticleSpeed.Value}, " +
+                                             $"Starting:{gameSettings.StartingParticles.Value}");
             
             // Reset all key states to prevent ship from moving automatically
             for (int i = 0; i < keysPressed.Length; i++)
@@ -366,17 +388,16 @@ namespace tkkn2025
                 keysPressed[i] = false;
             }
             
-            // Reset ship position
+            // Reset ship position to current center
             shipPosition = centerScreen;
             Canvas.SetLeft(ship, shipPosition.X);
             Canvas.SetTop(ship, shipPosition.Y);
             
-            // Clear existing particles efficiently
-            ClearAllParticles();
+            // Start new game through particle controller
+            particleController.StartNewGame();
             
-            // Create initial particles using ACTIVE settings
-            currentParticleCount = activeStartingParticles;
-            CreateParticles(currentParticleCount);
+            // Start new game through power-up manager
+            powerUpManager.StartNewGame();
             
             StartButton.Content = "Game Running";
             
@@ -388,10 +409,13 @@ namespace tkkn2025
         {
             gameRunning = false;
             
+            // Show the start screen when game stops
+            StartScreen.Visibility = Visibility.Visible;
+            
             // Complete the current game
             if (currentGame != null)
             {
-                currentSession.CompleteCurrentGame(particles.Count);
+                currentSession.CompleteCurrentGame(particleController.ParticleCount);
                 System.Diagnostics.Debug.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
                 System.Diagnostics.Debug.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
             }
@@ -407,140 +431,6 @@ namespace tkkn2025
             
             // Clear settings locked message
             UpdateConfigStatus("Game ended - settings can be changed", Brushes.LightGreen);
-        }
-        
-        private void ClearAllParticles()
-        {
-            foreach (var particle in particles)
-            {
-                if (particle.IsActive)
-                {
-                    GameCanvas.Children.Remove(particle.Visual);
-                    particle.IsActive = false;
-                    particlePool.Enqueue(particle);
-                }
-            }
-            particles.Clear();
-        }
-        
-        private void CreateParticles(int count)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                CreateParticle();
-            }
-        }
-        
-        private Patricle GetPooledParticle()
-        {
-            if (particlePool.Count > 0)
-            {
-                var pooled = particlePool.Dequeue();
-                pooled.IsActive = true;
-                return pooled;
-            }
-            
-            return new Patricle
-            {
-                Visual = new Ellipse
-                {
-                    Width = 8,
-                    Height = 8,
-                    Fill = Brushes.White // Default color
-                },
-                IsActive = true
-            };
-        }
-        
-        private void CreateParticle()
-        {
-            var particle = GetPooledParticle();
-            
-            // Spawn particle outside game area
-            Point spawnPosition = GetRandomSpawnPosition();
-            particle.X = spawnPosition.X;
-            particle.Y = spawnPosition.Y;
-            
-            // Calculate base speed for this particle using ACTIVE settings
-            double actualParticleSpeed = activeParticleSpeed;
-            
-            // Apply speed randomization based on ACTIVE settings
-            int randomValue = random.Next(1, 101); // 1 to 100
-            if (randomValue <= activeParticleRandomizerPercentage)
-            {
-                // Apply speed variance (randomly faster or slower)
-                double varianceMultiplier = (random.NextDouble() * 2 - 1) * (activeParticleSpeedVariance / 100.0);
-                actualParticleSpeed = activeParticleSpeed * (1 + varianceMultiplier);
-                
-                // Ensure speed doesn't go negative or too slow
-                actualParticleSpeed = Math.Max(actualParticleSpeed, activeParticleSpeed * 0.1);
-            }
-            
-            // Store the actual speed in the particle
-            particle.Speed = actualParticleSpeed;
-            
-            // Set particle color based on speed relative to default
-            if (actualParticleSpeed > activeParticleSpeed)
-            {
-                // Faster than default - Red
-                particle.Visual.Fill = Brushes.Red;
-            }
-            else if (actualParticleSpeed < activeParticleSpeed)
-            {
-                // Slower than default - Blue
-                particle.Visual.Fill = Brushes.Blue;
-            }
-            else
-            {
-                // Default speed - White
-                particle.Visual.Fill = Brushes.White;
-            }
-            
-            // Calculate velocity based on ParticleChase_Initial setting
-            Vector direction;
-            if (activeParticleChase_Initial)
-            {
-                // Chase the ship's current position
-                direction = new Vector(
-                    shipPosition.X - spawnPosition.X,
-                    shipPosition.Y - spawnPosition.Y);
-            }
-            else
-            {
-                // Move toward the center screen (initial position)
-                direction = new Vector(
-                    centerScreen.X - spawnPosition.X,
-                    centerScreen.Y - spawnPosition.Y);
-            }
-            direction.Normalize();
-            
-            // Set velocity in pixels per second using the actual speed
-            particle.VelocityX = direction.X * actualParticleSpeed;
-            particle.VelocityY = direction.Y * actualParticleSpeed;
-            
-            // Set visual position
-            Canvas.SetLeft(particle.Visual, particle.X);
-            Canvas.SetTop(particle.Visual, particle.Y);
-            
-            particles.Add(particle);
-            GameCanvas.Children.Add(particle.Visual);
-        }
-        
-        private Point GetRandomSpawnPosition()
-        {
-            double canvasWidth = GameCanvas.ActualWidth > 0 ? GameCanvas.ActualWidth : 800;
-            double canvasHeight = GameCanvas.ActualHeight > 0 ? GameCanvas.ActualHeight : 600;
-            
-            int side = random.Next(4); // 0: top, 1: right, 2: bottom, 3: left
-            
-            return side switch
-            {
-                0 => new Point(random.NextDouble() * canvasWidth, -20), // Top
-                1 => new Point(canvasWidth + 20, random.NextDouble() * canvasHeight), // Right
-                2 => new Point(random.NextDouble() * canvasWidth, canvasHeight + 20), // Bottom
-                3 => new Point(-20, random.NextDouble() * canvasHeight), // Left
-                _ => new Point(0, 0)
-            };
         }
         
         private void UpdateFPS()
@@ -572,7 +462,7 @@ namespace tkkn2025
         {
             double deltaX = 0, deltaY = 0;
             
-            // Calculate movement based on time and speed using ACTIVE settings
+            // Calculate movement based on time and speed
             if (keysPressed[0]) deltaY -= activeShipSpeed * deltaTime; // Up
             if (keysPressed[1]) deltaY += activeShipSpeed * deltaTime; // Down
             if (keysPressed[2]) deltaX -= activeShipSpeed * deltaTime; // Left
@@ -590,93 +480,37 @@ namespace tkkn2025
             }
         }
         
-        private void UpdateParticles(double deltaTime)
-        {
-            double canvasWidth = GameCanvas.ActualWidth;
-            double canvasHeight = GameCanvas.ActualHeight;
-            
-            for (int i = particles.Count - 1; i >= 0; i--)
-            {
-                var particle = particles[i];
-                
-                // Update position using velocity and delta time
-                particle.X += particle.VelocityX * deltaTime;
-                particle.Y += particle.VelocityY * deltaTime;
-                
-                // Check bounds
-                if (particle.X < -50 || particle.X > canvasWidth + 50 ||
-                    particle.Y < -50 || particle.Y > canvasHeight + 50)
-                {
-                    // Remove and pool particle
-                    GameCanvas.Children.Remove(particle.Visual);
-                    particle.IsActive = false;
-                    particlePool.Enqueue(particle);
-                    particles.RemoveAt(i);
-                    
-                    // Spawn a new particle to replace it
-                    CreateParticle();
-                }
-                else
-                {
-                    // Update visual position (sub-pixel precision)
-                    Canvas.SetLeft(particle.Visual, particle.X);
-                    Canvas.SetTop(particle.Visual, particle.Y);
-                }
-            }
-        }
-        
-        private void CheckCollisions()
-        {
-            double shipX = shipPosition.X;
-            double shipY = shipPosition.Y;
-            const double maxCheckDistance = 50; // Only check nearby particles
-            
-            foreach (var particle in particles)
-            {
-                // Quick distance check first (cheaper than full calculation)
-                double roughDeltaX = Math.Abs(shipX - particle.X);
-                double roughDeltaY = Math.Abs(shipY - particle.Y);
-                
-                // Skip if obviously too far away
-                if (roughDeltaX > maxCheckDistance || roughDeltaY > maxCheckDistance)
-                    continue;
-                    
-                // Now do precise collision detection
-                double particleX = particle.X + 4;
-                double particleY = particle.Y + 4;
-                double deltaX = shipX - particleX;
-                double deltaY = shipY - particleY;
-                double distanceSquared = deltaX * deltaX + deltaY * deltaY;
-                
-                if (distanceSquared < 225) // 15^2
-                {
-                    StopGame();
-                    var survivedTime = (DateTime.Now - gameStartTime).TotalSeconds;
-                    
-                    // Show game over message with session stats
-                    var sessionStats = currentSession.GetSessionStats();
-                    MessageBox.Show($"Game Over! You survived for {survivedTime:F1} seconds!\n\n{sessionStats}", 
-                                   "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-            }
-        }
-        
-        private void GenerateMoreParticles()
-        {
-            // Increase particle count by the specified percentage using ACTIVE settings
-            currentParticleCount = (int)(currentParticleCount * (1 + activeIncreaseRate / 100.0));
-            CreateParticles(Math.Max(1, currentParticleCount / 10)); // Add some particles
-        }
-        
         private void UpdateUI()
         {
-            ParticleCountText.Text = $"Particles: {particles.Count}";
+            ParticleCountText.Text = $"Particles: {particleController.ParticleCount}";
             
             if (gameRunning)
             {
                 var elapsed = DateTime.Now - gameStartTime;
                 GameTimeText.Text = $"Time: {elapsed.TotalSeconds:F0}s";
+                
+                // Show active power-up effects
+                if (powerUpManager.IsEffectActive("TimeWarp"))
+                {
+                    var remaining = powerUpManager.GetEffectRemainingTime("TimeWarp");
+                    GameTimeText.Text += $" | TimeWarp: {remaining:F1}s";
+                }
+                
+                // Show stored power-ups
+                var singularityCount = powerUpManager.GetStoredPowerUpCount("Singularity");
+                var repulsorCount = powerUpManager.GetStoredPowerUpCount("Repulsor");
+                if (singularityCount > 0 || repulsorCount > 0)
+                {
+                    GameTimeText.Text += " |";
+                    if (singularityCount > 0)
+                    {
+                        GameTimeText.Text += $" Singularity: {singularityCount}";
+                    }
+                    if (repulsorCount > 0)
+                    {
+                        GameTimeText.Text += $" Repulsor: {repulsorCount}";
+                    }
+                }
             }
 
             // Update session stats
@@ -753,139 +587,39 @@ namespace tkkn2025
             }
         }
         
-        // Settings event handlers - These update CURRENT settings (displayed values) but don't affect running games
-        private void ShipSpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentShipSpeed = (int)e.NewValue;
-            if (ShipSpeedTextBox != null)
-                ShipSpeedTextBox.Text = currentShipSpeed.ToString("F0");
-        }
-        
-        private void ParticleSpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentParticleSpeed = (int)e.NewValue;
-            if (ParticleSpeedTextBox != null)
-                ParticleSpeedTextBox.Text = currentParticleSpeed.ToString("F0");
-        }
-        
-        private void ParticleSpeedVarianceSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentParticleSpeedVariance = (int)e.NewValue;
-            if (ParticleSpeedVarianceTextBox != null)
-                ParticleSpeedVarianceTextBox.Text = currentParticleSpeedVariance.ToString("F0");
-        }
-        
-        private void ParticleRandomizerPercentageSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentParticleRandomizerPercentage = (int)e.NewValue;
-            if (ParticleRandomizerPercentageTextBox != null)
-                ParticleRandomizerPercentageTextBox.Text = currentParticleRandomizerPercentage.ToString("F0");
-        }
-        
-        private void StartingParticlesSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentStartingParticles = (int)e.NewValue;
-            if (StartingParticlesTextBox != null)
-                StartingParticlesTextBox.Text = currentStartingParticles.ToString();
-        }
-        
-        private void GenerationRateSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentGenerationRate = (int)e.NewValue;
-            if (GenerationRateTextBox != null)
-                GenerationRateTextBox.Text = currentGenerationRate.ToString("F0");
-        }
-        
-        private void IncreaseRateSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            currentIncreaseRate = (int)e.NewValue;
-            if (IncreaseRateTextBox != null)
-                IncreaseRateTextBox.Text = currentIncreaseRate.ToString("F0");
-        }
-
-        // TextBox event handlers - Allow direct text input
-        private void ShipSpeedTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(ShipSpeedTextBox.Text, out double value))
-            {
-                value = Math.Max(50, Math.Min(500, value)); // Clamp to slider range
-                currentShipSpeed = value;
-                if (ShipSpeedSlider != null)
-                    ShipSpeedSlider.Value = value;
-            }
-        }
-
-        private void ParticleSpeedTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(ParticleSpeedTextBox.Text, out double value))
-            {
-                value = Math.Max(25, Math.Min(300, value)); // Clamp to slider range
-                currentParticleSpeed = value;
-                if (ParticleSpeedSlider != null)
-                    ParticleSpeedSlider.Value = value;
-            }
-        }
-
-        private void ParticleSpeedVarianceTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(ParticleSpeedVarianceTextBox.Text, out double value))
-            {
-                value = Math.Max(0, Math.Min(100, value)); // Clamp to slider range
-                currentParticleSpeedVariance = value;
-                if (ParticleSpeedVarianceSlider != null)
-                    ParticleSpeedVarianceSlider.Value = value;
-            }
-        }
-
-        private void ParticleRandomizerPercentageTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(ParticleRandomizerPercentageTextBox.Text, out double value))
-            {
-                value = Math.Max(0, Math.Min(100, value)); // Clamp to slider range
-                currentParticleRandomizerPercentage = value;
-                if (ParticleRandomizerPercentageSlider != null)
-                    ParticleRandomizerPercentageSlider.Value = value;
-            }
-        }
-
-        private void StartingParticlesTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (int.TryParse(StartingParticlesTextBox.Text, out int value))
-            {
-                value = Math.Max(1, Math.Min(100, value)); // Clamp to slider range
-                currentStartingParticles = value;
-                if (StartingParticlesSlider != null)
-                    StartingParticlesSlider.Value = value;
-            }
-        }
-
-        private void GenerationRateTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(GenerationRateTextBox.Text, out double value))
-            {
-                value = Math.Max(1, Math.Min(20, value)); // Clamp to slider range
-                currentGenerationRate = value;
-                if (GenerationRateSlider != null)
-                    GenerationRateSlider.Value = value;
-            }
-        }
-
-        private void IncreaseRateTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (double.TryParse(IncreaseRateTextBox.Text, out double value))
-            {
-                value = Math.Max(1, Math.Min(50, value)); // Clamp to slider range
-                currentIncreaseRate = value;
-                if (IncreaseRateSlider != null)
-                    IncreaseRateSlider.Value = value;
-            }
-        }
-
         // Canvas event handler for focus management
         private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // Make the canvas take focus when clicked
             GameCanvas.Focus();
+            
+            if (gameRunning)
+            {
+                if (e.LeftButton == MouseButtonState.Pressed)
+                {
+                    // Left click - try to activate singularity at click position
+                    var clickPosition = e.GetPosition(GameCanvas);
+                    var clickVector = new Vector2((float)clickPosition.X, (float)clickPosition.Y);
+                    
+                    bool activated = powerUpManager.TryActivateSingularity(clickVector);
+                    if (!activated)
+                    {
+                        UpdateConfigStatus("No Singularity power-up available!", Brushes.Red);
+                    }
+                }
+                else if (e.RightButton == MouseButtonState.Pressed)
+                {
+                    // Right click - try to activate repulsor at ship position
+                    var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
+                    
+                    bool activated = powerUpManager.TryActivateRepulsor(shipVector);
+                    if (!activated)
+                    {
+                        UpdateConfigStatus("No Repulsor power-up available!", Brushes.Red);
+                    }
+                }
+            }
+            
             e.Handled = true;
         }
 
@@ -903,11 +637,8 @@ namespace tkkn2025
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    // Reset to default settings
-                    var defaultSettings = SettingsManager.GetDefaultSettings();
-                    ApplyConfigToCurrentSettings(defaultSettings);
-                    UpdateAllUIControls();
-
+                    // Reset to default settings using the new system
+                    SettingsManager.ResetToDefaults();
                     UpdateConfigStatus("Settings reset to defaults", Brushes.Orange);
                     System.Diagnostics.Debug.WriteLine("Settings reset to default values");
                 }
@@ -923,8 +654,8 @@ namespace tkkn2025
         {
             try
             {
-                var currentSettings = CreateConfigFromCurrentSettings();
-                var validated = SettingsManager.ValidateSettings(currentSettings);
+                var currentSettings = SettingsManager.ToGameConfig();
+                var validated = SettingsManager.ValidateSavedOrLoadedSettings(currentSettings);
 
                 bool success = SettingsManager.SaveSettingsWithDialog(validated);
                 
@@ -953,17 +684,20 @@ namespace tkkn2025
                 
                 if (loadedSettings != null)
                 {
-                    // Validate and apply the loaded settings
-                    var validated = SettingsManager.ValidateSettings(loadedSettings);
-                    ApplyConfigToCurrentSettings(validated);
-                    UpdateAllUIControls();
+                    // Validate and apply the loaded settings using the new system
+                    var validated = SettingsManager.ValidateSavedOrLoadedSettings(loadedSettings);
+                    SettingsManager.FromGameConfig(validated);
+
+                    // Update audio manager with loaded music setting
+                    audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                    UpdateMusicButtonText();
 
                     UpdateConfigStatus("Settings loaded successfully", Brushes.LightGreen);
                     System.Diagnostics.Debug.WriteLine("Settings loaded from file successfully");
                 }
                 else
                 {
-                    UpdateConfigStatus("Load cancelled or failed", Brushes.LightCoral);
+                    UpdateConfigStatus("Load canceled or failed", Brushes.LightCoral);
                 }
             }
             catch (Exception ex)
@@ -973,10 +707,39 @@ namespace tkkn2025
             }
         }
 
-        // Particle Chase CheckBox Event Handler
-        private void ParticleChaseCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void MusicToggleButton_Click(object sender, RoutedEventArgs e)
         {
-            currentParticleChase_Initial = ParticleChaseCheckBox.IsChecked ?? true;
+            try
+            {
+                // Toggle the music setting
+                SettingsManager.GameSettings.MusicEnabled.Value = !SettingsManager.GameSettings.MusicEnabled.Value;
+                
+                // Update the audio manager
+                audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                
+                // Update button text
+                UpdateMusicButtonText();
+                
+                // Save the settings immediately
+                SaveGameSettings();
+                
+                System.Diagnostics.Debug.WriteLine($"Music toggled to: {SettingsManager.GameSettings.MusicEnabled.Value}");
+            }
+            catch (Exception ex)
+            {
+                UpdateConfigStatus($"Error toggling music: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in MusicToggleButton_Click: {ex.Message}");
+            }
+        }
+
+        private void UpdateMusicButtonText()
+        {
+            if (MusicToggleButton != null && SettingsManager?.GameSettings?.MusicEnabled != null)
+            {
+                bool isEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
+                MusicToggleButton.Background = isEnabled ? new SolidColorBrush(Colors.DarkSlateBlue) : new SolidColorBrush(Colors.DarkRed);
+            }
         }
     }
 }

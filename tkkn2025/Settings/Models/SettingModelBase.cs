@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace tkkn2025.Settings
+namespace tkkn2025.Settings.Models
 {
     /// <summary>
     /// Non-generic base interface for all setting models (for collection compatibility)
@@ -12,6 +12,7 @@ namespace tkkn2025.Settings
         string Category { get; }
         object Value { get; set; }
         object DefaultValue { get; }
+        string Description { get; }
         event PropertyChangedEventHandler? PropertyChanged;
     }
 
@@ -24,6 +25,7 @@ namespace tkkn2025.Settings
         public string Name { get; }
         public string DisplayName { get; }
         public string Category { get; }
+        public string Description { get; }
 
         private T _value;
         public T Value
@@ -51,13 +53,14 @@ namespace tkkn2025.Settings
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected SettingModelBase(string name, string displayName, string category, T defaultValue)
+        protected SettingModelBase(string name, string displayName, string category, T defaultValue, string description)
         {
             Name = name;
             DisplayName = displayName;
             Category = category;
             _value = defaultValue;
             DefaultValue = defaultValue;
+            Description = description;
         }
 
         // 🔹 Implicit conversion TO T

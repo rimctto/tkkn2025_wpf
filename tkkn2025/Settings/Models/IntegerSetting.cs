@@ -1,3 +1,5 @@
+using tkkn2025.Settings.Models;
+
 namespace tkkn2025.Settings
 {
     /// <summary>
@@ -24,8 +26,9 @@ namespace tkkn2025.Settings
         /// <param name="defaultValue">Default integer value</param>
         /// <param name="min">Minimum allowed value</param>
         /// <param name="max">Maximum allowed value</param>
-        public IntegerSetting(string name, string displayName, string category, int defaultValue, int min, int max)
-            : base(name, displayName, category, defaultValue)
+        /// <param name="description">Description of what this setting does</param>
+        public IntegerSetting(string name, string displayName, string category, int defaultValue, int min, int max, string description = "")
+            : base(name, displayName, category, defaultValue, description)
         {
             Min = min;
             Max = max;

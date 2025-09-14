@@ -1,3 +1,5 @@
+using tkkn2025.Settings.Models;
+
 namespace tkkn2025.Settings
 {
     /// <summary>
@@ -24,8 +26,9 @@ namespace tkkn2025.Settings
         /// <param name="defaultValue">Default double value</param>
         /// <param name="min">Minimum allowed value</param>
         /// <param name="max">Maximum allowed value</param>
-        public DoubleSetting(string name, string displayName, string category, double defaultValue, double min, double max)
-            : base(name, displayName, category, defaultValue)
+        /// <param name="description">Description of what this setting does</param>
+        public DoubleSetting(string name, string displayName, string category, double defaultValue, double min, double max, string description = "")
+            : base(name, displayName, category, defaultValue, description)
         {
             Min = min;
             Max = max;
