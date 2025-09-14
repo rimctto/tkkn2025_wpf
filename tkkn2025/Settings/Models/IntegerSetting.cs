@@ -3,7 +3,7 @@ namespace tkkn2025.Settings
     /// <summary>
     /// Setting model for numeric integer values with min/max constraints
     /// </summary>
-    public class NumericSetting : SettingModelBase
+    public class IntegerSetting : SettingModelBase<int>
     {
         /// <summary>
         /// Minimum allowed value
@@ -16,7 +16,7 @@ namespace tkkn2025.Settings
         public int Max { get; }
 
         /// <summary>
-        /// Initialize a new numeric setting
+        /// Initialize a new integer setting
         /// </summary>
         /// <param name="name">Internal name/key</param>
         /// <param name="displayName">Display name for UI</param>
@@ -24,7 +24,7 @@ namespace tkkn2025.Settings
         /// <param name="defaultValue">Default integer value</param>
         /// <param name="min">Minimum allowed value</param>
         /// <param name="max">Maximum allowed value</param>
-        public NumericSetting(string name, string displayName, string category, int defaultValue, int min, int max)
+        public IntegerSetting(string name, string displayName, string category, int defaultValue, int min, int max)
             : base(name, displayName, category, defaultValue)
         {
             Min = min;
@@ -32,11 +32,11 @@ namespace tkkn2025.Settings
         }
 
         /// <summary>
-        /// Strongly-typed access to the integer value
+        /// Strongly-typed access to the integer value (alias for Value property)
         /// </summary>
         public int IntValue
         {
-            get => (int)Value;
+            get => Value;
             set => Value = value;
         }
     }

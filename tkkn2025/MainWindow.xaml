@@ -60,7 +60,7 @@
                             Name="FpsText"
                             HorizontalAlignment="Center"
                             FontWeight="Bold"
-                            Foreground="Yellow" 
+                            Foreground="Yellow"
                             Text="FPS: 0" />
 
                         <!--  Session Stats  -->
@@ -70,7 +70,7 @@
                             FontWeight="Bold"
                             Foreground="White"
                             Text="Session Stats" />
-                        
+
                         <TextBlock
                             Name="SessionStatsText"
                             Margin="0,0,0,10"
@@ -86,43 +86,43 @@
                             FontWeight="Bold"
                             Foreground="White"
                             Text="Game Settings" />
-                        
+
                         <!--  Settings Management Buttons  -->
-                        <StackPanel 
-                            Orientation="Horizontal" 
+                        <StackPanel
+                            Margin="0,5,0,0"
                             HorizontalAlignment="Center"
-                            Margin="0,5,0,0">
+                            Orientation="Horizontal">
                             <Button
                                 Name="SaveSettingsButton"
                                 Width="60"
                                 Padding="5,2"
                                 Background="DarkGray"
+                                Click="SaveSettingsButton_Click"
                                 Content="Save"
                                 FontSize="10"
-                                Foreground="White"
-                                Click="SaveSettingsButton_Click" />
+                                Foreground="White" />
                             <Button
                                 Name="LoadSettingsButton"
                                 Width="60"
                                 Margin="5,0,0,0"
                                 Padding="5,2"
                                 Background="DarkGray"
+                                Click="LoadSettingsButton_Click"
                                 Content="Load"
                                 FontSize="10"
-                                Foreground="White"
-                                Click="LoadSettingsButton_Click" />
+                                Foreground="White" />
                             <Button
                                 Name="ResetSettingsButton"
                                 Width="60"
                                 Margin="5,0,0,0"
                                 Padding="5,2"
                                 Background="DarkGray"
+                                Click="ResetSettingsButton_Click"
                                 Content="Default"
                                 FontSize="10"
-                                Foreground="White"
-                                Click="ResetSettingsButton_Click" />
+                                Foreground="White" />
                         </StackPanel>
-                        
+
                         <!--  Config Status  -->
                         <TextBlock
                             Name="ConfigStatusText"
@@ -134,7 +134,7 @@
 
                     </StackPanel>
 
-                    <!--Basic Settings-->
+                    <!--  Basic Settings  -->
                     <Expander Foreground="White" IsExpanded="True">
                         <Expander.Header>
                             <TextBlock FontSize="14" Text="Basic Settings" />
@@ -430,37 +430,33 @@
                                 <CheckBox
                                     Name="ParticleChaseCheckBox"
                                     Grid.Column="1"
-                                    VerticalAlignment="Center"
                                     HorizontalAlignment="Right"
-                                    IsChecked="True"
+                                    VerticalAlignment="Center"
                                     Checked="ParticleChaseCheckBox_Changed"
+                                    IsChecked="True"
                                     Unchecked="ParticleChaseCheckBox_Changed" />
                             </Grid>
                         </StackPanel>
                     </Expander>
 
-                    <!--New Settings-->
+                    <!--  New Settings  -->
                     <Expander Foreground="White" Visibility="Collapsed">
                         <Expander.Header>
                             <TextBlock FontSize="14" Text="New Settings" />
                         </Expander.Header>
-                        
-                        <!--Settings-->
-                        <StackPanel>
-                            
-                        </StackPanel>
+
+                        <!--  Settings  -->
+                        <StackPanel />
                     </Expander>
 
-                    <!--New Settings-->
+                    <!--  New Settings  -->
                     <Expander Foreground="White" Visibility="Collapsed">
                         <Expander.Header>
                             <TextBlock FontSize="14" Text="Basic Settings" />
                         </Expander.Header>
 
-                        <!--Settings-->
-                        <StackPanel>
-
-                        </StackPanel>
+                        <!--  Settings  -->
+                        <StackPanel />
                     </Expander>
                 </StackPanel>
             </ScrollViewer>

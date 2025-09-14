@@ -4,110 +4,33 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:tkkn2025.UI.UserControls"
-    xmlns:mc="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:settings="clr-namespace:tkkn2025.Settings">
     <ItemsControl ItemsSource="{Binding Settings}">
         <ItemsControl.Resources>
 
-            <!--  Numeric Setting  -->
-            <DataTemplate DataType="{x:Type settings:NumericSetting}">
-                <Grid Margin="0,0,0,15">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="60" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Foreground="White"
-                        Text="{Binding DisplayName}" />
-                    <TextBox
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        Margin="5,0,0,0"
-                        Background="DarkGray"
-                        BorderBrush="Gray"
-                        Foreground="White"
-                        Text="{Binding IntValue}"
-                        TextAlignment="Center" />
-                    <Slider
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Margin="0,5,0,0"
-                        Maximum="{Binding Max}"
-                        Minimum="{Binding Min}"
-                        Value="{Binding IntValue}" />
-                </Grid>
+            <!-- Integer Setting -->
+            <DataTemplate DataType="{x:Type settings:IntegerSetting}">
+                <local:IntegerSettingControl />
             </DataTemplate>
 
-            <!--  Bool Setting  -->
+            <!-- Double Setting -->
+            <DataTemplate DataType="{x:Type settings:DoubleSetting}">
+                <local:DoubleSettingControl />
+            </DataTemplate>
+
+            <!-- Bool Setting -->
             <DataTemplate DataType="{x:Type settings:BoolSetting}">
-                <Grid Margin="0,0,0,15">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        Foreground="White"
-                        Text="{Binding DisplayName}" />
-                    <CheckBox
-                        Grid.Column="1"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        IsChecked="{Binding BoolValue}" />
-                </Grid>
+                <local:BoolSettingControl />
             </DataTemplate>
 
-            <!--  Enum Setting  -->
+            <!-- Enum Setting -->
             <DataTemplate DataType="{x:Type settings:EnumSetting}">
-                <Grid Margin="0,0,0,15">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        Foreground="White"
-                        Text="{Binding DisplayName}" />
-                    <ComboBox
-                        Grid.Column="1"
-                        Width="120"
-                        ItemsSource="{Binding Options}"
-                        SelectedItem="{Binding Value}" />
-                </Grid>
+                <local:EnumSettingControl />
             </DataTemplate>
 
-            <!--  Text Setting  -->
+            <!-- Text Setting -->
             <DataTemplate DataType="{x:Type settings:TextSetting}">
-                <Grid Margin="0,0,0,15">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="120" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock
-                        Grid.Column="0"
-                        VerticalAlignment="Center"
-                        Foreground="White"
-                        Text="{Binding DisplayName}" />
-                    <TextBox
-                        Grid.Column="1"
-                        Background="DarkGray"
-                        BorderBrush="Gray"
-                        Foreground="White"
-                        Text="{Binding TextValue}" />
-                </Grid>
+                <local:TextSettingControl />
             </DataTemplate>
 
         </ItemsControl.Resources>

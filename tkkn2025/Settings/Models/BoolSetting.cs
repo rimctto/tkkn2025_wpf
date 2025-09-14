@@ -3,7 +3,7 @@ namespace tkkn2025.Settings
     /// <summary>
     /// Setting model for boolean values (true/false)
     /// </summary>
-    public class BoolSetting : SettingModelBase
+    public class BoolSetting : SettingModelBase<bool>
     {
         /// <summary>
         /// Initialize a new boolean setting
@@ -16,11 +16,11 @@ namespace tkkn2025.Settings
             : base(name, displayName, category, defaultValue) { }
 
         /// <summary>
-        /// Strongly-typed access to the boolean value
+        /// Strongly-typed access to the boolean value (alias for Value property)
         /// </summary>
         public bool BoolValue
         {
-            get => (bool)Value;
+            get => Value;
             set => Value = value;
         }
     }
