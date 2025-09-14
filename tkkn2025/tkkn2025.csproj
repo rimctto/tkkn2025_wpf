@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Graphics\" />
     <Folder Include="Settings\GamePlaySettings\" />
+    <Folder Include="UI\UserControls\" />
   </ItemGroup>
 
 </Project>

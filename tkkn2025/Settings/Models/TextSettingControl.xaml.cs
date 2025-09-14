@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace tkkn2025.UI.UserControls
+namespace tkkn2025.Settings.Models
 {
     /// <summary>
     /// Interaction logic for TextSettingControl.xaml

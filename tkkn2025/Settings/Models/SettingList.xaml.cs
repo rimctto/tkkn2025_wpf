@@ -13,14 +13,16 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace tkkn2025.UI.UserControls;
-/// <summary>
-/// Interaction logic for SettingList.xaml
-/// </summary>
-public partial class SettingList : UserControl
+namespace tkkn2025.Settings.Models
 {
-    public SettingList()
+    /// <summary>
+    /// Interaction logic for SettingList.xaml
+    /// </summary>
+    public partial class SettingList : UserControl
     {
-        InitializeComponent();
+        public SettingList()
+        {
+            InitializeComponent();
+        }
     }
 }
