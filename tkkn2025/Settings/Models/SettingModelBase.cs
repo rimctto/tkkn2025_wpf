@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace tkkn2025.Settings
 {
@@ -21,25 +21,11 @@ namespace tkkn2025.Settings
     /// <typeparam name="T">The type of value this setting contains</typeparam>
     public abstract class SettingModelBase<T> : ISettingModel, INotifyPropertyChanged
     {
-        /// <summary>
-        /// The internal name/key of the setting
-        /// </summary>
         public string Name { get; }
-
-        /// <summary>
-        /// The display name shown in the UI
-        /// </summary>
         public string DisplayName { get; }
-
-        /// <summary>
-        /// The category this setting belongs to
-        /// </summary>
         public string Category { get; }
 
         private T _value;
-        /// <summary>
-        /// The current value of the setting
-        /// </summary>
         public T Value
         {
             get => _value;
@@ -53,37 +39,18 @@ namespace tkkn2025.Settings
             }
         }
 
-        /// <summary>
-        /// The default value of the setting
-        /// </summary>
         public T DefaultValue { get; }
 
-        /// <summary>
-        /// Non-generic access to value (for interface compatibility)
-        /// </summary>
         object ISettingModel.Value
         {
             get => Value!;
             set => Value = (T)value;
         }
 
-        /// <summary>
-        /// Non-generic access to default value (for interface compatibility)
-        /// </summary>
         object ISettingModel.DefaultValue => DefaultValue!;
 
-        /// <summary>
-        /// Event raised when a property value changes
-        /// </summary>
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        /// <summary>
-        /// Initialize a new setting model
-        /// </summary>
-        /// <param name="name">Internal name/key</param>
-        /// <param name="displayName">Display name for UI</param>
-        /// <param name="category">Category grouping</param>
-        /// <param name="defaultValue">Default value</param>
         protected SettingModelBase(string name, string displayName, string category, T defaultValue)
         {
             Name = name;
@@ -92,5 +59,21 @@ namespace tkkn2025.Settings
             _value = defaultValue;
             DefaultValue = defaultValue;
         }
+
+        // 🔹 Implicit conversion TO T
+        public static implicit operator T(SettingModelBase<T> setting) => setting.Value;
+
+        // 🔹 Implicit assignment FROM T (updates existing instance)
+        public static implicit operator SettingModelBase<T>(T value)
+        {
+            throw new InvalidOperationException(
+                "Cannot assign a raw value to a SettingModelBase<T> without referencing an instance. " +
+                "Use a wrapper property or method to update the Value instead.");
+        }
+
+        /// <summary>
+        /// Convenience method to update the Value directly, allowing syntax like `setting.Set(3.5);`
+        /// </summary>
+        public void Set(T value) => Value = value;
     }
 }

@@ -20,8 +20,8 @@
             Text="{Binding DisplayName}" />
         <CheckBox
             Grid.Column="1"
-            VerticalAlignment="Center"
             HorizontalAlignment="Right"
+            VerticalAlignment="Center"
             d:IsChecked="True"
             IsChecked="{Binding Value, Mode=TwoWay}" />
     </Grid>

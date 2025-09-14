@@ -12,122 +12,105 @@ namespace tkkn2025.Settings
         /// </summary>
         public List<ISettingModel> Settings { get; }
 
-        /// <summary>
+        /// <summary>                                                                                           
         /// Ship movement speed setting
         /// </summary>
-        public DoubleSetting ShipSpeed { get; }
+        public DoubleSetting ShipSpeed { get; } = new DoubleSetting(
+            name: nameof(ShipSpeed),
+            displayName: "Ship Speed",
+            category: "Movement",
+            defaultValue: 200.0,
+            min: 50.0,
+            max: 500.0
+        );
 
         /// <summary>
         /// Particle movement speed setting
         /// </summary>
-        public DoubleSetting ParticleSpeed { get; }
+        public DoubleSetting ParticleSpeed { get; } = new DoubleSetting(
+            name: nameof(ParticleSpeed),
+            displayName: "Particle Speed",
+            category: "Particles",
+            defaultValue: 175.0,
+            min: 25.0,
+            max: 300.0
+        );
 
         /// <summary>
         /// Number of particles to start the game with
         /// </summary>
-        public IntegerSetting StartingParticles { get; }
+        public IntegerSetting StartingParticles { get; } = new IntegerSetting(
+            name: nameof(StartingParticles),
+            displayName: "Starting Particles",
+            category: "Particles",
+            defaultValue: 30,
+            min: 1,
+            max: 100
+        );
 
         /// <summary>
         /// Time between level increases (in seconds)
         /// </summary>
-        public DoubleSetting GenerationRate { get; }
+        public DoubleSetting GenerationRate { get; } = new DoubleSetting(
+            name: nameof(GenerationRate),
+            displayName: "Level Duration (s)",
+            category: "Gameplay",
+            defaultValue: 5.0,
+            min: 1.0,
+            max: 20.0
+        );
 
         /// <summary>
         /// Percentage increase in particle count per level
         /// </summary>
-        public DoubleSetting IncreaseRate { get; }
+        public DoubleSetting IncreaseRate { get; } = new DoubleSetting(
+            name: nameof(IncreaseRate),
+            displayName: "New Particles / Level",
+            category: "Gameplay",
+            defaultValue: 15.0,
+            min: 1.0,
+            max: 50.0
+        );
 
         /// <summary>
         /// Percentage variance in particle speed
         /// </summary>
-        public DoubleSetting ParticleSpeedVariance { get; }
+        public DoubleSetting ParticleSpeedVariance { get; } = new DoubleSetting(
+            name: nameof(ParticleSpeedVariance),
+            displayName: "Speed Variance (%)",
+            category: "Particles",
+            defaultValue: 15.0,
+            min: 0.0,
+            max: 100.0
+        );
 
         /// <summary>
         /// Percentage of particles that get randomized speed
         /// </summary>
-        public DoubleSetting ParticleRandomizerPercentage { get; }
+        public DoubleSetting ParticleRandomizerPercentage { get; } = new DoubleSetting(
+            name: nameof(ParticleRandomizerPercentage),
+            displayName: "Random Particle %",
+            category: "Particles",
+            defaultValue: 30.0,
+            min: 0.0,
+            max: 100.0
+        );
 
         /// <summary>
         /// Whether particles chase the ship's current position or move toward center
         /// </summary>
-        public BoolSetting ParticleChase_Initial { get; }
+        public BoolSetting ParticleChase_Initial { get; } = new BoolSetting(
+            name: nameof(ParticleChase_Initial),
+            displayName: "Particles Chase Ship",
+            category: "Particles",
+            defaultValue: true
+        );
 
         /// <summary>
         /// Initialize the basic settings with default values
         /// </summary>
         public BasicSettings()
         {
-            // Initialize individual settings with proper constraints based on the existing game
-            ShipSpeed = new DoubleSetting(
-                name: "ShipSpeed",
-                displayName: "Ship Speed",
-                category: "Movement",
-                defaultValue: 200.0,
-                min: 50.0,
-                max: 500.0
-            );
-
-            ParticleSpeed = new DoubleSetting(
-                name: "ParticleSpeed",
-                displayName: "Particle Speed",
-                category: "Particles",
-                defaultValue: 175.0,
-                min: 25.0,
-                max: 300.0
-            );
-
-            StartingParticles = new IntegerSetting(
-                name: "StartingParticles",
-                displayName: "Starting Particles",
-                category: "Particles",
-                defaultValue: 30,
-                min: 1,
-                max: 100
-            );
-
-            GenerationRate = new DoubleSetting(
-                name: "GenerationRate",
-                displayName: "Level Duration (s)",
-                category: "Gameplay",
-                defaultValue: 5.0,
-                min: 1.0,
-                max: 20.0
-            );
-
-            IncreaseRate = new DoubleSetting(
-                name: "IncreaseRate",
-                displayName: "New Particles / Level",
-                category: "Gameplay",
-                defaultValue: 15.0,
-                min: 1.0,
-                max: 50.0
-            );
-
-            ParticleSpeedVariance = new DoubleSetting(
-                name: "ParticleSpeedVariance",
-                displayName: "Speed Variance (%)",
-                category: "Particles",
-                defaultValue: 15.0,
-                min: 0.0,
-                max: 100.0
-            );
-
-            ParticleRandomizerPercentage = new DoubleSetting(
-                name: "ParticleRandomizerPercentage",
-                displayName: "Random Particle %",
-                category: "Particles",
-                defaultValue: 30.0,
-                min: 0.0,
-                max: 100.0
-            );
-
-            ParticleChase_Initial = new BoolSetting(
-                name: "ParticleChase_Initial",
-                displayName: "Particles Chase Ship",
-                category: "Particles",
-                defaultValue: true
-            );
-
             // Create the settings list
             Settings = new List<ISettingModel>
             {

@@ -10,27 +10,27 @@
     <ItemsControl ItemsSource="{Binding Settings}">
         <ItemsControl.Resources>
 
-            <!-- Integer Setting -->
+            <!--  Integer Setting  -->
             <DataTemplate DataType="{x:Type settings:IntegerSetting}">
                 <local:IntegerSettingControl />
             </DataTemplate>
 
-            <!-- Double Setting -->
+            <!--  Double Setting  -->
             <DataTemplate DataType="{x:Type settings:DoubleSetting}">
                 <local:DoubleSettingControl />
             </DataTemplate>
 
-            <!-- Bool Setting -->
+            <!--  Bool Setting  -->
             <DataTemplate DataType="{x:Type settings:BoolSetting}">
                 <local:BoolSettingControl />
             </DataTemplate>
 
-            <!-- Enum Setting -->
+            <!--  Enum Setting  -->
             <DataTemplate DataType="{x:Type settings:EnumSetting}">
                 <local:EnumSettingControl />
             </DataTemplate>
 
-            <!-- Text Setting -->
+            <!--  Text Setting  -->
             <DataTemplate DataType="{x:Type settings:TextSetting}">
                 <local:TextSettingControl />
             </DataTemplate>
