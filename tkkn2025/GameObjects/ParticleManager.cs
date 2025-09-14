@@ -15,8 +15,6 @@ namespace tkkn2025.GameObjects
     /// </summary>
     public class ParticleManager
     {
-        public GameSettings gameSettings = new GameSettings();  
-
         // Particle management
         private List<Patricle> particles = new List<Patricle>();
         private readonly Queue<Patricle> particlePool = new Queue<Patricle>();
@@ -42,31 +40,16 @@ namespace tkkn2025.GameObjects
         // Events for game state changes
         public event Action? CollisionDetected;
         
-        /// <summary>
-        /// Gets the current number of active particles
-        /// </summary>
         public int ParticleCount => particles.Count;
-        
-        /// <summary>
-        /// Gets the current particle count for level progression
-        /// </summary>
+                
         public int CurrentParticleCount => currentParticleCount;
 
-        /// <summary>
-        /// Initialize the particle controller with game canvas
-        /// </summary>
-        /// <param name="canvas">Canvas to render particles on</param>
         public ParticleManager(Canvas canvas)
         {
             gameCanvas = canvas ?? throw new ArgumentNullException(nameof(canvas));
-            
-            // Set initial canvas dimensions
             UpdateCanvasDimensions();
         }
-        
-        /// <summary>
-        /// Update canvas dimensions when window is resized
-        /// </summary>
+               
         public void UpdateCanvasDimensions()
         {
             canvasWidth = gameCanvas.ActualWidth > 0 ? gameCanvas.ActualWidth : 800;
@@ -74,36 +57,27 @@ namespace tkkn2025.GameObjects
             centerScreen = new Point(canvasWidth / 2, canvasHeight / 2);
         }
         
-        /// <summary>
-        /// Initialize particle settings for a new game
-        /// </summary>
-        public void InitializeGameSettings(SettingsManager settings)
+      
+        public void InitializeGameSettings(SettingsManager settingsManager)
         {
             // Snapshot current settings as active settings for this game
-            activeParticleSpeed = particleSpeed;
-            activeParticleTurnSpeed = particleTurnSpeed;
-            activeParticleSpeedVariance = particleSpeedVariance;
-            activeParticleRandomizerPercentage = particleRandomizerPercentage;
-            activeIsParticleSpawnVectorTowardsShip = isParticleSpawnVectorTowardsShip;
-            activeShouldParticlesChaseShip = shouldParticlesChaseShip;
-            currentParticleCount = startingParticles;
+            activeParticleSpeed = settingsManager.GameSettings.ParticleSpeed.Value;
+            activeParticleTurnSpeed = settingsManager.GameSettings.ParticleTurnSpeed.Value;
+            activeParticleSpeedVariance = settingsManager.GameSettings.ParticleSpeedVariance.Value;
+            activeParticleRandomizerPercentage = settingsManager.GameSettings.ParticleRandomizerPercentage.Value;
+            activeIsParticleSpawnVectorTowardsShip = settingsManager.GameSettings.IsParticleSpawnVectorTowardsShip.Value;
+            activeShouldParticlesChaseShip = settingsManager.GameSettings.IsParticleChaseShip.Value;
+            currentParticleCount = settingsManager.GameSettings.StartingParticles.Value;
         }
         
-        /// <summary>
-        /// Start a new game by clearing existing particles and creating initial ones
-        /// </summary>
+       
         public void StartNewGame()
         {
             ClearAllParticles();
             CreateParticles(currentParticleCount);
         }
         
-        /// <summary>
-        /// Update all particles
-        /// </summary>
-        /// <param name="deltaTime">Time elapsed since last update</param>
-        /// <param name="shipPosition">Current ship position</param>
-        /// <param name="powerUpManager">Power-up manager for applying singularity forces</param>
+       
         public void UpdateParticles(double deltaTime, Point shipPosition, PowerUpManager? powerUpManager = null)
         {
             var shipPos = new Vector2((float)shipPosition.X, (float)shipPosition.Y);

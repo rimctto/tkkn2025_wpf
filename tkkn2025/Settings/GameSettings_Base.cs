@@ -8,26 +8,25 @@ namespace tkkn2025.Settings
     /// </summary>
     public partial class GameSettings
     {
-        /// <summary>
-        /// List of all basic game settings
-        /// </summary>
+      
         public List<ISettingModel> BasicSettings { get; }
         public List<ISettingModel> ParticleSettings { get; }
         public List<ISettingModel> PowerUpSettings { get; }
 
-        /// <summary>
-        /// Initialize the basic settings with default values
-        /// </summary>
+        public List<ISettingModel> AllSettings { get; }
+
+        
         public GameSettings()
         {
             // Create the settings list
             BasicSettings = new List<ISettingModel>
             {
+                MusicEnabled,
+
                 ShipSpeed,                                
                 LevelDuration,
                 StartingParticles,
                 NewParticlesPerLevel,
-                MusicEnabled,
                                 
             };
 
@@ -40,34 +39,41 @@ namespace tkkn2025.Settings
                 IsParticleSpawnVectorTowardsShip,
                 IsParticleChaseShip
             };
+
+            PowerUpSettings = new List<ISettingModel>
+            {
+                
+            };
+
+            AllSettings = new List<ISettingModel>();
+            AllSettings.AddRange(BasicSettings);
+            AllSettings.AddRange(ParticleSettings);
+            AllSettings.AddRange(PowerUpSettings);
+
         }
 
-        /// <summary>
-        /// Create a GameConfig instance from the current setting values
-        /// </summary>
-        /// <returns>GameConfig with current setting values</returns>
+       
         public GameConfig ToGameConfig()
         {
             return new GameConfig
             {
+                MusicEnabled = MusicEnabled.Value,
+
                 ShipSpeed = ShipSpeed.Value,
+                LevelDuration = LevelDuration.Value,
+                StartingParticles = StartingParticles.Value,
+                NewParticlesPerLevel = NewParticlesPerLevel.Value,
+
                 ParticleSpeed = ParticleSpeed.Value,
                 ParticleTurnSpeed = ParticleTurnSpeed.Value,
-                StartingParticles = StartingParticles.Value,
-                LevelDuration = LevelDuration.Value,
-                NewParticlesPerLevel = NewParticlesPerLevel.Value,
                 ParticleSpeedVariance = ParticleSpeedVariance.Value,
                 ParticleRandomizerPercentage = ParticleRandomizerPercentage.Value,
-                ParticleChase_Initial = IsParticleSpawnVectorTowardsShip.Value,
-                MusicEnabled = MusicEnabled.Value
+                IsParticleSpawnVectorTowardsShip = IsParticleSpawnVectorTowardsShip.Value,
             };
         }
 
-        /// <summary>
-        /// Update all settings from a GameConfig instance
-        /// </summary>
-        /// <param name="config">GameConfig to load values from</param>
-        public void FromGameConfig(GameConfig config)
+    
+        public void LoadFromConfig(GameConfig config)
         {
             ShipSpeed.Value = config.ShipSpeed;
             ParticleSpeed.Value = config.ParticleSpeed;
@@ -77,30 +83,20 @@ namespace tkkn2025.Settings
             NewParticlesPerLevel.Value = config.NewParticlesPerLevel;
             ParticleSpeedVariance.Value = config.ParticleSpeedVariance;
             ParticleRandomizerPercentage.Value = config.ParticleRandomizerPercentage;
-            IsParticleSpawnVectorTowardsShip.Value = config.ParticleChase_Initial;
+            IsParticleSpawnVectorTowardsShip.Value = config.IsParticleSpawnVectorTowardsShip;
             MusicEnabled.Value = config.MusicEnabled;
         }
 
-        /// <summary>
-        /// Reset all settings to their default values
-        /// </summary>
+
         public void ResetToDefaults()
         {
-            foreach (var setting in BasicSettings)
-            {
-                setting.Value = setting.DefaultValue;
-            }
-            
-            foreach (var setting in ParticleSettings)
+            foreach (var setting in AllSettings)
             {
                 setting.Value = setting.DefaultValue;
             }
         }
 
-        /// <summary>
-        /// Get settings grouped by category
-        /// </summary>
-        /// <returns>Dictionary of category name to settings in that category</returns>
+        
         public Dictionary<string, List<ISettingModel>> GetSettingsByCategory()
         {
             var result = new Dictionary<string, List<ISettingModel>>();

@@ -2,9 +2,7 @@
 
 namespace tkkn2025.Settings.Models
 {
-    /// <summary>
-    /// Non-generic base interface for all setting models (for collection compatibility)
-    /// </summary>
+   
     public interface ISettingModel
     {
         string Name { get; }
@@ -16,10 +14,6 @@ namespace tkkn2025.Settings.Models
         event PropertyChangedEventHandler? PropertyChanged;
     }
 
-    /// <summary>
-    /// Abstract base class for all setting models with property change notification
-    /// </summary>
-    /// <typeparam name="T">The type of value this setting contains</typeparam>
     public abstract class SettingModelBase<T> : ISettingModel, INotifyPropertyChanged
     {
         public string Name { get; }
@@ -74,9 +68,7 @@ namespace tkkn2025.Settings.Models
                 "Use a wrapper property or method to update the Value instead.");
         }
 
-        /// <summary>
-        /// Convenience method to update the Value directly, allowing syntax like `setting.Set(3.5);`
-        /// </summary>
+       
         public void Set(T value) => Value = value;
     }
 }

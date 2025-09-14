@@ -167,7 +167,7 @@
                         </StackPanel>
 
 
-                        <StackPanel>
+                        <StackPanel DataContext="{Binding}">
 
                             <!--  Basic Settings  -->
                             <Expander Foreground="White" IsExpanded="False">
@@ -175,7 +175,7 @@
                                     <TextBlock FontSize="14" Text="Basic Settings" />
                                 </Expander.Header>
 
-                                <settingsModels:SettingList DataContext="{Binding BasicSettings}" />
+                                <settingsModels:SettingList DataContext="{Binding GameSettings.BasicSettings}" />
                             </Expander>
 
                             <!--  Particle Settings  -->
@@ -184,16 +184,16 @@
                                     <TextBlock FontSize="14" Text="Particle Settings" />
                                 </Expander.Header>
 
-                                <settingsModels:SettingList DataContext="{Binding ParticleSettings}" />
+                                <settingsModels:SettingList DataContext="{Binding GameSettings.ParticleSettings}" />
                             </Expander>
 
                             <!--  PowerUp Settings  -->
                             <Expander Foreground="White" IsExpanded="False">
                                 <Expander.Header>
-                                    <TextBlock FontSize="14" Text="Particle Settings" />
+                                    <TextBlock FontSize="14" Text="Power-Up Settings" />
                                 </Expander.Header>
 
-                                <settingsModels:SettingList DataContext="{Binding ParticleSettings}" />
+                                <settingsModels:SettingList DataContext="{Binding GameSettings.PowerUpSettings}" />
                             </Expander>
 
 

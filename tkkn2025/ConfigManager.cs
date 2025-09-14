@@ -7,16 +7,17 @@ namespace tkkn2025
     /// </summary>
     public class GameConfig
     {
-        public double ShipSpeed { get; set; } = 200.0;
-        public double ParticleSpeed { get; set; } = 175.0;
-        public double ParticleTurnSpeed { get; set; } = 0.5;
-        public int StartingParticles { get; set; } = 30;
-        public double LevelDuration { get; set; } = 5.0;
-        public double NewParticlesPerLevel { get; set; } = 15.0;
-        public double ParticleSpeedVariance { get; set; } = 15.0;
-        public double ParticleRandomizerPercentage { get; set; } = 30.0;
-        public bool ParticleChase_Initial { get; set; } = true;
-        public bool MusicEnabled { get; set; } = true;
+        public bool MusicEnabled { get; set; }
+        public double ShipSpeed { get; set; }
+        public double ParticleSpeed { get; set; }
+        public double ParticleTurnSpeed { get; set; }
+        public int StartingParticles { get; set; }
+        public double LevelDuration { get; set; }
+        public double NewParticlesPerLevel { get; set; }
+        public double ParticleSpeedVariance { get; set; }
+        public double ParticleRandomizerPercentage { get; set; }
+        public bool IsParticleSpawnVectorTowardsShip { get; set; }
+
     }
 
     /// <summary>

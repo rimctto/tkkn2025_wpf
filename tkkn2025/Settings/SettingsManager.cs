@@ -11,119 +11,40 @@ namespace tkkn2025.Settings
     /// </summary>
     public class SettingsManager : INotifyPropertyChanged
     {
-        private GameSettings _gameSettings;
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+
+        public SettingsManager()
+        {
+                
+        }
+       
+        public GameSettings GameSettings { get; set; } = new GameSettings();
+
 
         private static readonly string SavedSettingsDirectory = System.IO.Path.Combine(
             System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
             "Saved", "GameSettings");
 
-        /// <summary>
-        /// Default game settings that can be restored at any time
-        /// </summary>
-        /// 
-        public static readonly GameConfig DefaultSettings = new GameConfig
-        {
-            ShipSpeed = 200.0,
-            ParticleSpeed = 175.0,
-            ParticleTurnSpeed = 0.5,
-            StartingParticles = 30,
-            LevelDuration = 5.0,
-            NewParticlesPerLevel = 15.0,
-            ParticleSpeedVariance = 15.0,
-            ParticleRandomizerPercentage = 30.0,
-            ParticleChase_Initial = true,
-            MusicEnabled = false
-        };
 
-        /// <summary>
-        /// The game settings for UI binding
-        /// </summary>
-        public GameSettings GameSettings
-        {
-            get => _gameSettings;
-            set
-            {
-                if (_gameSettings != value)
-                {
-                    _gameSettings = value;
-                    OnPropertyChanged(nameof(GameSettings));
-                    OnPropertyChanged(nameof(BasicSettings));
-                    OnPropertyChanged(nameof(ParticleSettings));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Basic settings collection for data binding to SettingList
-        /// </summary>
-        public List<ISettingModel> BasicSettings => _gameSettings?.BasicSettings ?? new List<ISettingModel>();
-
-        /// <summary>
-        /// Particle settings collection for data binding to SettingList
-        /// </summary>
-        public List<ISettingModel> ParticleSettings => _gameSettings?.ParticleSettings ?? new List<ISettingModel>();
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        /// <summary>
-        /// Initialize SettingsManager with default or provided game settings
-        /// </summary>
-        public SettingsManager()
-        {
-            _gameSettings = new GameSettings();
-        }
-
-        /// <summary>
-        /// Initialize SettingsManager with specific game settings
-        /// </summary>
-        public SettingsManager(GameSettings gameSettings)
-        {
-            _gameSettings = gameSettings ?? new GameSettings();
-        }
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        /// <summary>
-        /// Reset all settings to their default values
-        /// </summary>
         public void ResetToDefaults()
         {
-            _gameSettings.ResetToDefaults();
-            // No need to raise PropertyChanged as the individual settings will notify
+            GameSettings.ResetToDefaults();
         }
 
-        /// <summary>
-        /// Create a GameConfig from current settings
-        /// </summary>
+      
         public GameConfig ToGameConfig()
         {
-            return _gameSettings.ToGameConfig();
+            return GameSettings.ToGameConfig();
         }
 
-        /// <summary>
-        /// Load settings from a GameConfig
-        /// </summary>
+       
         public void FromGameConfig(GameConfig config)
         {
-            _gameSettings.FromGameConfig(config);
-            // No need to raise PropertyChanged as the individual settings will notify
-        }
-
-        /// <summary>
-        /// Get settings grouped by category
-        /// </summary>
-        public Dictionary<string, List<ISettingModel>> GetSettingsByCategory()
-        {
-            return _gameSettings.GetSettingsByCategory();
+            GameSettings.LoadFromConfig(config);
         }
 
 
-        /// <summary>
-        /// Ensures the saved settings directory exists
-        /// </summary>
         private static void EnsureDirectoryExists()
         {
             try
@@ -141,21 +62,8 @@ namespace tkkn2025.Settings
             }
         }
 
-        /// <summary>
-        /// Saves current settings to a specific file with a file picker dialog
-        /// </summary>
-        /// <returns>True if saved successfully, false otherwise</returns>
-        public bool SaveSettingsWithDialog()
-        {
-            return SaveSettingsWithDialog(ToGameConfig());
-        }
-
-        /// <summary>
-        /// Saves settings to a specific file with a file picker dialog
-        /// </summary>
-        /// <param name="settings">Settings to save</param>
-        /// <returns>True if saved successfully, false otherwise</returns>
-        public static bool SaveSettingsWithDialog(GameConfig settings)
+   
+        public static bool SaveSettings(GameConfig settings)
         {
             try
             {
@@ -172,7 +80,7 @@ namespace tkkn2025.Settings
 
                 if (saveFileDialog.ShowDialog() == true)
                 {
-                    return SaveSettingsToFile(settings, saveFileDialog.FileName);
+                    return WriteSettingsToFile(settings, saveFileDialog.FileName);
                 }
 
                 return false;
@@ -184,67 +92,7 @@ namespace tkkn2025.Settings
             }
         }
 
-        /// <summary>
-        /// Loads settings from a specific file with a file picker dialog and applies them to current instance
-        /// </summary>
-        /// <returns>Loaded settings or null if cancelled/failed</returns>
-        public GameConfig? LoadSettingsWithDialog()
-        {
-            try
-            {
-                var loadedSettings = LoadSettingsWithDialogStatic();
-                if (loadedSettings != null)
-                {
-                    FromGameConfig(loadedSettings);
-                }
-                return loadedSettings;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Loads settings from a specific file with a file picker dialog (static version)
-        /// </summary>
-        /// <returns>Loaded settings or null if cancelled/failed</returns>
-        public static GameConfig? LoadSettingsWithDialogStatic()
-        {
-            try
-            {
-                EnsureDirectoryExists();
-
-                var openFileDialog = new OpenFileDialog
-                {
-                    Title = "Load Game Settings",
-                    Filter = "Game Settings (*.json)|*.json|All files (*.*)|*.*",
-                    DefaultExt = "json",
-                    InitialDirectory = SavedSettingsDirectory,
-                    Multiselect = false
-                };
-
-                if (openFileDialog.ShowDialog() == true)
-                {
-                    return LoadSettingsFromFile(openFileDialog.FileName);
-                }
-
-                return null;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialogStatic: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Saves settings to a specific file path
-        /// /// <param name="settings">Settings to save</param>
-        /// <param name="filePath">Full path to save the file</param>
-        /// <returns>True if saved successfully, false otherwise</returns>
-        public static bool SaveSettingsToFile(GameConfig settings, string filePath)
+        private static bool WriteSettingsToFile(GameConfig settings, string filePath)
         {
             try
             {
@@ -275,12 +123,59 @@ namespace tkkn2025.Settings
             }
         }
 
-        /// <summary>
-        /// Loads settings from a specific file path
-        /// </summary>
-        /// <param name="filePath">Full path to the settings file</param>
-        /// <returns>Loaded settings or null if failed</returns>
-        public static GameConfig? LoadSettingsFromFile(string filePath)
+
+       
+        public GameConfig? LoadSettings()
+        {
+            try
+            {
+                var loadedSettings = LoadSettingsWithDialog();
+                if (loadedSettings != null)
+                {
+                    FromGameConfig(loadedSettings);
+                }
+                return loadedSettings;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
+                return null;
+            }
+        }
+
+       
+        public GameConfig? LoadSettingsWithDialog()
+        {
+            try
+            {
+                EnsureDirectoryExists();
+
+                var openFileDialog = new OpenFileDialog
+                {
+                    Title = "Load Game Settings",
+                    Filter = "Game Settings (*.json)|*.json|All files (*.*)|*.*",
+                    DefaultExt = "json",
+                    InitialDirectory = SavedSettingsDirectory,
+                    Multiselect = false
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    return ReadConfigFromFile(openFileDialog.FileName);
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialogStatic: {ex.Message}");
+                return null;
+            }
+        }
+
+      
+
+        public GameConfig? ReadConfigFromFile(string filePath)
         {
             try
             {
@@ -324,7 +219,7 @@ namespace tkkn2025.Settings
         /// <summary>
         /// Gets the saved settings directory path
         /// /// <returns>Full path to the saved settings directory</returns>
-        public static string GetSavedSettingsDirectory()
+        public string GetSavedSettingsDirectory()
         {
             return SavedSettingsDirectory;
         }
@@ -349,37 +244,30 @@ namespace tkkn2025.Settings
 
         
 
-        /// <summary>
-        /// Gets a copy of the default settings
-        /// </summary>
-        /// <returns>A new GameConfig instance with default values</returns>
-        public static GameConfig GetDefaultSettings()
+      
+        public GameConfig GetDefaultSettings()
         {
             return new GameConfig
             {
-                ShipSpeed = DefaultSettings.ShipSpeed,
-                ParticleSpeed = DefaultSettings.ParticleSpeed,
-                ParticleTurnSpeed = DefaultSettings.ParticleTurnSpeed,
-                StartingParticles = DefaultSettings.StartingParticles,
-                LevelDuration = DefaultSettings.LevelDuration,
-                NewParticlesPerLevel = DefaultSettings.NewParticlesPerLevel,
-                ParticleSpeedVariance = DefaultSettings.ParticleSpeedVariance,
-                ParticleRandomizerPercentage = DefaultSettings.ParticleRandomizerPercentage,
-                ParticleChase_Initial = DefaultSettings.ParticleChase_Initial,
-                MusicEnabled = DefaultSettings.MusicEnabled
+                ShipSpeed = GameSettings.ShipSpeed.DefaultValue,
+                ParticleSpeed = GameSettings.ParticleSpeed.DefaultValue,
+                ParticleTurnSpeed = GameSettings.ParticleTurnSpeed.DefaultValue,
+                StartingParticles = GameSettings.StartingParticles.DefaultValue,
+                LevelDuration = GameSettings.LevelDuration.DefaultValue,
+                NewParticlesPerLevel = GameSettings.NewParticlesPerLevel.DefaultValue,
+                ParticleSpeedVariance = GameSettings.ParticleSpeedVariance.DefaultValue,
+                ParticleRandomizerPercentage = GameSettings.ParticleRandomizerPercentage.DefaultValue,
+                IsParticleSpawnVectorTowardsShip = GameSettings.IsParticleChaseShip.DefaultValue,
+                MusicEnabled = GameSettings.MusicEnabled.DefaultValue
             };
         }
 
-        /// <summary>
-        /// Validates that settings are within acceptable ranges
-        /// </summary>
-        /// <param name="settings">Settings to validate</param>
-        /// <returns>Validated and clamped settings</returns>
-        public static GameConfig ValidateSavedOrLoadedSettings(GameConfig settings)
+      
+        public GameConfig ValidateSavedOrLoadedSettings(GameConfig settings)
         {
             return new GameConfig
             {
-                ShipSpeed = Math.Max(50, Math.Min(500, settings.ShipSpeed)),
+                ShipSpeed = Math.Max(GameSettings.ShipSpeed.Min, Math.Min(GameSettings.ShipSpeed.Max, settings.ShipSpeed)),
                 ParticleSpeed = Math.Max(25, Math.Min(300, settings.ParticleSpeed)),
                 ParticleTurnSpeed = Math.Max(0.1, Math.Min(10, settings.ParticleTurnSpeed)),
                 StartingParticles = Math.Max(1, Math.Min(100, settings.StartingParticles)),
@@ -387,7 +275,7 @@ namespace tkkn2025.Settings
                 NewParticlesPerLevel = Math.Max(1, Math.Min(50, settings.NewParticlesPerLevel)),
                 ParticleSpeedVariance = Math.Max(0, Math.Min(100, settings.ParticleSpeedVariance)),
                 ParticleRandomizerPercentage = Math.Max(0, Math.Min(100, settings.ParticleRandomizerPercentage)),
-                ParticleChase_Initial = settings.ParticleChase_Initial,
+                IsParticleSpawnVectorTowardsShip = settings.IsParticleSpawnVectorTowardsShip,
                 MusicEnabled = settings.MusicEnabled // Boolean doesn't need validation
             };
         }

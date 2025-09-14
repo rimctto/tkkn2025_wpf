@@ -37,7 +37,7 @@ namespace tkkn2025
                 NewParticlesPerLevel = settings.NewParticlesPerLevel,
                 ParticleSpeedVariance = settings.ParticleSpeedVariance,
                 ParticleRandomizerPercentage = settings.ParticleRandomizerPercentage,
-                ParticleChase_Initial = settings.ParticleChase_Initial
+                IsParticleSpawnVectorTowardsShip = settings.IsParticleSpawnVectorTowardsShip
             };
         }
 

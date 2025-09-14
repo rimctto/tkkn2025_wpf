@@ -1,21 +1,13 @@
-﻿using System.Text;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Windows.Threading;
-using tkkn2025.Settings;
-using System.Collections.Generic;
-using tkkn2025.Settings.Models;
-using System.ComponentModel;
 using tkkn2025.GameObjects;
-using System.Numerics;
 using tkkn2025.GameObjects.PowerUps;
+using tkkn2025.Settings;
 
 namespace tkkn2025
 {
@@ -42,8 +34,9 @@ namespace tkkn2025
         private DateTime gameStartTime;
 
         // Settings Manager for MVVM data binding
-        public SettingsManager SettingsManager { get => settingsManager; set => settingsManager = value; }
-        private SettingsManager settingsManager = null!;
+        
+        public SettingsManager SettingsManager { get ; set ; } = new SettingsManager();
+        
 
         // Active game settings - snapshot taken when game starts
         private double activeShipSpeed;
@@ -67,6 +60,8 @@ namespace tkkn2025
 
         public MainWindow()
         {
+
+            DataContext = SettingsManager;
             InitializeComponent();
 
             LoadGameSettings();
@@ -91,34 +86,31 @@ namespace tkkn2025
             System.Diagnostics.Debug.WriteLine("New session started");
         }
 
+
+        //App start and close
         private void LoadGameSettings()
         {
             try
             {
-                var gameSettings = new GameSettings();
                 
                 // Try to load from existing config file for backward compatibility
                 if (ConfigManager.ConfigFileExists())
                 {
                     var legacyConfig = ConfigManager.LoadConfig();
-                    gameSettings.FromGameConfig(legacyConfig);
-                    UpdateConfigStatus("Settings loaded from legacy config file", Brushes.LightGreen);
+                    SettingsManager.GameSettings.LoadFromConfig(legacyConfig);
+                    UpdateMessage("Settings loaded from legacy config file", Brushes.LightGreen);
                 }
                 else
                 {
-                    UpdateConfigStatus("Using default settings", Brushes.LightBlue);
+                    UpdateMessage("Using default settings", Brushes.LightBlue);
                 }
 
-                // Create SettingsManager and set as DataContext
-                SettingsManager = new SettingsManager(gameSettings);
-                this.DataContext = SettingsManager;
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error loading config: {ex.Message}", Brushes.LightCoral);
+                UpdateMessage($"Error loading config: {ex.Message}", Brushes.LightCoral);
                 // Use defaults if loading fails
-                SettingsManager = new SettingsManager();
-                this.DataContext = SettingsManager;
+                
             }
         }
          
@@ -131,21 +123,27 @@ namespace tkkn2025
                 bool success = ConfigManager.SaveConfig(gameConfig);
                 if (success)
                 {
-                    UpdateConfigStatus("Settings saved successfully", Brushes.LightGreen);
+                    UpdateMessage("Settings saved successfully", Brushes.LightGreen);
                 }
                 else
                 {
-                    UpdateConfigStatus("Failed to save settings", Brushes.LightCoral);
+                    UpdateMessage("Failed to save settings", Brushes.LightCoral);
                 }
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error saving settings: {ex.Message}", Brushes.LightCoral);
+                UpdateMessage($"Error saving settings: {ex.Message}", Brushes.LightCoral);
                 System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
             }
         }
 
-        private void UpdateConfigStatus(string message, Brush color)
+
+
+
+
+
+
+        private void UpdateMessage(string message, Brush color)
         {
             if (ConfigStatusText != null)
             {
@@ -172,7 +170,7 @@ namespace tkkn2025
             audioManager.Initialize();
             
             // Set initial music state from settings
-            if (SettingsManager?.GameSettings?.MusicEnabled != null)
+            if (SettingsManager.GameSettings?.MusicEnabled != null)
             {
                 audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
                 UpdateMusicButtonText();
@@ -214,47 +212,41 @@ namespace tkkn2025
             System.Diagnostics.Debug.WriteLine($"Power-up collected: {powerUpType}");
             if (powerUpType == "Singularity")
             {
-                UpdateConfigStatus($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
+                UpdateMessage($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
             }
             else if (powerUpType == "Repulsor")
             {
-                UpdateConfigStatus($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
+                UpdateMessage($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
             }
             else
             {
-                UpdateConfigStatus($"Collected {powerUpType}!", Brushes.Gold);
+                UpdateMessage($"Collected {powerUpType}!", Brushes.Gold);
             }
         }
 
         private void OnPowerUpEffectStarted(string effectType, double duration)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up effect started: {effectType} for {duration} seconds");
-            UpdateConfigStatus($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
+            UpdateMessage($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
         }
 
         private void OnPowerUpEffectEnded(string effectType)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up effect ended: {effectType}");
-            UpdateConfigStatus($"{effectType} effect ended", Brushes.LightGray);
+            UpdateMessage($"{effectType} effect ended", Brushes.LightGray);
         }
 
         private void OnPowerUpStored(string powerUpType)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up stored: {powerUpType}");
             int count = powerUpManager.GetStoredPowerUpCount(powerUpType);
-            UpdateConfigStatus($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
+            UpdateMessage($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
         }
 
         private void OnSingularityActivated(Vector2 position)
         {
             System.Diagnostics.Debug.WriteLine($"Singularity activated at {position}");
-            UpdateConfigStatus("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
-        }
-        
-        private void OnRepulsorActivated(Vector2 position)
-        {
-            System.Diagnostics.Debug.WriteLine($"Repulsor activated at {position}");
-            UpdateConfigStatus("Repulsor activated! Repelling field follows you for 5 seconds", Brushes.LimeGreen);
+            UpdateMessage("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
         }
       
         private void CreateShip()
@@ -365,6 +357,7 @@ namespace tkkn2025
             
             // Snapshot current settings as active settings for this game
             var gameSettings = SettingsManager.GameSettings;
+            
             activeShipSpeed = gameSettings.ShipSpeed.Value;
             activeLevelDuration = gameSettings.LevelDuration.Value;
             activeNewParticlesPerLevel = gameSettings.NewParticlesPerLevel.Value;
@@ -377,10 +370,7 @@ namespace tkkn2025
             
             // Start a new game in the session
             currentGame = currentSession.StartNewGame(gameConfig);
-            
-            System.Diagnostics.Debug.WriteLine($"Started new game #{currentSession.Games.Count} with settings: " +
-                                             $"Ship:{activeShipSpeed}, Particles:{gameSettings.ParticleSpeed.Value}, " +
-                                             $"Starting:{gameSettings.StartingParticles.Value}");
+           
             
             // Reset all key states to prevent ship from moving automatically
             for (int i = 0; i < keysPressed.Length; i++)
@@ -402,7 +392,7 @@ namespace tkkn2025
             StartButton.Content = "Game Running";
             
             // Show that settings are locked during game
-            UpdateConfigStatus("Settings locked during game", Brushes.Yellow);
+            UpdateMessage("Settings locked during game", Brushes.Yellow);
         }
         
         private void StopGame()
@@ -430,7 +420,7 @@ namespace tkkn2025
             audioManager.SetVolume(0.5);
             
             // Clear settings locked message
-            UpdateConfigStatus("Game ended - settings can be changed", Brushes.LightGreen);
+            UpdateMessage("Game ended - settings can be changed", Brushes.LightGreen);
         }
         
         private void UpdateFPS()
@@ -604,7 +594,7 @@ namespace tkkn2025
                     bool activated = powerUpManager.TryActivateSingularity(clickVector);
                     if (!activated)
                     {
-                        UpdateConfigStatus("No Singularity power-up available!", Brushes.Red);
+                        UpdateMessage("No Singularity power-up available!", Brushes.Red);
                     }
                 }
                 else if (e.RightButton == MouseButtonState.Pressed)
@@ -615,7 +605,7 @@ namespace tkkn2025
                     bool activated = powerUpManager.TryActivateRepulsor(shipVector);
                     if (!activated)
                     {
-                        UpdateConfigStatus("No Repulsor power-up available!", Brushes.Red);
+                        UpdateMessage("No Repulsor power-up available!", Brushes.Red);
                     }
                 }
             }
@@ -639,13 +629,13 @@ namespace tkkn2025
                 {
                     // Reset to default settings using the new system
                     SettingsManager.ResetToDefaults();
-                    UpdateConfigStatus("Settings reset to defaults", Brushes.Orange);
+                    UpdateMessage("Settings reset to defaults", Brushes.Orange);
                     System.Diagnostics.Debug.WriteLine("Settings reset to default values");
                 }
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error resetting settings: {ex.Message}", Brushes.Red);
+                UpdateMessage($"Error resetting settings: {ex.Message}", Brushes.Red);
                 System.Diagnostics.Debug.WriteLine($"Error in ResetSettingsButton_Click: {ex.Message}");
             }
         }
@@ -657,21 +647,21 @@ namespace tkkn2025
                 var currentSettings = SettingsManager.ToGameConfig();
                 var validated = SettingsManager.ValidateSavedOrLoadedSettings(currentSettings);
 
-                bool success = SettingsManager.SaveSettingsWithDialog(validated);
+                bool success = SettingsManager.SaveSettings(validated);
                 
                 if (success)
                 {
-                    UpdateConfigStatus("Settings saved successfully", Brushes.LightGreen);
+                    UpdateMessage("Settings saved successfully", Brushes.LightGreen);
                     System.Diagnostics.Debug.WriteLine("Settings saved to file successfully");
                 }
                 else
                 {
-                    UpdateConfigStatus("Save cancelled or failed", Brushes.LightCoral);
+                    UpdateMessage("Save cancelled or failed", Brushes.LightCoral);
                 }
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error saving settings: {ex.Message}", Brushes.Red);
+                UpdateMessage($"Error saving settings: {ex.Message}", Brushes.Red);
                 System.Diagnostics.Debug.WriteLine($"Error in SaveSettingsButton_Click: {ex.Message}");
             }
         }
@@ -680,7 +670,7 @@ namespace tkkn2025
         {
             try
             {
-                var loadedSettings = SettingsManager.LoadSettingsWithDialog();
+                var loadedSettings = SettingsManager.LoadSettings();
                 
                 if (loadedSettings != null)
                 {
@@ -692,17 +682,17 @@ namespace tkkn2025
                     audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
                     UpdateMusicButtonText();
 
-                    UpdateConfigStatus("Settings loaded successfully", Brushes.LightGreen);
+                    UpdateMessage("Settings loaded successfully", Brushes.LightGreen);
                     System.Diagnostics.Debug.WriteLine("Settings loaded from file successfully");
                 }
                 else
                 {
-                    UpdateConfigStatus("Load canceled or failed", Brushes.LightCoral);
+                    UpdateMessage("Load canceled or failed", Brushes.LightCoral);
                 }
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error loading settings: {ex.Message}", Brushes.Red);
+                UpdateMessage($"Error loading settings: {ex.Message}", Brushes.Red);
                 System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsButton_Click: {ex.Message}");
             }
         }
@@ -727,14 +717,14 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                UpdateConfigStatus($"Error toggling music: {ex.Message}", Brushes.Red);
+                UpdateMessage($"Error toggling music: {ex.Message}", Brushes.Red);
                 System.Diagnostics.Debug.WriteLine($"Error in MusicToggleButton_Click: {ex.Message}");
             }
         }
 
         private void UpdateMusicButtonText()
         {
-            if (MusicToggleButton != null && SettingsManager?.GameSettings?.MusicEnabled != null)
+            if (MusicToggleButton != null && SettingsManager.GameSettings?.MusicEnabled != null)
             {
                 bool isEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
                 MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
