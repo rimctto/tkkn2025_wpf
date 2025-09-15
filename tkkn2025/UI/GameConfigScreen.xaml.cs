@@ -1,7 +1,5 @@
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32;
-using System.Text.Json;
 
 namespace tkkn2025.UI
 {
@@ -13,7 +11,7 @@ namespace tkkn2025.UI
         public event EventHandler? BackRequested;
         public event EventHandler<GameConfig>? ConfigSaved;
 
-        private GameConfig currentConfig;
+        private GameConfig currentConfig = null!;
 
         public GameConfigScreen()
         {
@@ -27,9 +25,9 @@ namespace tkkn2025.UI
         /// <param name="config">Current game configuration to save</param>
         public void Initialize(GameConfig config)
         {
-            currentConfig = config;
+            currentConfig = config.CreateCopy(); // Create a copy to avoid modifying the original
             
-            // Set default values
+            // Set default values for new config
             ConfigNameTextBox.Text = "My Custom Config";
             DescriptionTextBox.Text = "Enter a description for this configuration...";
             UpdateDateCreatedText();
@@ -57,43 +55,32 @@ namespace tkkn2025.UI
                     return;
                 }
 
-                // Create updated config with metadata
-                var configToSave = currentConfig ?? new GameConfig();
-                configToSave.ConfigName = ConfigNameTextBox.Text.Trim();
-                configToSave.Description = DescriptionTextBox.Text.Trim();
-                configToSave.DateCreated = DateTime.Now;
+                // Update config metadata with user input
+                currentConfig.ConfigName = ConfigNameTextBox.Text.Trim();
+                currentConfig.Description = DescriptionTextBox.Text.Trim();
+                currentConfig.CreatedBy = Session.PlayerName;
+                currentConfig.DateCreated = DateTime.Now;
+                currentConfig.LastModified = DateTime.Now;
+                currentConfig.Version = "2.0";
 
-                // Show save file dialog
-                var saveFileDialog = new SaveFileDialog
+                // Use ConfigManager to save to GameSettings directory
+                bool success = ConfigManager.SaveGameConfigToSettings(currentConfig);
+                
+                if (success)
                 {
-                    Title = "Save Game Configuration",
-                    Filter = "Game Configuration (*.json)|*.json|All files (*.*)|*.*",
-                    DefaultExt = "json",
-                    FileName = GenerateFileName(configToSave.ConfigName),
-                    InitialDirectory = GetConfigDirectory()
-                };
-
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    // Save the configuration
-                    bool success = SaveConfigToFile(configToSave, saveFileDialog.FileName);
+                    MessageBox.Show($"Configuration '{currentConfig.ConfigName}' saved successfully!", 
+                                  "Save Successful", MessageBoxButton.OK, MessageBoxImage.Information);
                     
-                    if (success)
-                    {
-                        MessageBox.Show($"Configuration '{configToSave.ConfigName}' saved successfully!", 
-                                      "Save Successful", MessageBoxButton.OK, MessageBoxImage.Information);
-                        
-                        // Notify that config was saved
-                        ConfigSaved?.Invoke(this, configToSave);
-                        
-                        // Go back to previous screen
-                        BackRequested?.Invoke(this, EventArgs.Empty);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed to save configuration. Please try again.", 
-                                      "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    // Notify that config was saved
+                    ConfigSaved?.Invoke(this, currentConfig);
+                    
+                    // Go back to previous screen
+                    BackRequested?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to save configuration. Please try again.", 
+                                  "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
@@ -107,68 +94,6 @@ namespace tkkn2025.UI
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
             BackRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private string GenerateFileName(string configName)
-        {
-            // Remove invalid characters and create a safe filename
-            string safeFileName = string.Join("_", configName.Split(System.IO.Path.GetInvalidFileNameChars()));
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            return $"{safeFileName}_{timestamp}.json";
-        }
-
-        private string GetConfigDirectory()
-        {
-            string configDir = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-                "Saved", "GameConfigurations");
-            
-            try
-            {
-                if (!System.IO.Directory.Exists(configDir))
-                {
-                    System.IO.Directory.CreateDirectory(configDir);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to create config directory: {ex.Message}");
-                // Fallback to application directory
-                return System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".";
-            }
-            
-            return configDir;
-        }
-
-        private bool SaveConfigToFile(GameConfig config, string filePath)
-        {
-            try
-            {
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // Create a configuration object with metadata
-                var configWithMetadata = new
-                {
-                    SavedAt = DateTime.Now,
-                    Version = "1.0",
-                    Configuration = config
-                };
-
-                string jsonString = JsonSerializer.Serialize(configWithMetadata, options);
-                System.IO.File.WriteAllText(filePath, jsonString);
-
-                System.Diagnostics.Debug.WriteLine($"Configuration saved to: {filePath}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to save configuration to {filePath}: {ex.Message}");
-                return false;
-            }
         }
 
         /// <summary>

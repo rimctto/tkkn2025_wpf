@@ -13,7 +13,6 @@ namespace tkkn2025.Settings
     {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-
         public SettingsManager()
         {
                 
@@ -21,110 +20,67 @@ namespace tkkn2025.Settings
        
         public GameSettings GameSettings { get; set; } = new GameSettings();
 
-
-        private static readonly string SavedSettingsDirectory = System.IO.Path.Combine(
-            System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-            "Saved", "GameSettings");
-
-
         public void ResetToDefaults()
         {
             GameSettings.ResetToDefaults();
+            OnPropertyChanged();
         }
 
-      
         public GameConfig ToGameConfig()
         {
             return GameSettings.ToGameConfig();
         }
-
        
         public void FromGameConfig(GameConfig config)
         {
             GameSettings.LoadFromConfig(config);
+            OnPropertyChanged();
         }
 
-
-        private static void EnsureDirectoryExists()
-        {
-            try
-            {
-                if (!System.IO.Directory.Exists(SavedSettingsDirectory))
-                {
-                    System.IO.Directory.CreateDirectory(SavedSettingsDirectory);
-                    System.Diagnostics.Debug.WriteLine($"Created settings directory: {SavedSettingsDirectory}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to create settings directory: {ex.Message}");
-                throw;
-            }
-        }
-
-   
+        /// <summary>
+        /// Saves game settings using the dialog and ConfigManager
+        /// </summary>
+        /// <param name="settings">The game settings to save</param>
+        /// <returns>True if save was successful, false otherwise</returns>
         public static bool SaveSettings(GameConfig settings)
         {
             try
             {
-                EnsureDirectoryExists();
+                ConfigManager.EnsureGameSettingsDirectoryExists();
 
                 var saveFileDialog = new SaveFileDialog
                 {
                     Title = "Save Game Settings",
                     Filter = "Game Settings (*.json)|*.json|All files (*.*)|*.*",
                     DefaultExt = "json",
-                    InitialDirectory = SavedSettingsDirectory,
+                    InitialDirectory = ConfigManager.GetGameSettingsDirectory(),
                     FileName = $"GameSettings_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json"
                 };
 
                 if (saveFileDialog.ShowDialog() == true)
                 {
-                    return WriteSettingsToFile(settings, saveFileDialog.FileName);
+                    // Update metadata before saving
+                    settings.LastModified = DateTime.Now;
+                    settings.CreatedBy = Session.PlayerName;
+                    
+                    // Use ConfigManager to save to the GameSettings directory
+                    var fileName = System.IO.Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
+                    return ConfigManager.SaveGameConfigToSettings(settings, fileName);
                 }
 
                 return false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in SaveSettingsWithDialog: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in SaveSettings: {ex.Message}");
                 return false;
             }
         }
 
-        private static bool WriteSettingsToFile(GameConfig settings, string filePath)
-        {
-            try
-            {
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // Create a settings object with metadata
-                var settingsWithMetadata = new
-                {
-                    SavedAt = DateTime.Now,
-                    Version = "1.0",
-                    Settings = settings
-                };
-
-                string jsonString = JsonSerializer.Serialize(settingsWithMetadata, options);
-                System.IO.File.WriteAllText(filePath, jsonString);
-
-                System.Diagnostics.Debug.WriteLine($"Settings saved to: {filePath}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to save settings to {filePath}: {ex.Message}");
-                return false;
-            }
-        }
-
-
-       
+        /// <summary>
+        /// Loads settings using the dialog and updates the current GameSettings
+        /// </summary>
+        /// <returns>The loaded GameConfig or null if failed/canceled</returns>
         public GameConfig? LoadSettings()
         {
             try
@@ -138,146 +94,105 @@ namespace tkkn2025.Settings
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in LoadSettings: {ex.Message}");
                 return null;
             }
         }
 
-       
+        /// <summary>
+        /// Shows a dialog to load settings from the GameSettings directory
+        /// </summary>
+        /// <returns>The loaded GameConfig or null if failed/canceled</returns>
         public GameConfig? LoadSettingsWithDialog()
         {
             try
             {
-                EnsureDirectoryExists();
+                ConfigManager.EnsureGameSettingsDirectoryExists();
 
                 var openFileDialog = new OpenFileDialog
                 {
                     Title = "Load Game Settings",
                     Filter = "Game Settings (*.json)|*.json|All files (*.*)|*.*",
                     DefaultExt = "json",
-                    InitialDirectory = SavedSettingsDirectory,
+                    InitialDirectory = ConfigManager.GetGameSettingsDirectory(),
                     Multiselect = false
                 };
 
                 if (openFileDialog.ShowDialog() == true)
                 {
-                    return ReadConfigFromFile(openFileDialog.FileName);
+                    return ConfigManager.LoadGameConfigFromSettings(openFileDialog.FileName);
                 }
 
                 return null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialogStatic: {ex.Message}");
-                return null;
-            }
-        }
-
-      
-
-        public GameConfig? ReadConfigFromFile(string filePath)
-        {
-            try
-            {
-                if (!System.IO.File.Exists(filePath))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Settings file not found: {filePath}");
-                    return null;
-                }
-
-                string jsonString = System.IO.File.ReadAllText(filePath);
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-
-                // Try to load with metadata first
-                try
-                {
-                    var settingsWithMetadata = JsonSerializer.Deserialize<dynamic>(jsonString, options);
-                    var settingsJson = JsonSerializer.Serialize(((JsonElement)settingsWithMetadata).GetProperty("settings"));
-                    var settings = JsonSerializer.Deserialize<GameConfig>(settingsJson, options);
-                    
-                    System.Diagnostics.Debug.WriteLine($"Settings loaded from: {filePath}");
-                    return settings ?? GetDefaultSettings();
-                }
-                catch
-                {
-                    // Fallback: try to load as direct GameConfig
-                    var settings = JsonSerializer.Deserialize<GameConfig>(jsonString, options);
-                    System.Diagnostics.Debug.WriteLine($"Settings loaded (legacy format) from: {filePath}");
-                    return settings ?? GetDefaultSettings();
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to load settings from {filePath}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Gets the saved settings directory path
-        /// /// <returns>Full path to the saved settings directory</returns>
-        public string GetSavedSettingsDirectory()
+        /// Gets the default game configuration
+        /// </summary>
+        /// <returns>Default GameConfig</returns>
+        public GameConfig GetDefaultSettings()
         {
-            return SavedSettingsDirectory;
+            return ConfigManager.CreateDefaultGameConfig();
         }
 
         /// <summary>
-        /// Gets all saved settings files in the default directory
+        /// Validates and clamps settings values to acceptable ranges
+        /// </summary>
+        /// <param name="settings">The settings to validate</param>
+        /// <returns>Validated settings</returns>
+        public GameConfig ValidateSavedOrLoadedSettings(GameConfig settings)
+        {
+            // Create a new config with validated values
+            var validated = settings.CreateCopy();
+            
+            // Validate basic settings
+            validated.ShipSpeed = Math.Max(50, Math.Min(300, validated.ShipSpeed));
+            validated.ParticleSpeed = Math.Max(25, Math.Min(300, validated.ParticleSpeed));
+            validated.ParticleTurnSpeed = Math.Max(0.1, Math.Min(10, validated.ParticleTurnSpeed));
+            validated.StartingParticles = Math.Max(1, Math.Min(100, validated.StartingParticles));
+            validated.LevelDuration = Math.Max(1, Math.Min(60, validated.LevelDuration));
+            validated.NewParticlesPerLevel = Math.Max(1, Math.Min(50, validated.NewParticlesPerLevel));
+            validated.ParticleSpeedVariance = Math.Max(0, Math.Min(100, validated.ParticleSpeedVariance));
+            validated.ParticleRandomizerPercentage = Math.Max(0, Math.Min(100, validated.ParticleRandomizerPercentage));
+            
+            // Validate power-up settings
+            validated.PowerUpSpawnRate = Math.Max(1, Math.Min(60, validated.PowerUpSpawnRate));
+            validated.TimeWarpDuration = Math.Max(1, Math.Min(30, validated.TimeWarpDuration));
+            validated.RepulsorDuration = Math.Max(1, Math.Min(15, validated.RepulsorDuration));
+            validated.RepulsorForce = Math.Max(50, Math.Min(500, validated.RepulsorForce));
+            validated.SingularityDuration = Math.Max(1, Math.Min(15, validated.SingularityDuration));
+            validated.SingulaiortyForce = Math.Max(50, Math.Min(300, validated.SingulaiortyForce));
+            
+            return validated;
+        }
+
+        /// <summary>
+        /// Gets all saved settings files in the GameSettings directory
         /// </summary>
         /// <returns>Array of file paths to saved settings</returns>
         public static string[] GetSavedSettingsFiles()
         {
-            try
-            {
-                EnsureDirectoryExists();
-                return System.IO.Directory.GetFiles(SavedSettingsDirectory, "*.json");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to get saved settings files: {ex.Message}");
-                return Array.Empty<string>();
-            }
+            return ConfigManager.GetSavedGameConfigs();
         }
 
-        
-
-      
-        public GameConfig GetDefaultSettings()
+        /// <summary>
+        /// Gets the GameSettings directory path
+        /// </summary>
+        /// <returns>Full path to the GameSettings directory</returns>
+        public string GetSavedSettingsDirectory()
         {
-            return new GameConfig
-            {
-                ShipSpeed = GameSettings.ShipSpeed.DefaultValue,
-                ParticleSpeed = GameSettings.ParticleSpeed.DefaultValue,
-                ParticleTurnSpeed = GameSettings.ParticleTurnSpeed.DefaultValue,
-                StartingParticles = GameSettings.StartingParticles.DefaultValue,
-                LevelDuration = GameSettings.LevelDuration.DefaultValue,
-                NewParticlesPerLevel = GameSettings.NewParticlesPerLevel.DefaultValue,
-                ParticleSpeedVariance = GameSettings.ParticleSpeedVariance.DefaultValue,
-                ParticleRandomizerPercentage = GameSettings.ParticleRandomizerPercentage.DefaultValue,
-                IsParticleSpawnVectorTowardsShip = GameSettings.IsParticleChaseShip.DefaultValue,
-                MusicEnabled = GameSettings.MusicEnabled.DefaultValue
-            };
+            return ConfigManager.GetGameSettingsDirectory();
         }
 
-      
-        public GameConfig ValidateSavedOrLoadedSettings(GameConfig settings)
+        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
         {
-            return new GameConfig
-            {
-                ShipSpeed = Math.Max(GameSettings.ShipSpeed.Min, Math.Min(GameSettings.ShipSpeed.Max, settings.ShipSpeed)),
-                ParticleSpeed = Math.Max(25, Math.Min(300, settings.ParticleSpeed)),
-                ParticleTurnSpeed = Math.Max(0.1, Math.Min(10, settings.ParticleTurnSpeed)),
-                StartingParticles = Math.Max(1, Math.Min(100, settings.StartingParticles)),
-                LevelDuration = Math.Max(1, Math.Min(20, settings.LevelDuration)),
-                NewParticlesPerLevel = Math.Max(1, Math.Min(50, settings.NewParticlesPerLevel)),
-                ParticleSpeedVariance = Math.Max(0, Math.Min(100, settings.ParticleSpeedVariance)),
-                ParticleRandomizerPercentage = Math.Max(0, Math.Min(100, settings.ParticleRandomizerPercentage)),
-                IsParticleSpawnVectorTowardsShip = settings.IsParticleSpawnVectorTowardsShip,
-                MusicEnabled = settings.MusicEnabled // Boolean doesn't need validation
-            };
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

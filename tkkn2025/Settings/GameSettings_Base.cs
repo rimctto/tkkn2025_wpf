@@ -65,6 +65,15 @@ namespace tkkn2025.Settings
         {
             return new GameConfig
             {
+                // Use default metadata - this will be updated by the UI when saving with specific names
+                ConfigName = "Current Settings",
+                Description = "Current UI settings",
+                CreatedBy = Session.PlayerName,
+                DateCreated = DateTime.Now,
+                LastModified = DateTime.Now,
+                Version = "2.0",
+
+                // Game settings from UI controls
                 MusicEnabled = MusicEnabled.Value,
 
                 ShipSpeed = ShipSpeed,

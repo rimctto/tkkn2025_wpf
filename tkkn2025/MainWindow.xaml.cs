@@ -128,27 +128,28 @@ namespace tkkn2025
         {
             try
             {
-                // Load application config (player name, etc.) first
-                LoadAppConfig();
-                
-                // Try to load from existing config file for backward compatibility
-                if (ConfigManager.ConfigFileExists())
+                // The session will load both app and game configs automatically
+                // We just need to update the UI to reflect the loaded settings
+                if (currentSession?.GameConfig != null)
                 {
-                    var legacyConfig = ConfigManager.LoadConfig();
-                    SettingsManager.GameSettings.LoadFromConfig(legacyConfig);
-                    UpdateMessage("Settings loaded from legacy config file", Brushes.LightGreen);
+                    SettingsManager.GameSettings.LoadFromConfig(currentSession.GameConfig);
+                    UpdateMessage($"Settings loaded: {currentSession.GameConfig.ConfigName}", Brushes.LightGreen);
                 }
                 else
                 {
                     UpdateMessage("Using default settings", Brushes.LightBlue);
                 }
 
+                // Update player name TextBox if it exists
+                if (PlayerNameTextBox != null)
+                {
+                    PlayerNameTextBox.Text = Session.PlayerName;
+                }
             }
             catch (Exception ex)
             {
                 UpdateMessage($"Error loading config: {ex.Message}", Brushes.LightCoral);
-                // Use defaults if loading fails
-                
+                System.Diagnostics.Debug.WriteLine($"Error loading game settings: {ex.Message}");
             }
         }
          
@@ -156,20 +157,14 @@ namespace tkkn2025
         {
             try
             {
-                // Save application config (player name, etc.) first
-                SaveAppConfig();
-
-                // Save settings using the new system
-                var gameConfig = SettingsManager.ToGameConfig();
-                bool success = ConfigManager.SaveConfig(gameConfig);
-                if (success)
-                {
-                    UpdateMessage("Settings saved successfully", Brushes.LightGreen);
-                }
-                else
-                {
-                    UpdateMessage("Failed to save settings", Brushes.LightCoral);
-                }
+                // Update the session's game config with current UI settings
+                var currentConfig = SettingsManager.ToGameConfig();
+                currentSession?.UpdateGameConfig(currentConfig, true);
+                
+                // Session will handle saving both app and game configs
+                currentSession?.SaveConfigurations();
+                
+                UpdateMessage("Settings saved successfully", Brushes.LightGreen);
             }
             catch (Exception ex)
             {
@@ -180,49 +175,35 @@ namespace tkkn2025
 
         /// <summary>
         /// Load application configuration including player name
+        /// This is now handled by the Session class, but kept for compatibility
         /// </summary>
         private void LoadAppConfig()
         {
             try
             {
-                var appConfig = ConfigManager.LoadAppConfig();
-                Session.PlayerName = appConfig.PlayerName;
-                
-                System.Diagnostics.Debug.WriteLine($"App config loaded. Player name: {Session.PlayerName}");
+                // Session handles this automatically now
+                System.Diagnostics.Debug.WriteLine($"App config loaded via session. Player name: {Session.PlayerName}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading app config: {ex.Message}");
-                // Use default if loading fails
-                Session.PlayerName = "Anonymous";
+                System.Diagnostics.Debug.WriteLine($"Error in LoadAppConfig: {ex.Message}");
             }
         }
 
         /// <summary>
         /// Save application configuration including player name
+        /// This is now handled by the Session class, but kept for compatibility
         /// </summary>
         private void SaveAppConfig()
         {
             try
             {
-                var appConfig = new AppConfig
-                {
-                    PlayerName = Session.PlayerName
-                };
-                
-                bool success = ConfigManager.SaveAppConfig(appConfig);
-                if (success)
-                {
-                    System.Diagnostics.Debug.WriteLine($"App config saved successfully. Player name: {Session.PlayerName}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("Failed to save app config");
-                }
+                // Session handles this automatically when SaveConfigurations is called
+                currentSession?.SaveConfigurations();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving app config: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in SaveAppConfig: {ex.Message}");
             }
         }
 
@@ -443,8 +424,11 @@ namespace tkkn2025
             // Update center screen position based on current canvas size
             centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
             
-            // Snapshot current settings as active settings for this game
+            // Update session's game config with current UI settings before starting game
+            var currentUIConfig = SettingsManager.ToGameConfig();
+            currentSession.UpdateGameConfig(currentUIConfig, false); // Don't save to file yet
             
+            // Snapshot current settings as active settings for this game
             activeShipSpeed = GameSettings.ShipSpeed.Value;
             activeLevelDuration = GameSettings.LevelDuration.Value;
             activeNewParticlesPerLevel = GameSettings.NewParticlesPerLevel.Value;
@@ -452,12 +436,8 @@ namespace tkkn2025
             // Initialize particle controller with game settings
             ParticleManager.InitializeGameSettings();
             
-            // Create game configuration for this game
-            var gameConfig = SettingsManager.ToGameConfig();
-            
-            // Start a new game in the session
-            currentGame = currentSession.StartNewGame(gameConfig);
-           
+            // Start a new game in the session (this creates a copy of the current config)
+            currentGame = currentSession.StartNewGame();
             
             // Reset all key states to prevent ship from moving automatically
             for (int i = 0; i < keysPressed.Length; i++)
@@ -475,7 +455,6 @@ namespace tkkn2025
             
             // Start new game through power-up manager
             powerUpManager.StartNewGame();
-            
             
             // Show that settings are locked during game
             UpdateMessage("Settings locked during game", Brushes.Yellow);
