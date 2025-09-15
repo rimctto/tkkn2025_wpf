@@ -16,7 +16,6 @@
             Grid.Column="0"
             VerticalAlignment="Center"
             d:Text="Difficulty Level"
-            Foreground="White"
             Text="{Binding DisplayName}" />
         <ComboBox
             Grid.Column="1"

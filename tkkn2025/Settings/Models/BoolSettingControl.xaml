@@ -16,7 +16,6 @@
             Grid.Column="0"
             VerticalAlignment="Center"
             d:Text="Particles Chase Ship"
-            Foreground="White"
             Text="{Binding DisplayName}" />
         <CheckBox
             Grid.Column="1"

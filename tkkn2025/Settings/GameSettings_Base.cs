@@ -42,7 +42,15 @@ namespace tkkn2025.Settings
 
             PowerUpSettings = new List<ISettingModel>
             {
-                
+                PowerUpSpawnRate,
+                TimeWarpDuration,
+               
+                SingularityDuration,
+                SingulaiortyForce,
+
+                RepulsorDuration,
+                RepulsorForce,
+
             };
 
             AllSettings = new List<ISettingModel>();
@@ -59,16 +67,25 @@ namespace tkkn2025.Settings
             {
                 MusicEnabled = MusicEnabled.Value,
 
-                ShipSpeed = ShipSpeed.Value,
-                LevelDuration = LevelDuration.Value,
-                StartingParticles = StartingParticles.Value,
-                NewParticlesPerLevel = NewParticlesPerLevel.Value,
+                ShipSpeed = ShipSpeed,
+                LevelDuration = LevelDuration,
+                StartingParticles = StartingParticles,
+                NewParticlesPerLevel = NewParticlesPerLevel,
 
-                ParticleSpeed = ParticleSpeed.Value,
-                ParticleTurnSpeed = ParticleTurnSpeed.Value,
-                ParticleSpeedVariance = ParticleSpeedVariance.Value,
-                ParticleRandomizerPercentage = ParticleRandomizerPercentage.Value,
-                IsParticleSpawnVectorTowardsShip = IsParticleSpawnVectorTowardsShip.Value,
+                ParticleSpeed = ParticleSpeed,
+                ParticleTurnSpeed = ParticleTurnSpeed,
+                ParticleSpeedVariance = ParticleSpeedVariance,
+                ParticleRandomizerPercentage = ParticleRandomizerPercentage,
+                IsParticleSpawnVectorTowardsShip = IsParticleSpawnVectorTowardsShip,
+                IsParticleChaseShip = IsParticleChaseShip,
+
+                // PowerUp settings
+                PowerUpSpawnRate = PowerUpSpawnRate,
+                TimeWarpDuration = TimeWarpDuration,
+                RepulsorDuration = RepulsorDuration,
+                RepulsorForce = RepulsorForce,
+                SingularityDuration = SingularityDuration,
+                SingulaiortyForce = SingulaiortyForce,
             };
         }
 
@@ -84,7 +101,16 @@ namespace tkkn2025.Settings
             ParticleSpeedVariance.Value = config.ParticleSpeedVariance;
             ParticleRandomizerPercentage.Value = config.ParticleRandomizerPercentage;
             IsParticleSpawnVectorTowardsShip.Value = config.IsParticleSpawnVectorTowardsShip;
+            IsParticleChaseShip.Value = config.IsParticleChaseShip;
             MusicEnabled.Value = config.MusicEnabled;
+
+            // PowerUp settings
+            PowerUpSpawnRate.Value = config.PowerUpSpawnRate;
+            TimeWarpDuration.Value = config.TimeWarpDuration;
+            RepulsorDuration.Value = config.RepulsorDuration;
+            RepulsorForce.Value = config.RepulsorForce;
+            SingularityDuration.Value = config.SingularityDuration;
+            SingulaiortyForce.Value = config.SingulaiortyForce;
         }
 
 

@@ -4,14 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:gameObjects="clr-namespace:tkkn2025.GameObjects"
     Width="600"
-    Height="400"
-    Background="Black">
+    Height="500"
+    Background="Black"
+    MouseDown="StartScreen_MouseDown">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="25"/>
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -20,7 +22,7 @@
             Grid.Row="0"
             Margin="0,0,0,20"
             HorizontalAlignment="Center"
-            FontSize="24"
+            FontSize="32"
             FontWeight="Bold"
             Foreground="MediumPurple"
             Text="TKKN 2025" />
@@ -147,29 +149,76 @@
         </Grid>
 
         <!--  Instructions  -->
-        <StackPanel Grid.Row="3" Orientation="Vertical">
-            <TextBlock
-                Margin="0,0,0,5"
-                FontSize="14"
-                FontWeight="Bold"
-                Foreground="White"
-                Text="Game Instructions:" />
-            <TextBlock
-                Margin="0,2"
-                Foreground="LightGray"
-                Text="- Use WASD or Arrow Keys to move your ship" />
-            <TextBlock
-                Margin="0,2"
-                Foreground="LightGray"
-                Text="- Avoid touching the particles" />
-            <TextBlock
-                Margin="0,2"
-                Foreground="LightGray"
-                Text="- Collect power-ups to gain special abilities" />
-            <TextBlock
-                Margin="0,2"
-                Foreground="LightGray"
-                Text="- Press SPACE to start the game" />
-        </StackPanel>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.5*" />
+                <ColumnDefinition Width="0.5*" />
+            </Grid.ColumnDefinitions>
+
+
+            <StackPanel
+                Grid.Row="3"
+                Grid.Column="0"
+                Orientation="Vertical">
+                <TextBlock
+                    Margin="0,0,0,5"
+                    FontSize="14"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Game Instructions:" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Use WASD or Arrow Keys to move your ship" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Avoid touching the particles" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Collect power-ups to gain special abilities" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Press SPACE to start the game" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Click anywhere to focus on the game" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="3"
+                Grid.Column="1"
+                Orientation="Vertical">
+                <TextBlock
+                    Margin="0,0,0,5"
+                    FontSize="14"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Settings Instructions:" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Play around with settings to find something fun" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="   and challenging" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="- Once you find something you can save them and" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="   shre the settigns files with others so they can try" />
+                <TextBlock
+                    Margin="0,2"
+                    Foreground="LightGray"
+                    Text="   your game mode" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

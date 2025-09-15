@@ -10,10 +10,19 @@ namespace tkkn2025.Settings
     {
 
 
-        /// <summary>                                                                                           
-        /// Ship movement speed setting
+        /// <summary>
+        /// Whether background music is enabled
         /// </summary>
-        public DoubleSetting ShipSpeed { get; } = new DoubleSetting(
+        public static BoolSetting MusicEnabled { get; } = new BoolSetting(
+            name: nameof(MusicEnabled),
+            displayName: "Music Enabled",
+            category: "Audio",
+            defaultValue: false,
+            description: "Enable or disable background music"
+        );
+
+       
+        public static DoubleSetting ShipSpeed { get; } = new DoubleSetting(
             name: nameof(ShipSpeed),
             displayName: "Ship Speed",
             category: "Movement",
@@ -25,10 +34,7 @@ namespace tkkn2025.Settings
 
 
 
-        /// <summary>
-        /// Time between level increases (in seconds)
-        /// </summary>
-        public DoubleSetting LevelDuration { get; } = new DoubleSetting(
+        public static DoubleSetting LevelDuration { get; } = new DoubleSetting(
             name: nameof(LevelDuration),
             displayName: "Level Duration (s)",
             category: "Gameplay",
@@ -38,44 +44,28 @@ namespace tkkn2025.Settings
         );
 
 
+        public static IntegerSetting StartingParticles { get; } = new IntegerSetting(
+            name: nameof(StartingParticles),
+            displayName: "Starting Particles",
+            category: "Particles",
+            defaultValue: 25,
+            min: 1,
+            max: 100
+        );
 
-        /// <summary>
-        /// Percentage increase in particle count per level
-        /// </summary>
-        public DoubleSetting NewParticlesPerLevel { get; } = new DoubleSetting(
+        
+        public static DoubleSetting NewParticlesPerLevel { get; } = new DoubleSetting(
             name: nameof(NewParticlesPerLevel),
             displayName: "New Particles / Level",
             category: "Gameplay",
-            defaultValue: 15.0,
+            defaultValue: 5.0,
             min: 1.0,
             max: 50.0
         );
 
 
 
-        /// <summary>
-        /// Number of particles to start the game with
-        /// </summary>
-        public IntegerSetting StartingParticles { get; } = new IntegerSetting(
-            name: nameof(StartingParticles),
-            displayName: "Starting Particles",
-            category: "Particles",
-            defaultValue: 20,
-            min: 1,
-            max: 100
-        );
 
 
-
-        /// <summary>
-        /// Whether background music is enabled
-        /// </summary>
-        public BoolSetting MusicEnabled { get; } = new BoolSetting(
-            name: nameof(MusicEnabled),
-            displayName: "Music Enabled",
-            category: "Audio",
-            defaultValue: true,
-            description: "Enable or disable background music"
-        );
     }
 }

@@ -13,6 +13,7 @@ namespace tkkn2025
         public int FinalParticleCount { get; set; }
         public GameConfig Settings { get; set; } = new GameConfig();
         public bool IsCompleted => EndTime.HasValue;
+        public string PlayerName { get; set; } = string.Empty;
         
         /// <summary>
         /// Gets the duration in seconds for easier comparison and display
@@ -22,11 +23,13 @@ namespace tkkn2025
         public Game()
         {
             StartTime = DateTime.Now;
+            PlayerName = Session.PlayerName; // Assign current player name
         }
 
         public Game(GameConfig settings)
         {
             StartTime = DateTime.Now;
+            PlayerName = Session.PlayerName; // Assign current player name
             Settings = new GameConfig
             {
                 ShipSpeed = settings.ShipSpeed,
@@ -43,8 +46,7 @@ namespace tkkn2025
 
         /// <summary>
         /// Marks the game as completed and records the final state
-        /// </summary>
-        /// <param name="finalParticleCount">The number of particles when the game ended</param>
+        /// /// <param name="finalParticleCount">The number of particles when the game ended</param>
         public void Complete(int finalParticleCount)
         {
             EndTime = DateTime.Now;

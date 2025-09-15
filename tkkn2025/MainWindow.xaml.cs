@@ -8,6 +8,7 @@ using System.Windows.Shapes;
 using tkkn2025.GameObjects;
 using tkkn2025.GameObjects.PowerUps;
 using tkkn2025.Settings;
+using tkkn2025.DataAccess;
 
 namespace tkkn2025
 {
@@ -18,12 +19,13 @@ namespace tkkn2025
     {
         // Game objects
         private Polygon ship = null!;
-        private ParticleManager particleController = null!;
+        private ParticleManager particleManager = null!;
         private PowerUpManager powerUpManager = null!;
         private Random random = null!;
         
-        // Game state
+        // Game state tracking
         private bool gameRunning = false;
+        private bool gameOverScreenVisible = false;
         private bool[] keysPressed = new bool[4]; // Up, Down, Left, Right
         private Point centerScreen;
         private Point shipPosition;
@@ -58,6 +60,9 @@ namespace tkkn2025
         private DateTime lastFPSUpdate = DateTime.Now;
         private int frameCount = 0;
 
+        // Firebase connector for saving game data
+        private FireBaseConnector firebaseConnector = null!;
+
         public MainWindow()
         {
 
@@ -66,11 +71,16 @@ namespace tkkn2025
 
             LoadGameSettings();
             InitializeSession();
+            InitializeFirebase();
 
             // Ensure window can receive keyboard input
             this.Loaded += (s, e) => {
                 this.Focus();
                 UpdateMusicButtonText(); // Update button text when window is loaded
+                
+                // Initialize player name TextBox after controls are loaded
+                PlayerNameTextBox.Text = Session.PlayerName;
+                PlayerNameTextBox.TextChanged += PlayerNameTextBox_TextChanged;
             };
             
            
@@ -86,12 +96,40 @@ namespace tkkn2025
             System.Diagnostics.Debug.WriteLine("New session started");
         }
 
+        private void InitializeFirebase()
+        {
+            try
+            {
+                firebaseConnector = new FireBaseConnector();
+                System.Diagnostics.Debug.WriteLine("Firebase connector initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to initialize Firebase connector: {ex.Message}");
+                // Continue without Firebase - game will still work
+            }
+        }
+
+        private void PlayerNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Update the static player name when the TextBox changes
+            if (sender is TextBox textBox)
+            {
+                Session.PlayerName = string.IsNullOrWhiteSpace(textBox.Text) ? "Anonymous" : textBox.Text.Trim();
+                
+                // Auto-save the player name when it changes
+                SaveAppConfig();
+            }
+        }
+
 
         //App start and close
         private void LoadGameSettings()
         {
             try
             {
+                // Load application config (player name, etc.) first
+                LoadAppConfig();
                 
                 // Try to load from existing config file for backward compatibility
                 if (ConfigManager.ConfigFileExists())
@@ -118,6 +156,9 @@ namespace tkkn2025
         {
             try
             {
+                // Save application config (player name, etc.) first
+                SaveAppConfig();
+
                 // Save settings using the new system
                 var gameConfig = SettingsManager.ToGameConfig();
                 bool success = ConfigManager.SaveConfig(gameConfig);
@@ -134,6 +175,54 @@ namespace tkkn2025
             {
                 UpdateMessage($"Error saving settings: {ex.Message}", Brushes.LightCoral);
                 System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Load application configuration including player name
+        /// </summary>
+        private void LoadAppConfig()
+        {
+            try
+            {
+                var appConfig = ConfigManager.LoadAppConfig();
+                Session.PlayerName = appConfig.PlayerName;
+                
+                System.Diagnostics.Debug.WriteLine($"App config loaded. Player name: {Session.PlayerName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading app config: {ex.Message}");
+                // Use default if loading fails
+                Session.PlayerName = "Anonymous";
+            }
+        }
+
+        /// <summary>
+        /// Save application configuration including player name
+        /// </summary>
+        private void SaveAppConfig()
+        {
+            try
+            {
+                var appConfig = new AppConfig
+                {
+                    PlayerName = Session.PlayerName
+                };
+                
+                bool success = ConfigManager.SaveAppConfig(appConfig);
+                if (success)
+                {
+                    System.Diagnostics.Debug.WriteLine($"App config saved successfully. Player name: {Session.PlayerName}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to save app config");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving app config: {ex.Message}");
             }
         }
 
@@ -170,17 +259,17 @@ namespace tkkn2025
             audioManager.Initialize();
             
             // Set initial music state from settings
-            if (SettingsManager.GameSettings?.MusicEnabled != null)
+            if (GameSettings.MusicEnabled != null)
             {
-                audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
                 UpdateMusicButtonText();
             }
 
             random = new Random();
             
             // Initialize particle controller
-            particleController = new ParticleManager(GameCanvas);
-            particleController.CollisionDetected += OnCollisionDetected;
+            particleManager = new ParticleManager(GameCanvas);
+            particleManager.CollisionDetected += OnCollisionDetected;
             
             // Initialize power-up manager
             powerUpManager = new PowerUpManager(GameCanvas, random);
@@ -196,15 +285,12 @@ namespace tkkn2025
             CreateShip();
         }
         
-        private void OnCollisionDetected()
+        private async void OnCollisionDetected()
         {
             StopGame();
-            var survivedTime = (DateTime.Now - gameStartTime).TotalSeconds;
             
-            // Show game over message with session stats
-            var sessionStats = currentSession.GetSessionStats();
-            MessageBox.Show($"Game Over! You survived for {survivedTime:F1} seconds!\n\n{sessionStats}", 
-                           "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Show the game over screen instead of MessageBox
+            await ShowGameOverScreenAsync();
         }
 
         private void OnPowerUpCollected(string powerUpType)
@@ -271,7 +357,7 @@ namespace tkkn2025
                 Canvas.SetTop(ship, shipPosition.Y);
                 
                 // Update particle controller with canvas dimensions
-                particleController.UpdateCanvasDimensions();
+                ParticleManager.UpdateCanvasDimensions();
                 
                 // Update power-up manager with canvas dimensions
                 powerUpManager.UpdateCanvasDimensions();
@@ -310,15 +396,15 @@ namespace tkkn2025
             powerUpManager.CheckCollisions(shipPosition);
             
             // Update particles through controller (with speed multiplier and power-up manager)
-            particleController.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
+            particleManager.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
             
             // Check collisions through controller
-            particleController.CheckCollisions(shipPosition);
+            particleManager.CheckCollisions(shipPosition);
             
             // Handle particle generation timing (use normal delta time for consistent spawning)
             if ((now - lastParticleGeneration).TotalSeconds >= activeLevelDuration)
             {
-                particleController.GenerateMoreParticles(activeNewParticlesPerLevel);
+                particleManager.GenerateMoreParticles(activeNewParticlesPerLevel);
                 lastParticleGeneration = now;
             }
             
@@ -337,6 +423,7 @@ namespace tkkn2025
             audioManager.SetVolume(1);
 
             gameRunning = true;
+            gameOverScreenVisible = false;
             gameStartTime = DateTime.Now;
             lastUpdate = DateTime.Now;
             lastParticleGeneration = DateTime.Now;
@@ -345,25 +432,25 @@ namespace tkkn2025
             frameCount = 0;
             currentSpeedMultiplier = 1.0;
             
-            // Hide the start screen when game starts
+            // Hide both screens when game starts
             StartScreen.Visibility = Visibility.Hidden;
+            GameOverScreen.Visibility = Visibility.Hidden;
             
             // Update canvas dimensions for all managers at the start of each game
-            particleController.UpdateCanvasDimensions();
+            ParticleManager.UpdateCanvasDimensions();
             powerUpManager.UpdateCanvasDimensions();
             
             // Update center screen position based on current canvas size
             centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
             
             // Snapshot current settings as active settings for this game
-            var gameSettings = SettingsManager.GameSettings;
             
-            activeShipSpeed = gameSettings.ShipSpeed.Value;
-            activeLevelDuration = gameSettings.LevelDuration.Value;
-            activeNewParticlesPerLevel = gameSettings.NewParticlesPerLevel.Value;
-            
+            activeShipSpeed = GameSettings.ShipSpeed.Value;
+            activeLevelDuration = GameSettings.LevelDuration.Value;
+            activeNewParticlesPerLevel = GameSettings.NewParticlesPerLevel.Value;
+
             // Initialize particle controller with game settings
-            particleController.InitializeGameSettings(SettingsManager);
+            ParticleManager.InitializeGameSettings();
             
             // Create game configuration for this game
             var gameConfig = SettingsManager.ToGameConfig();
@@ -384,30 +471,31 @@ namespace tkkn2025
             Canvas.SetTop(ship, shipPosition.Y);
             
             // Start new game through particle controller
-            particleController.StartNewGame();
+            particleManager.StartNewGame();
             
             // Start new game through power-up manager
             powerUpManager.StartNewGame();
             
-            StartButton.Content = "Game Running";
             
             // Show that settings are locked during game
             UpdateMessage("Settings locked during game", Brushes.Yellow);
         }
         
-        private void StopGame()
+        private async void StopGame()
         {
             gameRunning = false;
             
-            // Show the start screen when game stops
-            StartScreen.Visibility = Visibility.Visible;
+            // Don't show start screen immediately - will be shown after game over screen
             
             // Complete the current game
             if (currentGame != null)
             {
-                currentSession.CompleteCurrentGame(particleController.ParticleCount);
+                currentSession.CompleteCurrentGame(particleManager.ParticleCount);
                 System.Diagnostics.Debug.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
                 System.Diagnostics.Debug.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
+                
+                // Save game data to Firebase
+                await SaveGameToFirebase(currentGame);
             }
             
             // Reset all key states when game stops
@@ -416,13 +504,93 @@ namespace tkkn2025
                 keysPressed[i] = false;
             }
             
-            StartButton.Content = "Press SPACE to Start";
             audioManager.SetVolume(0.5);
             
             // Clear settings locked message
             UpdateMessage("Game ended - settings can be changed", Brushes.LightGreen);
         }
-        
+
+        /// <summary>
+        /// Show the game over screen with current game and session data
+        /// </summary>
+        private async Task ShowGameOverScreenAsync()
+        {
+            try
+            {
+                gameOverScreenVisible = true;
+                
+                // Hide start screen and show game over screen
+                StartScreen.Visibility = Visibility.Hidden;
+                GameOverScreen.Visibility = Visibility.Visible;
+                
+                // Initialize the game over screen with current data
+                await GameOverScreen.InitializeAsync(currentGame, currentSession, firebaseConnector);
+                
+                System.Diagnostics.Debug.WriteLine("Game over screen displayed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing game over screen: {ex.Message}");
+                // Fallback to showing start screen
+                ShowStartScreen();
+            }
+        }
+
+        /// <summary>
+        /// Show the start screen and hide other screens
+        /// </summary>
+        private void ShowStartScreen()
+        {
+            gameOverScreenVisible = false;
+            
+            // Show start screen and hide game over screen
+            StartScreen.Visibility = Visibility.Visible;
+            GameOverScreen.Visibility = Visibility.Hidden;
+            
+            System.Diagnostics.Debug.WriteLine("Start screen displayed");
+        }
+
+        private async Task SaveGameToFirebase(Game game)
+        {
+            if (firebaseConnector == null) return;
+
+            try
+            {
+                // Create a data object to save to Firebase
+                var gameData = new
+                {
+                    PlayerName = game.PlayerName,
+                    StartTime = game.StartTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    EndTime = game.EndTime?.ToString("yyyy-MM-dd HH:mm:ss"),
+                    DurationSeconds = game.DurationSeconds,
+                    FinalParticleCount = game.FinalParticleCount,
+                    Settings = new
+                    {
+                        ShipSpeed = game.Settings.ShipSpeed,
+                        ParticleSpeed = game.Settings.ParticleSpeed,
+                        ParticleTurnSpeed = game.Settings.ParticleTurnSpeed,
+                        StartingParticles = game.Settings.StartingParticles,
+                        LevelDuration = game.Settings.LevelDuration,
+                        NewParticlesPerLevel = game.Settings.NewParticlesPerLevel,
+                        ParticleSpeedVariance = game.Settings.ParticleSpeedVariance,
+                        ParticleRandomizerPercentage = game.Settings.ParticleRandomizerPercentage,
+                        IsParticleSpawnVectorTowardsShip = game.Settings.IsParticleSpawnVectorTowardsShip
+                    }
+                };
+
+                string gameKey = await firebaseConnector.WriteDataAsync("games", gameData);
+                System.Diagnostics.Debug.WriteLine($"Game data saved to Firebase with key: {gameKey}");
+                
+                // Show a brief success message
+                UpdateMessage("Game saved to database", Brushes.LightGreen);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to save game data to Firebase: {ex.Message}");
+                UpdateMessage("Failed to save game data", Brushes.LightCoral);
+            }
+        }
+
         private void UpdateFPS()
         {
             frameCount++;
@@ -472,7 +640,7 @@ namespace tkkn2025
         
         private void UpdateUI()
         {
-            ParticleCountText.Text = $"Particles: {particleController.ParticleCount}";
+            ParticleCountText.Text = $"Particles: {particleManager.ParticleCount}";
             
             if (gameRunning)
             {
@@ -521,30 +689,58 @@ namespace tkkn2025
         
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
+            // Handle escape key for GameConfigScreen
+            if (e.Key == Key.Escape && GameConfigScreen.Visibility == Visibility.Visible)
+            {
+                HideGameConfigScreen();
+                e.Handled = true;
+                return;
+            }
+
             switch (e.Key)
             {
                 case Key.Space:
-                    if (!gameRunning) StartGame();
+                    if (gameOverScreenVisible)
+                    {
+                        // Transition from game over screen to start screen
+                        ShowStartScreen();
+                    }
+                    else if (!gameRunning)
+                    {
+                        StartGame();
+                    }
                     e.Handled = true;
                     break;
                 case Key.Up:
                 case Key.W:
-                    keysPressed[0] = true;
+                    if (gameRunning)
+                    {
+                        keysPressed[0] = true;
+                    }
                     e.Handled = true;
                     break;
                 case Key.Down:
                 case Key.S:
-                    keysPressed[1] = true;
+                    if (gameRunning)
+                    {
+                        keysPressed[1] = true;
+                    }
                     e.Handled = true;
                     break;
                 case Key.Left:
                 case Key.A:
-                    keysPressed[2] = true;
+                    if (gameRunning)
+                    {
+                        keysPressed[2] = true;
+                    }
                     e.Handled = true;
                     break;
                 case Key.Right:
                 case Key.D:
-                    keysPressed[3] = true;
+                    if (gameRunning)
+                    {
+                        keysPressed[3] = true;
+                    }
                     e.Handled = true;
                     break;
             }
@@ -644,24 +840,12 @@ namespace tkkn2025
         {
             try
             {
-                var currentSettings = SettingsManager.ToGameConfig();
-                var validated = SettingsManager.ValidateSavedOrLoadedSettings(currentSettings);
-
-                bool success = SettingsManager.SaveSettings(validated);
-                
-                if (success)
-                {
-                    UpdateMessage("Settings saved successfully", Brushes.LightGreen);
-                    System.Diagnostics.Debug.WriteLine("Settings saved to file successfully");
-                }
-                else
-                {
-                    UpdateMessage("Save cancelled or failed", Brushes.LightCoral);
-                }
+                // Show the GameConfigScreen instead of directly saving
+                ShowGameConfigScreen();
             }
             catch (Exception ex)
             {
-                UpdateMessage($"Error saving settings: {ex.Message}", Brushes.Red);
+                UpdateMessage($"Error opening save screen: {ex.Message}", Brushes.Red);
                 System.Diagnostics.Debug.WriteLine($"Error in SaveSettingsButton_Click: {ex.Message}");
             }
         }
@@ -679,7 +863,7 @@ namespace tkkn2025
                     SettingsManager.FromGameConfig(validated);
 
                     // Update audio manager with loaded music setting
-                    audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                    audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
                     UpdateMusicButtonText();
 
                     UpdateMessage("Settings loaded successfully", Brushes.LightGreen);
@@ -697,15 +881,85 @@ namespace tkkn2025
             }
         }
 
+        /// <summary>
+        /// Show the GameConfigScreen overlay
+        /// </summary>
+        private void ShowGameConfigScreen()
+        {
+            try
+            {
+                // Get current settings
+                var currentSettings = SettingsManager.ToGameConfig();
+                
+                // Initialize and show the GameConfigScreen
+                GameConfigScreen.Initialize(currentSettings);
+                GameConfigScreen.Visibility = Visibility.Visible;
+                
+                // Focus on the GameConfigScreen
+                GameConfigScreen.Focus();
+                
+                System.Diagnostics.Debug.WriteLine("GameConfigScreen shown");
+            }
+            catch (Exception ex)
+            {
+                UpdateMessage($"Error showing config screen: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in ShowGameConfigScreen: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hide the GameConfigScreen overlay
+        /// </summary>
+        private void HideGameConfigScreen()
+        {
+            try
+            {
+                GameConfigScreen.Visibility = Visibility.Hidden;
+                
+                // Return focus to main window
+                this.Focus();
+                
+                System.Diagnostics.Debug.WriteLine("GameConfigScreen hidden");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in HideGameConfigScreen: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handle the back button or escape key from GameConfigScreen
+        /// </summary>
+        private void GameConfigScreen_BackRequested(object sender, EventArgs e)
+        {
+            HideGameConfigScreen();
+        }
+
+        /// <summary>
+        /// Handle when a configuration is saved from GameConfigScreen
+        /// </summary>
+        private void GameConfigScreen_ConfigSaved(object sender, GameConfig e)
+        {
+            try
+            {
+                UpdateMessage($"Configuration '{e.ConfigName}' saved successfully!", Brushes.LightGreen);
+                System.Diagnostics.Debug.WriteLine($"Configuration saved: {e.ConfigName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GameConfigScreen_ConfigSaved: {ex.Message}");
+            }
+        }
+
         private void MusicToggleButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 // Toggle the music setting
-                SettingsManager.GameSettings.MusicEnabled.Value = !SettingsManager.GameSettings.MusicEnabled.Value;
+                GameSettings.MusicEnabled.Value = !GameSettings.MusicEnabled.Value;
                 
                 // Update the audio manager
-                audioManager.MusicEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
                 
                 // Update button text
                 UpdateMusicButtonText();
@@ -713,7 +967,7 @@ namespace tkkn2025
                 // Save the settings immediately
                 SaveGameSettings();
                 
-                System.Diagnostics.Debug.WriteLine($"Music toggled to: {SettingsManager.GameSettings.MusicEnabled.Value}");
+                System.Diagnostics.Debug.WriteLine($"Music toggled to: {GameSettings.MusicEnabled.Value}");
             }
             catch (Exception ex)
             {
@@ -724,9 +978,9 @@ namespace tkkn2025
 
         private void UpdateMusicButtonText()
         {
-            if (MusicToggleButton != null && SettingsManager.GameSettings?.MusicEnabled != null)
+            if (MusicToggleButton != null && GameSettings.MusicEnabled != null)
             {
-                bool isEnabled = SettingsManager.GameSettings.MusicEnabled.Value;
+                bool isEnabled = GameSettings.MusicEnabled.Value;
                 MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
                 MusicToggleButton.Background = isEnabled ? new SolidColorBrush(Colors.DarkSlateBlue) : new SolidColorBrush(Colors.DarkRed);
             }

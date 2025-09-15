@@ -16,7 +16,11 @@
 
   <ItemGroup>
     <Folder Include="Graphics\" />
-    <Folder Include="UI\UserControls\" />
+    <Folder Include="UI\Windows\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FirebaseDatabase.net" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

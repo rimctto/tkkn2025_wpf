@@ -9,6 +9,11 @@ namespace tkkn2025
     /// </summary>
     public class Session
     {
+        /// <summary>
+        /// Static player name that persists across sessions
+        /// </summary>
+        public static string PlayerName { get; set; } = "Anonymous";
+
         public DateTime SessionStartTime { get; private set; }
         public List<Game> Games { get; private set; }
         

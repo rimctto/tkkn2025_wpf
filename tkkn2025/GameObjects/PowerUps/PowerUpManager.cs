@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using tkkn2025.GameObjects;
+using tkkn2025.Settings;
 
 namespace tkkn2025.GameObjects.PowerUps
 {
@@ -14,10 +15,11 @@ namespace tkkn2025.GameObjects.PowerUps
     /// </summary>
     public class PowerUpManager
     {
-        public static Brush TimeWarpBrush { get; set; } = Brushes.DarkGoldenrod;
+        public static Brush TimeWarpBrush { get; set; } = Brushes.DarkBlue;
         public static Brush SingularityBrush { get; set; } = Brushes.DarkRed;
-
         public static Brush RepulsorBrush { get; set; } = Brushes.DarkGreen;
+
+               
         private readonly Canvas gameCanvas;
         private readonly Random random;
         private readonly List<PowerUp> activePowerUps = new List<PowerUp>();
@@ -30,7 +32,6 @@ namespace tkkn2025.GameObjects.PowerUps
         
         // Power-up spawning
         private DateTime lastPowerUpSpawn = DateTime.Now;
-        private readonly double powerUpSpawnInterval = 7.5; // seconds between power-up spawns
         
         // Canvas dimensions
         private double canvasWidth;
@@ -84,7 +85,7 @@ namespace tkkn2025.GameObjects.PowerUps
         public void Update(double deltaTime, Vector2 shipPosition)
         {
             // Check if it's time to spawn a new power-up
-            if ((DateTime.Now - lastPowerUpSpawn).TotalSeconds >= powerUpSpawnInterval)
+            if ((DateTime.Now - lastPowerUpSpawn).TotalSeconds >= GameSettings.PowerUpSpawnRate)
             {
                 SpawnRandomPowerUp();
                 lastPowerUpSpawn = DateTime.Now;

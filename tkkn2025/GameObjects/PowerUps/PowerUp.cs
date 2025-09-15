@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
 using System.Windows.Controls;
+using tkkn2025.Settings;
 
 namespace tkkn2025.GameObjects.PowerUps
 {

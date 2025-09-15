@@ -16,26 +16,26 @@ namespace tkkn2025.GameObjects
     public class ParticleManager
     {
         // Particle management
-        private List<Patricle> particles = new List<Patricle>();
+        private static List<Patricle> particles = new List<Patricle>();
         private readonly Queue<Patricle> particlePool = new Queue<Patricle>();
-        private Random random = new Random();
-        private Canvas gameCanvas;
+        private static Random random = new Random();
+        private static Canvas gameCanvas;
         
         // Game state
-        private double canvasWidth;
-        private double canvasHeight;
-        private Point centerScreen;
+        private static double canvasWidth;
+        private static double canvasHeight;
+        private static Point centerScreen;
         
         // Active game settings - snapshot taken when game starts
-        private double activeParticleSpeed;
-        private double activeParticleTurnSpeed;
-        private double activeParticleSpeedVariance;
-        private double activeParticleRandomizerPercentage;
-        private bool activeIsParticleSpawnVectorTowardsShip;
-        private bool activeShouldParticlesChaseShip;
+        private static double activeParticleSpeed;
+        private static double activeParticleTurnSpeed;
+        private static double activeParticleSpeedVariance;
+        private static double activeParticleRandomizerPercentage;
+        private static bool activeIsParticleSpawnVectorTowardsShip;
+        private static bool activeShouldParticlesChaseShip;
         
         // Current game values
-        private int currentParticleCount = 0;
+        private static int currentParticleCount = 0;
         
         // Events for game state changes
         public event Action? CollisionDetected;
@@ -50,7 +50,7 @@ namespace tkkn2025.GameObjects
             UpdateCanvasDimensions();
         }
                
-        public void UpdateCanvasDimensions()
+        public static void UpdateCanvasDimensions()
         {
             canvasWidth = gameCanvas.ActualWidth > 0 ? gameCanvas.ActualWidth : 800;
             canvasHeight = gameCanvas.ActualHeight > 0 ? gameCanvas.ActualHeight : 600;
@@ -58,16 +58,16 @@ namespace tkkn2025.GameObjects
         }
         
       
-        public void InitializeGameSettings(SettingsManager settingsManager)
+        public static void InitializeGameSettings()
         {
             // Snapshot current settings as active settings for this game
-            activeParticleSpeed = settingsManager.GameSettings.ParticleSpeed.Value;
-            activeParticleTurnSpeed = settingsManager.GameSettings.ParticleTurnSpeed.Value;
-            activeParticleSpeedVariance = settingsManager.GameSettings.ParticleSpeedVariance.Value;
-            activeParticleRandomizerPercentage = settingsManager.GameSettings.ParticleRandomizerPercentage.Value;
-            activeIsParticleSpawnVectorTowardsShip = settingsManager.GameSettings.IsParticleSpawnVectorTowardsShip.Value;
-            activeShouldParticlesChaseShip = settingsManager.GameSettings.IsParticleChaseShip.Value;
-            currentParticleCount = settingsManager.GameSettings.StartingParticles.Value;
+            activeParticleSpeed = GameSettings.ParticleSpeed.Value;
+            activeParticleTurnSpeed = GameSettings.ParticleTurnSpeed.Value;
+            activeParticleSpeedVariance = GameSettings.ParticleSpeedVariance.Value;
+            activeParticleRandomizerPercentage = GameSettings.ParticleRandomizerPercentage.Value;
+            activeIsParticleSpawnVectorTowardsShip = GameSettings.IsParticleSpawnVectorTowardsShip.Value;
+            activeShouldParticlesChaseShip = GameSettings.IsParticleChaseShip.Value;
+            currentParticleCount = GameSettings.StartingParticles.Value;
         }
         
        

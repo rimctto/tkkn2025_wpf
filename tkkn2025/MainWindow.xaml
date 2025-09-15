@@ -14,193 +14,274 @@
     Focusable="True"
     KeyDown="Window_KeyDown"
     KeyUp="Window_KeyUp"
+    ResizeMode="NoResize"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+
+    <Window.Resources>
+        <!--  Default Button Style  -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="Foreground" Value="white" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <!--  Default TextBlock Style  -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <!--  Default TextBox Style  -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+    </Window.Resources>
+
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="225" />
-        </Grid.ColumnDefinitions>
+        <!--  Main Content Grid  -->
+        <Grid Name="MainContentGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="225" />
+            </Grid.ColumnDefinitions>
 
-        <!--  Game Area  -->
-        <Grid>
-            <Canvas
-                Name="GameCanvas"
-                Grid.Column="0"
-                Background="Black"
-                Focusable="True"
-                MouseDown="GameCanvas_MouseDown">
+            <!--  Game Area  -->
+            <Grid>
+                <Canvas
+                    Name="GameCanvas"
+                    Grid.Column="0"
+                    Background="Black"
+                    Focusable="True"
+                    MouseDown="GameCanvas_MouseDown">
 
-                <!--  Start Screen - shown when game is not running  -->
+                    <!--  Start Screen - shown when game is not running  -->
 
 
-            </Canvas>
+                </Canvas>
 
-            <ui:StartScreen x:Name="StartScreen" Visibility="Visible"/>
-            
-        </Grid>
-        <!--  Settings Panel  -->
-        <Border
-            Grid.Column="1"
-            Padding="10"
-            Background="#FF151515">
-            <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <StackPanel>
-                    <Button
-                        Name="StartButton"
-                        Background="Green"
-                        Content="Press SPACE to Start"
-                        Foreground="White" />
-
-                    <TextBlock
-                        Name="GameTimeText"
-                        HorizontalAlignment="Center"
-                        FontWeight="Bold"
-                        Foreground="White"
-                        Text="Time: 0s" />
-
-                    <TextBlock
-                        Name="ParticleCountText"
-                        HorizontalAlignment="Center"
-                        Foreground="White"
-                        Text="Particles: 0" />
-
-                    <TextBlock
-                        Name="FpsText"
-                        HorizontalAlignment="Center"
-                        FontWeight="Bold"
-                        Foreground="Yellow"
-                        Text="FPS: 0" />
-
-                    <!--  Session Stats  -->
-                    <TextBlock
-                        Margin="0,5,0,0"
-                        FontSize="14"
-                        FontWeight="Bold"
-                        Foreground="White"
-                        Text="Session Stats" />
-
-                    <TextBlock
-                        Name="SessionStatsText"
-                        Margin="0,0,0,10"
-                        HorizontalAlignment="Center"
-                        FontSize="12"
-                        Foreground="LightBlue"
-                        Text="No games played yet" />
-
-                    <!--  Music Control  -->
-                    <Button
-                        Name="MusicToggleButton"
-                        Margin="0,5,0,10"
-                        Background="DarkSlateBlue"
-                        Click="MusicToggleButton_Click"
-                        Content="🎵 Music: ON"
-                        Foreground="White" />
-
-                </StackPanel>
-
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ui:StartScreen x:Name="StartScreen" Visibility="Visible" />
+                <ui:GameOverScreen x:Name="GameOverScreen" Visibility="Hidden" />
+                <ui:GameConfigScreen
+                    x:Name="GameConfigScreen"
+                    BackRequested="GameConfigScreen_BackRequested"
+                    ConfigSaved="GameConfigScreen_ConfigSaved"
+                    Visibility="Hidden" />
+            </Grid>
+            <!--  Settings Panel  -->
+            <Border
+                Grid.Column="1"
+                Padding="10"
+                Background="#FF151515">
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
                     <StackPanel>
+                        <!--  FPS Counter in top right  -->
+                        <TextBlock
+                            Name="FpsText"
+                            Margin="0,0,0,5"
+                            HorizontalAlignment="Right"
+                            FontWeight="Bold"
+                            Foreground="Yellow"
+                            Text="FPS: 0" />
 
-                        <!--  Game Settings  -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="5" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="5" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="5" />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+
+                            <!--  Player Name Row  -->
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                FontWeight="Bold"
+                                Text="Player" />
+
+                            <TextBox
+                                Name="PlayerNameTextBox"
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Height="25"
+                                BorderBrush="MediumPurple"
+                                FontWeight="Bold"
+                                Text="Anonymous"
+                                TextAlignment="Center" />
+
+                            <!--  Game Time Row  -->
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                FontWeight="Bold"
+                                Text="Time" />
+
+                            <TextBlock
+                                Name="GameTimeText"
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                FontWeight="Bold"
+                                Text="0s"
+                                TextAlignment="Center" />
+
+                            <!--  Particle Count Row  -->
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Particles" />
+
+                            <TextBlock
+                                Name="ParticleCountText"
+                                Grid.Row="4"
+                                Grid.Column="2"
+                                Text="0"
+                                TextAlignment="Center" />
+
+                            <!--  Session Stats Row  -->
+                            <TextBlock
+                                Grid.Row="6"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="Bold"
+                                Text="Session" />
+
+                            <TextBlock
+                                Name="SessionStatsText"
+                                Grid.Row="6"
+                                Grid.Column="2"
+                                FontSize="10"
+                                Foreground="LightBlue"
+                                Text="No games played yet"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </Grid>
+
+                        <!--  Music Control  -->
+                        <Button
+                            Name="MusicToggleButton"
+                            Margin="0,10,0,10"
+                            Background="DarkSlateBlue"
+                            Click="MusicToggleButton_Click"
+                            Content="🎵 Music: ON"
+                            Foreground="White" />
+
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+
                         <StackPanel>
 
-                            <!--  Header  -->
-                            <TextBlock
-                                Margin="0,5,0,0"
-                                FontSize="14"
-                                FontWeight="Bold"
-                                Foreground="White"
-                                Text="Game Settings" />
+                            <!--  Game Settings  -->
+                            <StackPanel>
 
-                            <!--  Settings Management Buttons  -->
-                            <StackPanel
-                                Margin="0,5,0,0"
-                                HorizontalAlignment="Center"
-                                Orientation="Horizontal">
-                                <Button
-                                    Name="SaveSettingsButton"
-                                    Width="60"
-                                    Padding="5,2"
-                                    Background="DarkGray"
-                                    Click="SaveSettingsButton_Click"
-                                    Content="Save"
+                                <!--  Header  -->
+                                <TextBlock
+                                    Margin="0,5,0,0"
+                                    FontSize="14"
+                                    FontWeight="Bold"
+                                    Text="Game Settings" />
+
+                                <!--  Settings Management Buttons  -->
+                                <StackPanel
+                                    Margin="0,5,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Name="SaveSettingsButton"
+                                        Width="60"
+                                        Click="SaveSettingsButton_Click"
+                                        Content="Save"
+                                        FontSize="10" />
+                                    <Button
+                                        Name="LoadSettingsButton"
+                                        Width="60"
+                                        Margin="5,0,0,0"
+                                        Click="LoadSettingsButton_Click"
+                                        Content="Load"
+                                        FontSize="10" />
+                                    <Button
+                                        Name="ResetSettingsButton"
+                                        Width="60"
+                                        Margin="5,0,0,0"
+                                        Click="ResetSettingsButton_Click"
+                                        Content="Default"
+                                        FontSize="10" />
+                                </StackPanel>
+
+                                <!--  Config Status  -->
+                                <TextBlock
+                                    Name="ConfigStatusText"
+                                    Margin="0,5,0,10"
+                                    HorizontalAlignment="Center"
                                     FontSize="10"
-                                    Foreground="White" />
-                                <Button
-                                    Name="LoadSettingsButton"
-                                    Width="60"
-                                    Margin="5,0,0,0"
-                                    Padding="5,2"
-                                    Background="DarkGray"
-                                    Click="LoadSettingsButton_Click"
-                                    Content="Load"
-                                    FontSize="10"
-                                    Foreground="White" />
-                                <Button
-                                    Name="ResetSettingsButton"
-                                    Width="60"
-                                    Margin="5,0,0,0"
-                                    Padding="5,2"
-                                    Background="DarkGray"
-                                    Click="ResetSettingsButton_Click"
-                                    Content="Default"
-                                    FontSize="10"
-                                    Foreground="White" />
+                                    Foreground="LightGray"
+                                    Text="" />
+
                             </StackPanel>
 
-                            <!--  Config Status  -->
-                            <TextBlock
-                                Name="ConfigStatusText"
-                                Margin="0,5,0,10"
-                                HorizontalAlignment="Center"
-                                FontSize="10"
-                                Foreground="LightGray"
-                                Text="" />
 
+                            <StackPanel DataContext="{Binding}">
+
+                                <!--  Basic Settings  -->
+                                <Expander Foreground="White" IsExpanded="False">
+                                    <Expander.Header>
+                                        <TextBlock FontSize="14" Text="Basic Settings" />
+                                    </Expander.Header>
+
+                                    <settingsModels:SettingList DataContext="{Binding GameSettings.BasicSettings}" />
+                                </Expander>
+
+                                <!--  Particle Settings  -->
+                                <Expander Foreground="White" IsExpanded="False">
+                                    <Expander.Header>
+                                        <TextBlock FontSize="14" Text="Particle Settings" />
+                                    </Expander.Header>
+
+                                    <settingsModels:SettingList DataContext="{Binding GameSettings.ParticleSettings}" />
+                                </Expander>
+
+                                <!--  PowerUp Settings  -->
+                                <Expander Foreground="White" IsExpanded="False">
+                                    <Expander.Header>
+                                        <TextBlock FontSize="14" Text="Power-Up Settings" />
+                                    </Expander.Header>
+
+                                    <settingsModels:SettingList DataContext="{Binding GameSettings.PowerUpSettings}" />
+                                </Expander>
+
+
+                            </StackPanel>
                         </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
 
 
-                        <StackPanel DataContext="{Binding}">
-
-                            <!--  Basic Settings  -->
-                            <Expander Foreground="White" IsExpanded="False">
-                                <Expander.Header>
-                                    <TextBlock FontSize="14" Text="Basic Settings" />
-                                </Expander.Header>
-
-                                <settingsModels:SettingList DataContext="{Binding GameSettings.BasicSettings}" />
-                            </Expander>
-
-                            <!--  Particle Settings  -->
-                            <Expander Foreground="White" IsExpanded="False">
-                                <Expander.Header>
-                                    <TextBlock FontSize="14" Text="Particle Settings" />
-                                </Expander.Header>
-
-                                <settingsModels:SettingList DataContext="{Binding GameSettings.ParticleSettings}" />
-                            </Expander>
-
-                            <!--  PowerUp Settings  -->
-                            <Expander Foreground="White" IsExpanded="False">
-                                <Expander.Header>
-                                    <TextBlock FontSize="14" Text="Power-Up Settings" />
-                                </Expander.Header>
-
-                                <settingsModels:SettingList DataContext="{Binding GameSettings.PowerUpSettings}" />
-                            </Expander>
-
-
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
-        </Border>
     </Grid>
 </Window>

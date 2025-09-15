@@ -20,16 +20,12 @@
             Grid.Row="0"
             Grid.Column="0"
             d:Text="Starting Particles"
-            Foreground="White"
             Text="{Binding DisplayName}" />
         <TextBox
             Grid.Row="0"
             Grid.Column="1"
             Margin="5,0,0,0"
             d:Text="30"
-            Background="DarkGray"
-            BorderBrush="Gray"
-            Foreground="White"
             Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
             TextAlignment="Center" />
         <Slider

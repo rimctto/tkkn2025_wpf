@@ -20,16 +20,12 @@
             Grid.Row="0"
             Grid.Column="0"
             d:Text="Setting Name"
-            Foreground="White"
             Text="{Binding DisplayName}" />
         <TextBox
             Grid.Row="0"
             Grid.Column="1"
             Margin="5,0,0,0"
             d:Text="Value"
-            Background="DarkGray"
-            BorderBrush="Gray"
-            Foreground="White"
             Text="{Binding Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay, StringFormat=F1}"
             TextAlignment="Center" />
         <Slider

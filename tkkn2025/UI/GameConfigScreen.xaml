@@ -1,0 +1,184 @@
+<UserControl
+    x:Class="tkkn2025.UI.GameConfigScreen"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="Black"
+    mc:Ignorable="d">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,20"
+            HorizontalAlignment="Center"
+            FontSize="32"
+            FontWeight="Bold"
+            Foreground="DarkCyan"
+            Text="Save Game Configuration" />
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width=".5*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width=".5*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side - Save Configuration Controls -->
+            <Border
+                Grid.Column="0"
+                Padding="20"
+                Background="#FF2D2D30"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                CornerRadius="5">
+                <StackPanel>
+                    <TextBlock
+                        Margin="0,0,0,15"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="Configuration Details" />
+
+                    <!-- Config Name -->
+                    <Grid Margin="0,0,0,15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="Configuration Name:" />
+                        <TextBox
+                            Name="ConfigNameTextBox"
+                            Grid.Row="2"
+                            Background="#FF3D3D40"
+                            BorderBrush="MediumPurple"
+                            Foreground="White"
+                            Padding="5"
+                            Text="My Custom Config" />
+                    </Grid>
+
+                    <!-- Description -->
+                    <Grid Margin="0,0,0,15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="Description:" />
+                        <TextBox
+                            Name="DescriptionTextBox"
+                            Grid.Row="2"
+                            Height="80"
+                            Background="#FF3D3D40"
+                            BorderBrush="MediumPurple"
+                            Foreground="White"
+                            Padding="5"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            VerticalScrollBarVisibility="Auto"
+                            Text="Enter a description for this configuration..." />
+                    </Grid>
+
+                    <!-- Date Created (Read-only) -->
+                    <Grid Margin="0,0,0,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="Date Created:" />
+                        <TextBlock
+                            Name="DateCreatedText"
+                            Grid.Row="2"
+                            Padding="5"
+                            Background="#FF1D1D20"
+                            Foreground="LightGray"
+                            Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='yyyy-MM-dd HH:mm:ss'}" 
+                            xmlns:sys="clr-namespace:System;assembly=mscorlib"/>
+                    </Grid>
+
+                    <!-- Save Button -->
+                    <Button
+                        Name="SaveConfigButton"
+                        Height="40"
+                        Background="Green"
+                        BorderBrush="DarkGreen"
+                        Click="SaveConfigButton_Click"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White"
+						Content="Save Settings Config">
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Right Side - Reserved for Future -->
+            <Border
+                Grid.Column="2"
+                Padding="20"
+                Background="#FF2D2D30"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                CornerRadius="5">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Foreground="Gray"
+                        Text="Reserved for Future Features"
+                        TextAlignment="Center" />
+                    <TextBlock
+                        Margin="0,10,0,0"
+                        FontSize="12"
+                        Foreground="DarkGray"
+                        Text="This space will be used for additional&#x0a;configuration management features"
+                        TextAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Buttons -->
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,20,0,0"
+            HorizontalAlignment="Center"
+            Orientation="Horizontal">
+            <Button
+                Name="BackButton"
+                Width="100"
+                Height="35"
+                Background="DarkGray"
+                BorderBrush="Gray"
+                Click="BackButton_Click"
+                FontWeight="Bold"
+                Foreground="White"
+				Content="Back">
+               
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>
