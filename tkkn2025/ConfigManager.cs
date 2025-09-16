@@ -15,8 +15,7 @@ namespace tkkn2025
         public DateTime LastModified { get; set; } = DateTime.Now;
         public string Version { get; set; } = "2.0";
 
-        // Game settings
-        public bool MusicEnabled { get; set; }
+        // Game settings (removed MusicEnabled - now in AppConfig)
         public double ShipSpeed { get; set; }
         public double ParticleSpeed { get; set; }
         public double ParticleTurnSpeed { get; set; }
@@ -49,7 +48,6 @@ namespace tkkn2025
                 DateCreated = this.DateCreated,
                 LastModified = this.LastModified,
                 Version = this.Version,
-                MusicEnabled = this.MusicEnabled,
                 ShipSpeed = this.ShipSpeed,
                 ParticleSpeed = this.ParticleSpeed,
                 ParticleTurnSpeed = this.ParticleTurnSpeed,
@@ -71,11 +69,12 @@ namespace tkkn2025
     }
 
     /// <summary>
-    /// Application configuration class for storing application-level settings like player name
+    /// Application configuration class for storing application-level settings like player name and music preference
     /// </summary>
     public class AppConfig
     {
         public string PlayerName { get; set; } = "Anonymous";
+        public bool MusicEnabled { get; set; } = true;
         public DateTime LastSaved { get; set; } = DateTime.Now;
         public string Version { get; set; } = "1.0";
     }
@@ -85,13 +84,13 @@ namespace tkkn2025
     /// </summary>
     public static class ConfigManager
     {
-        private static readonly string ConfigFileName = "gameconfig.json";
+        private static readonly string DefaultConfigFileName = "default_gameconfig.json";
         private static readonly string AppConfigFileName = "appconfig.json";
         private static readonly string GameSettingsDirectory = "GameSettings";
         
-        private static readonly string ConfigFilePath = System.IO.Path.Combine(
+        private static readonly string DefaultConfigFilePath = System.IO.Path.Combine(
             System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-            ConfigFileName);
+            DefaultConfigFileName);
         private static readonly string AppConfigFilePath = System.IO.Path.Combine(
             System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
             AppConfigFileName);
@@ -115,8 +114,7 @@ namespace tkkn2025
                 LastModified = DateTime.Now,
                 Version = "2.0",
                 
-                // Game settings with default values
-                MusicEnabled = true,
+                // Game settings with default values (removed MusicEnabled)
                 ShipSpeed = 150.0,
                 ParticleSpeed = 75.0,
                 ParticleTurnSpeed = 2.0,
@@ -140,19 +138,22 @@ namespace tkkn2025
 
         #endregion
 
-        #region Game Configuration Management
+        #region Default Configuration Management (Auto-persist current settings)
 
         /// <summary>
-        /// Saves the current game configuration to the default JSON file
+        /// Saves the current default game configuration that auto-loads on app start
+        /// This is the working configuration that persists between sessions
         /// </summary>
-        /// <param name="config">The configuration to save</param>
+        /// <param name="config">The configuration to save as default</param>
         /// <returns>True if save was successful, false otherwise</returns>
-        public static bool SaveConfig(GameConfig config)
+        public static bool SaveDefaultConfig(GameConfig config)
         {
             try
             {
                 config.LastModified = DateTime.Now;
                 config.Version = "2.0";
+                config.ConfigName = "Current Default Settings";
+                config.Description = "Automatically saved current game settings";
 
                 var options = new JsonSerializerOptions
                 {
@@ -161,33 +162,37 @@ namespace tkkn2025
                 };
 
                 string jsonString = JsonSerializer.Serialize(config, options);
-                System.IO.File.WriteAllText(ConfigFilePath, jsonString);
+                System.IO.File.WriteAllText(DefaultConfigFilePath, jsonString);
                 
-                System.Diagnostics.Debug.WriteLine($"Game config saved to: {ConfigFilePath}");
+                System.Diagnostics.Debug.WriteLine($"Default game config saved to: {DefaultConfigFilePath}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save config: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to save default config: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Loads game configuration from the default JSON file, returns default if file doesn't exist
+        /// Loads the default game configuration that auto-loads on app start
+        /// Returns system defaults if file doesn't exist
         /// </summary>
-        /// <returns>Loaded configuration or default configuration</returns>
-        public static GameConfig LoadConfig()
+        /// <returns>Loaded default configuration or system default configuration</returns>
+        public static GameConfig LoadDefaultConfig()
         {
             try
             {
-                if (!System.IO.File.Exists(ConfigFilePath))
+                if (!System.IO.File.Exists(DefaultConfigFilePath))
                 {
-                    System.Diagnostics.Debug.WriteLine("Game config file not found, returning default config");
-                    return CreateDefaultGameConfig();
+                    System.Diagnostics.Debug.WriteLine("Default config file not found, returning system default config");
+                    var defaultConfig = CreateDefaultGameConfig();
+                    // Save the system defaults as the new default config
+                    SaveDefaultConfig(defaultConfig);
+                    return defaultConfig;
                 }
 
-                string jsonString = System.IO.File.ReadAllText(ConfigFilePath);
+                string jsonString = System.IO.File.ReadAllText(DefaultConfigFilePath);
                 var options = new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -199,15 +204,69 @@ namespace tkkn2025
                 // Migrate old config versions if needed
                 result = MigrateGameConfig(result);
                 
-                System.Diagnostics.Debug.WriteLine($"Game config loaded successfully from: {ConfigFilePath}");
+                System.Diagnostics.Debug.WriteLine($"Default game config loaded successfully from: {DefaultConfigFilePath}");
                 return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load config: {ex.Message}");
-                return CreateDefaultGameConfig();
+                System.Diagnostics.Debug.WriteLine($"Failed to load default config: {ex.Message}");
+                var defaultConfig = CreateDefaultGameConfig();
+                // Try to save the system defaults as backup
+                SaveDefaultConfig(defaultConfig);
+                return defaultConfig;
             }
         }
+
+        /// <summary>
+        /// Checks if the default configuration file exists
+        /// </summary>
+        /// <returns>True if default config file exists, false otherwise</returns>
+        public static bool DefaultConfigFileExists()
+        {
+            return System.IO.File.Exists(DefaultConfigFilePath);
+        }
+
+        /// <summary>
+        /// Gets the full path to the default configuration file
+        /// </summary>
+        /// <returns>Full path to the default config file</returns>
+        public static string GetDefaultConfigFilePath()
+        {
+            return DefaultConfigFilePath;
+        }
+
+        #endregion
+
+        #region Legacy Game Configuration Management (for backward compatibility)
+
+        /// <summary>
+        /// Saves the current game configuration to the legacy JSON file
+        /// This method is kept for backward compatibility
+        /// </summary>
+        /// <param name="config">The configuration to save</param>
+        /// <returns>True if save was successful, false otherwise</returns>
+        [Obsolete("Use SaveDefaultConfig for automatic persistence. This method is kept for backward compatibility.")]
+        public static bool SaveConfig(GameConfig config)
+        {
+            // Redirect to the new default config system
+            return SaveDefaultConfig(config);
+        }
+
+        /// <summary>
+        /// Loads game configuration from the legacy JSON file, returns default if file doesn't exist
+        /// This method is kept for backward compatibility
+        /// </summary>
+        /// <returns>Loaded configuration or default configuration</returns>
+        [Obsolete("Use LoadDefaultConfig for automatic persistence. This method is kept for backward compatibility.")]
+        public static GameConfig LoadConfig()
+        {
+            // Redirect to the new default config system
+            return LoadDefaultConfig();
+        }
+
+        #endregion
+
+        #region Game Configuration Management (Manual Save/Load to GameSettings folder)
 
         /// <summary>
         /// Saves a game configuration to the GameSettings directory with metadata
@@ -380,15 +439,6 @@ namespace tkkn2025
         #region File Path and Status Methods
 
         /// <summary>
-        /// Gets the full path to the configuration file
-        /// </summary>
-        /// <returns>Full path to the config file</returns>
-        public static string GetConfigFilePath()
-        {
-            return ConfigFilePath;
-        }
-
-        /// <summary>
         /// Gets the full path to the application configuration file
         /// </summary>
         /// <returns>Full path to the app config file</returns>
@@ -404,15 +454,6 @@ namespace tkkn2025
         public static string GetGameSettingsDirectory()
         {
             return GameSettingsDirectoryPath;
-        }
-
-        /// <summary>
-        /// Checks if the configuration file exists
-        /// </summary>
-        /// <returns>True if config file exists, false otherwise</returns>
-        public static bool ConfigFileExists()
-        {
-            return System.IO.File.Exists(ConfigFilePath);
         }
 
         /// <summary>

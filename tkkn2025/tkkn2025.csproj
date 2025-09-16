@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Events\" />
     <Folder Include="Graphics\" />
+    <Folder Include="Assets\" />
     <Folder Include="UI\Windows\" />
   </ItemGroup>
 

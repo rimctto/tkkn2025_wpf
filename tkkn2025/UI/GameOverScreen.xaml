@@ -40,86 +40,86 @@
             <!--  Current Game Stats  -->
             <StackPanel Grid.Column="0">
                 <TextBlock
+                    Margin="0,0,0,10"
+                    HorizontalAlignment="Center"
                     FontSize="16"
                     FontWeight="Bold"
                     Foreground="White"
-                    Text="This Game"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,0,10" />
-                
+                    Text="This Game" />
+
                 <TextBlock
                     Name="CurrentGameTimeText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Time: 0.0s"
-                    HorizontalAlignment="Center" />
-                
+                    Text="Time: 0.0s" />
+
                 <TextBlock
                     Name="CurrentGameParticlesText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Final Particles: 0"
-                    HorizontalAlignment="Center" />
-                
+                    Text="Final Particles: 0" />
+
                 <TextBlock
                     Name="CurrentGamePlayerText"
-                    Foreground="LightBlue"
-                    Text="Player: Anonymous"
+                    Margin="0,5,0,0"
                     HorizontalAlignment="Center"
-                    Margin="0,5,0,0" />
+                    Foreground="LightBlue"
+                    Text="Player: Anonymous" />
             </StackPanel>
 
             <!--  Session Stats  -->
             <StackPanel Grid.Column="2">
                 <TextBlock
+                    Margin="0,0,0,10"
+                    HorizontalAlignment="Center"
                     FontSize="16"
                     FontWeight="Bold"
                     Foreground="White"
-                    Text="Session Stats"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,0,10" />
-                
+                    Text="Session Stats" />
+
                 <TextBlock
                     Name="SessionGamesText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Games Played: 0"
-                    HorizontalAlignment="Center" />
-                
+                    Text="Games Played: 0" />
+
                 <TextBlock
                     Name="SessionBestText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Best Time: 0.0s"
-                    HorizontalAlignment="Center" />
-                
+                    Text="Best Time: 0.0s" />
+
                 <TextBlock
                     Name="SessionAverageText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Average: 0.0s"
-                    HorizontalAlignment="Center" />
-                
+                    Text="Average: 0.0s" />
+
                 <TextBlock
                     Name="SessionTotalText"
+                    HorizontalAlignment="Center"
                     Foreground="LightGray"
-                    Text="Total Play Time: 0:00"
-                    HorizontalAlignment="Center" />
+                    Text="Total Play Time: 0:00" />
             </StackPanel>
         </Grid>
 
         <!--  Leaderboard Header  -->
         <TextBlock
             Grid.Row="4"
+            HorizontalAlignment="Center"
             FontSize="24"
             FontWeight="Bold"
             Foreground="Goldenrod"
-            Text="Leaderboard"
-            HorizontalAlignment="Center" />
+            Text="Leaderboard" />
 
         <!--  Leaderboard  -->
         <Border
             Grid.Row="6"
-            BorderBrush="Gray"
-            BorderThickness="1"
+            Padding="10"
             Background="#FF1A1A1A"
-            Padding="10">
-            
+            BorderBrush="Gray"
+            BorderThickness="1">
+
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -139,46 +139,46 @@
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="0"
+                    HorizontalAlignment="Center"
                     FontWeight="Bold"
                     Foreground="LightGray"
-                    Text="Rank"
-                    HorizontalAlignment="Center" />
+                    Text="Rank" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="1"
+                    HorizontalAlignment="Center"
                     FontWeight="Bold"
                     Foreground="LightGray"
-                    Text="Player"
-                    HorizontalAlignment="Center" />
+                    Text="Player" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="2"
+                    HorizontalAlignment="Center"
                     FontWeight="Bold"
                     Foreground="LightGray"
-                    Text="Time"
-                    HorizontalAlignment="Center" />
+                    Text="Time" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="3"
+                    HorizontalAlignment="Center"
                     FontWeight="Bold"
                     Foreground="LightGray"
-                    Text="Particles"
-                    HorizontalAlignment="Center" />
+                    Text="Particles" />
 
                 <!--  Leaderboard Entries  -->
                 <StackPanel
+                    Name="LeaderboardPanel"
                     Grid.Row="2"
                     Grid.Column="0"
-                    Grid.ColumnSpan="4"
-                    Name="LeaderboardPanel">
-                    
+                    Grid.ColumnSpan="4">
+
                     <!--  Loading Text  -->
                     <TextBlock
                         Name="LoadingText"
-                        Foreground="Yellow"
-                        Text="Loading leaderboard..."
+                        Margin="0,20"
                         HorizontalAlignment="Center"
-                        Margin="0,20" />
+                        Foreground="Yellow"
+                        Text="Loading leaderboard..." />
                 </StackPanel>
             </Grid>
         </Border>

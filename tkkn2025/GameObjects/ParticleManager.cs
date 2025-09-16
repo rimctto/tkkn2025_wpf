@@ -37,9 +37,6 @@ namespace tkkn2025.GameObjects
         // Current game values
         private static int currentParticleCount = 0;
         
-        // Events for game state changes
-        public event Action? CollisionDetected;
-        
         public int ParticleCount => particles.Count;
                 
         public int CurrentParticleCount => currentParticleCount;
@@ -115,6 +112,9 @@ namespace tkkn2025.GameObjects
                     CreateParticle();
                 }
             }
+            
+            // Raise particle count changed event
+            GameEvents.RaiseParticleCountChanged(particles.Count);
         }
         
         /// <summary>
@@ -147,7 +147,8 @@ namespace tkkn2025.GameObjects
                 
                 if (distanceSquared < 225) // 15^2
                 {
-                    CollisionDetected?.Invoke();
+                    // Use GameEvents instead of direct event
+                    GameEvents.RaiseCollisionDetected();
                     return true;
                 }
             }

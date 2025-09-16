@@ -92,8 +92,8 @@ namespace tkkn2025
                 AppConfig = ConfigManager.LoadAppConfig();
                 PlayerName = AppConfig.PlayerName;
                 
-                // Load game configuration
-                GameConfig = ConfigManager.LoadConfig();
+                // Load the current default game configuration (auto-persisted working settings)
+                GameConfig = ConfigManager.LoadDefaultConfig();
                 
                 System.Diagnostics.Debug.WriteLine($"Session configurations loaded - Player: {PlayerName}, Config: {GameConfig.ConfigName}");
             }
@@ -109,6 +109,7 @@ namespace tkkn2025
 
         /// <summary>
         /// Saves both app and game configurations using ConfigManager
+        /// This saves the current working configuration as the new default
         /// </summary>
         public void SaveConfigurations()
         {
@@ -119,11 +120,11 @@ namespace tkkn2025
                 
                 // Save both configurations
                 bool appSaved = ConfigManager.SaveAppConfig(AppConfig);
-                bool gameSaved = ConfigManager.SaveConfig(GameConfig);
+                bool gameSaved = ConfigManager.SaveDefaultConfig(GameConfig);
                 
                 if (appSaved && gameSaved)
                 {
-                    System.Diagnostics.Debug.WriteLine("Session configurations saved successfully");
+                    System.Diagnostics.Debug.WriteLine("Session configurations saved successfully - current settings are now default");
                 }
                 else
                 {
@@ -137,25 +138,25 @@ namespace tkkn2025
         }
 
         /// <summary>
-        /// Updates the current game configuration and optionally saves it
+        /// Updates the current game configuration and optionally saves it as the new default
         /// </summary>
         /// <param name="newConfig">The new game configuration</param>
-        /// <param name="saveToFile">Whether to save the configuration to file</param>
-        public void UpdateGameConfig(GameConfig newConfig, bool saveToFile = true)
+        /// <param name="saveAsDefault">Whether to save the configuration as the new default</param>
+        public void UpdateGameConfig(GameConfig newConfig, bool saveAsDefault = true)
         {
             try
             {
                 GameConfig = newConfig;
                 OnPropertyChanged(nameof(GameConfig));
                 
-                if (saveToFile)
+                if (saveAsDefault)
                 {
-                    bool saved = ConfigManager.SaveConfig(GameConfig);
-                    System.Diagnostics.Debug.WriteLine($"Game config updated and saved: {saved}");
+                    bool saved = ConfigManager.SaveDefaultConfig(GameConfig);
+                    System.Diagnostics.Debug.WriteLine($"Game config updated and saved as default: {saved}");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("Game config updated (not saved to file)");
+                    System.Diagnostics.Debug.WriteLine("Game config updated (not saved as default)");
                 }
             }
             catch (Exception ex)

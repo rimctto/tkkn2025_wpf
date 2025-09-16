@@ -9,18 +9,6 @@ namespace tkkn2025.Settings
     public partial class GameSettings
     {
 
-
-        /// <summary>
-        /// Whether background music is enabled
-        /// </summary>
-        public static BoolSetting MusicEnabled { get; } = new BoolSetting(
-            name: nameof(MusicEnabled),
-            displayName: "Music Enabled",
-            category: "Audio",
-            defaultValue: false,
-            description: "Enable or disable background music"
-        );
-
        
         public static DoubleSetting ShipSpeed { get; } = new DoubleSetting(
             name: nameof(ShipSpeed),
@@ -31,9 +19,6 @@ namespace tkkn2025.Settings
             max: 500.0
         );
 
-
-
-
         public static DoubleSetting LevelDuration { get; } = new DoubleSetting(
             name: nameof(LevelDuration),
             displayName: "Level Duration (s)",
@@ -42,7 +27,6 @@ namespace tkkn2025.Settings
             min: 1.0,
             max: 20.0
         );
-
 
         public static IntegerSetting StartingParticles { get; } = new IntegerSetting(
             name: nameof(StartingParticles),
@@ -53,7 +37,6 @@ namespace tkkn2025.Settings
             max: 100
         );
 
-        
         public static DoubleSetting NewParticlesPerLevel { get; } = new DoubleSetting(
             name: nameof(NewParticlesPerLevel),
             displayName: "New Particles / Level",
@@ -62,10 +45,5 @@ namespace tkkn2025.Settings
             min: 1.0,
             max: 50.0
         );
-
-
-
-
-
     }
 }

@@ -18,16 +18,13 @@ namespace tkkn2025.Settings
         
         public GameSettings()
         {
-            // Create the settings list
+            // Create the settings list (removed MusicEnabled)
             BasicSettings = new List<ISettingModel>
             {
-                MusicEnabled,
-
                 ShipSpeed,                                
                 LevelDuration,
                 StartingParticles,
                 NewParticlesPerLevel,
-                                
             };
 
             ParticleSettings = new List<ISettingModel>
@@ -73,9 +70,7 @@ namespace tkkn2025.Settings
                 LastModified = DateTime.Now,
                 Version = "2.0",
 
-                // Game settings from UI controls
-                MusicEnabled = MusicEnabled.Value,
-
+                // Game settings from UI controls (removed MusicEnabled)
                 ShipSpeed = ShipSpeed,
                 LevelDuration = LevelDuration,
                 StartingParticles = StartingParticles,
@@ -111,7 +106,7 @@ namespace tkkn2025.Settings
             ParticleRandomizerPercentage.Value = config.ParticleRandomizerPercentage;
             IsParticleSpawnVectorTowardsShip.Value = config.IsParticleSpawnVectorTowardsShip;
             IsParticleChaseShip.Value = config.IsParticleChaseShip;
-            MusicEnabled.Value = config.MusicEnabled;
+            // Removed MusicEnabled - now handled in AppConfig
 
             // PowerUp settings
             PowerUpSpawnRate.Value = config.PowerUpSpawnRate;

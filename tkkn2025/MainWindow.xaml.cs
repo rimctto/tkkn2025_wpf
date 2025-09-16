@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using tkkn2025.GameObjects;
 using tkkn2025.GameObjects.PowerUps;
+using tkkn2025.GameObjects.Ship;
 using tkkn2025.Settings;
 using tkkn2025.DataAccess;
 
@@ -18,7 +19,7 @@ namespace tkkn2025
     public partial class MainWindow : Window
     {
         // Game objects
-        private Polygon ship = null!;
+        private ShipSprite ship = null!;
         private ParticleManager particleManager = null!;
         private PowerUpManager powerUpManager = null!;
         private Random random = null!;
@@ -69,9 +70,9 @@ namespace tkkn2025
             DataContext = SettingsManager;
             InitializeComponent();
 
-            LoadGameSettings();
             InitializeSession();
             InitializeFirebase();
+            SubscribeToGameEvents();
 
             // Ensure window can receive keyboard input
             this.Loaded += (s, e) => {
@@ -83,17 +84,88 @@ namespace tkkn2025
                 PlayerNameTextBox.TextChanged += PlayerNameTextBox_TextChanged;
             };
             
-           
             // Save settings when window is closing
-            this.Closing += (s, e) => SaveGameSettings();
+            this.Closing += (s, e) => {
+                SaveGameSettings();
+                UnsubscribeFromGameEvents();
+                System.Diagnostics.Debug.WriteLine("Window closing - settings saved");
+            };
             
             InitializeGame();
         }
 
+        #region GameEvents Subscription Management
+        
+        /// <summary>
+        /// Subscribe to all relevant GameEvents
+        /// </summary>
+        private void SubscribeToGameEvents()
+        {
+            // Game state events
+            GameEvents.CollisionDetected += OnParticleShipCollisionDetected;
+            GameEvents.GameCompleted += OnGameCompleted;
+            
+            // Power-up events
+            GameEvents.PowerUpCollected += OnPowerUpCollected;
+            GameEvents.PowerUpEffectStarted += OnPowerUpEffectStarted;
+            GameEvents.PowerUpEffectEnded += OnPowerUpEffectEnded;
+            GameEvents.PowerUpStored += OnPowerUpStored;
+            GameEvents.SingularityActivated += OnSingularityActivated;
+            
+            // UI events
+            GameEvents.MessageRequested += UpdateMessage;
+            
+            // Configuration events
+            GameEvents.ConfigurationSaved += OnConfigurationSaved;
+            
+            // Screen navigation events
+            GameEvents.ShowStartScreen += ShowStartScreen;
+            GameEvents.ShowGameOverScreen += async () => await ShowGameOverScreenAsync();
+            GameEvents.ShowConfigScreen += ShowGameConfigScreen;
+            GameEvents.HideConfigScreen += HideGameConfigScreen;
+        }
+        
+        /// <summary>
+        /// Unsubscribe from all GameEvents to prevent memory leaks
+        /// </summary>
+        private void UnsubscribeFromGameEvents()
+        {
+            // Game state events
+            GameEvents.CollisionDetected -= OnParticleShipCollisionDetected;
+            GameEvents.GameCompleted -= OnGameCompleted;
+            
+            // Power-up events
+            GameEvents.PowerUpCollected -= OnPowerUpCollected;
+            GameEvents.PowerUpEffectStarted -= OnPowerUpEffectStarted;
+            GameEvents.PowerUpEffectEnded -= OnPowerUpEffectEnded;
+            GameEvents.PowerUpStored -= OnPowerUpStored;
+            GameEvents.SingularityActivated -= OnSingularityActivated;
+            
+            // UI events
+            GameEvents.MessageRequested -= UpdateMessage;
+            
+            // Configuration events
+            GameEvents.ConfigurationSaved -= OnConfigurationSaved;
+            
+            // Screen navigation events
+            GameEvents.ShowStartScreen -= ShowStartScreen;
+            GameEvents.ShowConfigScreen -= ShowGameConfigScreen;
+            GameEvents.HideConfigScreen -= HideGameConfigScreen;
+        }
+        
+        #endregion
+
         private void InitializeSession()
         {
             currentSession = new Session();
-            System.Diagnostics.Debug.WriteLine("New session started");
+            
+            // Register the session with the App for automatic config saving on exit
+            App.CurrentSession = currentSession;
+            
+            // Load the current configurations into the UI
+            LoadGameSettings();
+            
+            System.Diagnostics.Debug.WriteLine("New session started and registered with App");
         }
 
         private void InitializeFirebase()
@@ -128,16 +200,22 @@ namespace tkkn2025
         {
             try
             {
-                // The session will load both app and game configs automatically
-                // We just need to update the UI to reflect the loaded settings
+                // Load game settings from the session
                 if (currentSession?.GameConfig != null)
                 {
                     SettingsManager.GameSettings.LoadFromConfig(currentSession.GameConfig);
-                    UpdateMessage($"Settings loaded: {currentSession.GameConfig.ConfigName}", Brushes.LightGreen);
+                    GameEvents.RaiseMessageRequested($"Settings loaded: {currentSession.GameConfig.ConfigName}", Brushes.LightGreen);
                 }
                 else
                 {
-                    UpdateMessage("Using default settings", Brushes.LightBlue);
+                    GameEvents.RaiseMessageRequested("Using default settings", Brushes.LightBlue);
+                }
+
+                // Load music setting from app config
+                if (currentSession?.AppConfig != null)
+                {
+                    audioManager.MusicEnabled = currentSession.AppConfig.MusicEnabled;
+                    System.Diagnostics.Debug.WriteLine($"Music setting loaded: {currentSession.AppConfig.MusicEnabled}");
                 }
 
                 // Update player name TextBox if it exists
@@ -148,7 +226,7 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                UpdateMessage($"Error loading config: {ex.Message}", Brushes.LightCoral);
+                GameEvents.RaiseMessageRequested($"Error loading config: {ex.Message}", Brushes.LightCoral);
                 System.Diagnostics.Debug.WriteLine($"Error loading game settings: {ex.Message}");
             }
         }
@@ -159,16 +237,19 @@ namespace tkkn2025
             {
                 // Update the session's game config with current UI settings
                 var currentConfig = SettingsManager.ToGameConfig();
-                currentSession?.UpdateGameConfig(currentConfig, true);
+                currentSession?.UpdateGameConfig(currentConfig, true); // Save as new default
                 
-                // Session will handle saving both app and game configs
-                currentSession?.SaveConfigurations();
+                // Update app config with current music setting
+                if (currentSession?.AppConfig != null)
+                {
+                    currentSession.AppConfig.MusicEnabled = audioManager.MusicEnabled;
+                }
                 
-                UpdateMessage("Settings saved successfully", Brushes.LightGreen);
+                GameEvents.RaiseMessageRequested("Settings saved as new default", Brushes.LightGreen);
             }
             catch (Exception ex)
             {
-                UpdateMessage($"Error saving settings: {ex.Message}", Brushes.LightCoral);
+                GameEvents.RaiseMessageRequested($"Error saving settings: {ex.Message}", Brushes.LightCoral);
                 System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
             }
         }
@@ -207,12 +288,6 @@ namespace tkkn2025
             }
         }
 
-
-
-
-
-
-
         private void UpdateMessage(string message, Brush color)
         {
             if (ConfigStatusText != null)
@@ -239,26 +314,20 @@ namespace tkkn2025
         {
             audioManager.Initialize();
             
-            // Set initial music state from settings
-            if (GameSettings.MusicEnabled != null)
+            // Set initial music state from app config after session is loaded
+            if (currentSession?.AppConfig != null)
             {
-                audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
+                audioManager.MusicEnabled = currentSession.AppConfig.MusicEnabled;
                 UpdateMusicButtonText();
             }
 
             random = new Random();
             
-            // Initialize particle controller
+            // Initialize particle controller - no direct event wiring needed
             particleManager = new ParticleManager(GameCanvas);
-            particleManager.CollisionDetected += OnCollisionDetected;
             
-            // Initialize power-up manager
+            // Initialize power-up manager - no direct event wiring needed
             powerUpManager = new PowerUpManager(GameCanvas, random);
-            powerUpManager.PowerUpCollected += OnPowerUpCollected;
-            powerUpManager.PowerUpEffectStarted += OnPowerUpEffectStarted;
-            powerUpManager.PowerUpEffectEnded += OnPowerUpEffectEnded;
-            powerUpManager.PowerUpStored += OnPowerUpStored;
-            powerUpManager.SingularityActivated += OnSingularityActivated;
             
             // Use CompositionTarget.Rendering for smooth game loop
             CompositionTarget.Rendering += GameLoop;
@@ -266,11 +335,10 @@ namespace tkkn2025
             CreateShip();
         }
         
-        private async void OnCollisionDetected()
+        private async void OnParticleShipCollisionDetected()
         {
             StopGame();
             
-            // Show the game over screen instead of MessageBox
             await ShowGameOverScreenAsync();
         }
 
@@ -279,63 +347,64 @@ namespace tkkn2025
             System.Diagnostics.Debug.WriteLine($"Power-up collected: {powerUpType}");
             if (powerUpType == "Singularity")
             {
-                UpdateMessage($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
+                GameEvents.RaiseMessageRequested($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
             }
             else if (powerUpType == "Repulsor")
             {
-                UpdateMessage($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
+                GameEvents.RaiseMessageRequested($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
             }
             else
             {
-                UpdateMessage($"Collected {powerUpType}!", Brushes.Gold);
+                GameEvents.RaiseMessageRequested($"Collected {powerUpType}!", Brushes.Gold);
             }
         }
 
         private void OnPowerUpEffectStarted(string effectType, double duration)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up effect started: {effectType} for {duration} seconds");
-            UpdateMessage($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
+            GameEvents.RaiseMessageRequested($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
         }
 
         private void OnPowerUpEffectEnded(string effectType)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up effect ended: {effectType}");
-            UpdateMessage($"{effectType} effect ended", Brushes.LightGray);
+            GameEvents.RaiseMessageRequested($"{effectType} effect ended", Brushes.LightGray);
         }
 
         private void OnPowerUpStored(string powerUpType)
         {
             System.Diagnostics.Debug.WriteLine($"Power-up stored: {powerUpType}");
             int count = powerUpManager.GetStoredPowerUpCount(powerUpType);
-            UpdateMessage($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
+            GameEvents.RaiseMessageRequested($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
         }
 
         private void OnSingularityActivated(Vector2 position)
         {
             System.Diagnostics.Debug.WriteLine($"Singularity activated at {position}");
-            UpdateMessage("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
+            GameEvents.RaiseMessageRequested("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
+        }
+
+        private void OnGameCompleted(Game game)
+        {
+            // Save game data to Firebase
+            _ = SaveGameToFirebase(game);
+        }
+
+        private void OnConfigurationSaved()
+        {
+            GameEvents.RaiseMessageRequested("Configuration saved successfully!", Brushes.LightGreen);
         }
       
         private void CreateShip()
         {
-            ship = new Polygon();
-            ship.Fill = Brushes.Cyan;
-            ship.Stroke = Brushes.White;
-            ship.StrokeThickness = 1;
-            
-            // Create triangle shape pointing up
-            PointCollection points = new PointCollection();
-            points.Add(new Point(0, -15));  // Top point
-            points.Add(new Point(-10, 10)); // Bottom left
-            points.Add(new Point(10, 10));  // Bottom right
-            ship.Points = points;
+            ship = new ShipSprite();
             
             // Position ship in center of game area (wait for canvas to load)
             this.Loaded += (s, e) => {
                 centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
                 shipPosition = centerScreen;
-                Canvas.SetLeft(ship, shipPosition.X);
-                Canvas.SetTop(ship, shipPosition.Y);
+                Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
+                Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
                 
                 // Update particle controller with canvas dimensions
                 ParticleManager.UpdateCanvasDimensions();
@@ -424,9 +493,9 @@ namespace tkkn2025
             // Update center screen position based on current canvas size
             centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
             
-            // Update session's game config with current UI settings before starting game
+            // Update session's game config with current UI settings and save as default
             var currentUIConfig = SettingsManager.ToGameConfig();
-            currentSession.UpdateGameConfig(currentUIConfig, false); // Don't save to file yet
+            currentSession.UpdateGameConfig(currentUIConfig, true); // Save as new default
             
             // Snapshot current settings as active settings for this game
             activeShipSpeed = GameSettings.ShipSpeed.Value;
@@ -445,10 +514,11 @@ namespace tkkn2025
                 keysPressed[i] = false;
             }
             
-            // Reset ship position to current center
+            // Reset ship position to current center and show neutral
             shipPosition = centerScreen;
-            Canvas.SetLeft(ship, shipPosition.X);
-            Canvas.SetTop(ship, shipPosition.Y);
+            Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
+            Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
+            ship.ShowNeutral();
             
             // Start new game through particle controller
             particleManager.StartNewGame();
@@ -456,8 +526,11 @@ namespace tkkn2025
             // Start new game through power-up manager
             powerUpManager.StartNewGame();
             
+            // Raise game started event
+            GameEvents.RaiseGameStarted();
+            
             // Show that settings are locked during game
-            UpdateMessage("Settings locked during game", Brushes.Yellow);
+            GameEvents.RaiseMessageRequested("Settings locked during game (saved as default)", Brushes.Yellow);
         }
         
         private async void StopGame()
@@ -473,8 +546,8 @@ namespace tkkn2025
                 System.Diagnostics.Debug.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
                 System.Diagnostics.Debug.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
                 
-                // Save game data to Firebase
-                await SaveGameToFirebase(currentGame);
+                // Raise game completed event
+                GameEvents.RaiseGameCompleted(currentGame);
             }
             
             // Reset all key states when game stops
@@ -485,8 +558,11 @@ namespace tkkn2025
             
             audioManager.SetVolume(0.5);
             
+            // Raise game ended event
+            GameEvents.RaiseGameEnded();
+            
             // Clear settings locked message
-            UpdateMessage("Game ended - settings can be changed", Brushes.LightGreen);
+            GameEvents.RaiseMessageRequested("Game ended - settings can be changed", Brushes.LightGreen);
         }
 
         /// <summary>
@@ -561,12 +637,12 @@ namespace tkkn2025
                 System.Diagnostics.Debug.WriteLine($"Game data saved to Firebase with key: {gameKey}");
                 
                 // Show a brief success message
-                UpdateMessage("Game saved to database", Brushes.LightGreen);
+                GameEvents.RaiseMessageRequested("Game saved to database", Brushes.LightGreen);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to save game data to Firebase: {ex.Message}");
-                UpdateMessage("Failed to save game data", Brushes.LightCoral);
+                GameEvents.RaiseMessageRequested("Failed to save game data", Brushes.LightCoral);
             }
         }
 
@@ -608,12 +684,31 @@ namespace tkkn2025
             if (deltaX != 0 || deltaY != 0)
             {
                 // Keep ship within bounds
-                double newX = Math.Max(10, Math.Min(GameCanvas.ActualWidth - 10, shipPosition.X + deltaX));
-                double newY = Math.Max(10, Math.Min(GameCanvas.ActualHeight - 10, shipPosition.Y + deltaY));
+                double newX = Math.Max(20, Math.Min(GameCanvas.ActualWidth - 20, shipPosition.X + deltaX));
+                double newY = Math.Max(20, Math.Min(GameCanvas.ActualHeight - 20, shipPosition.Y + deltaY));
                 
                 shipPosition = new Point(newX, newY);
-                Canvas.SetLeft(ship, shipPosition.X);
-                Canvas.SetTop(ship, shipPosition.Y);
+                Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
+                Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
+                
+                // Update ship visual based on movement direction
+                if (deltaX < 0) // Moving left
+                {
+                    ship.ShowLeftTilt();
+                }
+                else if (deltaX > 0) // Moving right
+                {
+                    ship.ShowRightTilt();
+                }
+                else // No horizontal movement
+                {
+                    ship.ShowNeutral();
+                }
+            }
+            else
+            {
+                // No movement - show neutral position
+                ship.ShowNeutral();
             }
         }
         
@@ -666,12 +761,231 @@ namespace tkkn2025
             }
         }
         
+        // Canvas event handler for focus management
+        private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Make the canvas take focus when clicked
+            GameCanvas.Focus();
+            
+            if (gameRunning)
+            {
+                if (e.LeftButton == MouseButtonState.Pressed)
+                {
+                    // Left click - try to activate singularity at click position
+                    var clickPosition = e.GetPosition(GameCanvas);
+                    var clickVector = new Vector2((float)clickPosition.X, (float)clickPosition.Y);
+                    
+                    bool activated = powerUpManager.TryActivateSingularity(clickVector);
+                    if (!activated)
+                    {
+                        GameEvents.RaiseMessageRequested("No Singularity power-up available!", Brushes.Red);
+                    }
+                }
+                else if (e.RightButton == MouseButtonState.Pressed)
+                {
+                    // Right click - try to activate repulsor at ship position
+                    var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
+                    
+                    bool activated = powerUpManager.TryActivateRepulsor(shipVector);
+                    if (!activated)
+                    {
+                        GameEvents.RaiseMessageRequested("No Repulsor power-up available!", Brushes.Red);
+                    }
+                }
+            }
+            
+            e.Handled = true;
+        }
+
+        // Settings Management Button Event Handlers
+        private void ResetSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Show confirmation dialog
+                var result = MessageBox.Show(
+                    "Are you sure you want to reset all settings to their default values?",
+                    "Reset Settings",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    // Reset to default settings using the new system
+                    SettingsManager.ResetToDefaults();
+                    GameEvents.RaiseMessageRequested("Settings reset to defaults", Brushes.Orange);
+                    System.Diagnostics.Debug.WriteLine("Settings reset to default values");
+                }
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error resetting settings: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in ResetSettingsButton_Click: {ex.Message}");
+            }
+        }
+
+        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Use GameEvents to show the GameConfigScreen
+                GameEvents.RaiseShowConfigScreen();
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error opening save screen: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in SaveSettingsButton_Click: {ex.Message}");
+            }
+        }
+
+        private void LoadSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var loadedSettings = SettingsManager.LoadSettings();
+                
+                if (loadedSettings != null)
+                {
+                    // Validate and apply the loaded settings using the new system
+                    var validated = SettingsManager.ValidateSavedOrLoadedSettings(loadedSettings);
+                    SettingsManager.FromGameConfig(validated);
+
+                    // Update the session config with the loaded settings
+                    currentSession?.UpdateGameConfig(validated, true);
+
+                    GameEvents.RaiseMessageRequested("Settings loaded successfully", Brushes.LightGreen);
+                    System.Diagnostics.Debug.WriteLine("Settings loaded from file successfully");
+                }
+                else
+                {
+                    GameEvents.RaiseMessageRequested("Load canceled or failed", Brushes.LightCoral);
+                }
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error loading settings: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsButton_Click: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Show the GameConfigScreen overlay
+        /// </summary>
+        private void ShowGameConfigScreen()
+        {
+            try
+            {
+                // Get current settings
+                var currentSettings = SettingsManager.ToGameConfig();
+                
+                // Initialize and show the GameConfigScreen
+                GameConfigScreen.Initialize(currentSettings);
+                GameConfigScreen.Visibility = Visibility.Visible;
+                
+                // Focus on the GameConfigScreen
+                GameConfigScreen.Focus();
+                
+                System.Diagnostics.Debug.WriteLine("GameConfigScreen shown");
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error showing config screen: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in ShowGameConfigScreen: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hide the GameConfigScreen overlay
+        /// </summary>
+        private void HideGameConfigScreen()
+        {
+            try
+            {
+                GameConfigScreen.Visibility = Visibility.Hidden;
+                
+                // Return focus to main window
+                this.Focus();
+                
+                System.Diagnostics.Debug.WriteLine("GameConfigScreen hidden");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in HideGameConfigScreen: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handle the back button or escape key from GameConfigScreen
+        /// </summary>
+        private void GameConfigScreen_BackRequested(object sender, EventArgs e)
+        {
+            GameEvents.RaiseHideConfigScreen();
+        }
+
+        /// <summary>
+        /// Handle when a configuration is saved from GameConfigScreen
+        /// </summary>
+        private void GameConfigScreen_ConfigSaved(object sender, GameConfig e)
+        {
+            try
+            {
+                GameEvents.RaiseConfigurationSaved();
+                System.Diagnostics.Debug.WriteLine($"Configuration saved: {e.ConfigName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GameConfigScreen_ConfigSaved: {ex.Message}");
+            }
+        }
+
+        private void MusicToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Toggle the music setting in the audio manager
+                audioManager.MusicEnabled = !audioManager.MusicEnabled;
+                
+                // Update the app config
+                if (currentSession?.AppConfig != null)
+                {
+                    currentSession.AppConfig.MusicEnabled = audioManager.MusicEnabled;
+                }
+                
+                // Update button text
+                UpdateMusicButtonText();
+                
+                // Save the settings immediately
+                SaveGameSettings();
+                
+                // Raise music toggled event
+                GameEvents.RaiseMusicToggled(audioManager.MusicEnabled);
+                
+                System.Diagnostics.Debug.WriteLine($"Music toggled to: {audioManager.MusicEnabled}");
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error toggling music: {ex.Message}", Brushes.Red);
+                System.Diagnostics.Debug.WriteLine($"Error in MusicToggleButton_Click: {ex.Message}");
+            }
+        }
+
+        private void UpdateMusicButtonText()
+        {
+            if (MusicToggleButton != null)
+            {
+                bool isEnabled = audioManager.MusicEnabled;
+                MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
+                MusicToggleButton.Background = isEnabled ? new SolidColorBrush(Colors.DarkSlateBlue) : new SolidColorBrush(Colors.DarkRed);
+            }
+        }
+
+        // Key event handlers for ship movement
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             // Handle escape key for GameConfigScreen
             if (e.Key == Key.Escape && GameConfigScreen.Visibility == Visibility.Visible)
             {
-                HideGameConfigScreen();
+                GameEvents.RaiseHideConfigScreen();
                 e.Handled = true;
                 return;
             }
@@ -682,7 +996,7 @@ namespace tkkn2025
                     if (gameOverScreenVisible)
                     {
                         // Transition from game over screen to start screen
-                        ShowStartScreen();
+                        GameEvents.RaiseShowStartScreen();
                     }
                     else if (!gameRunning)
                     {
@@ -749,219 +1063,6 @@ namespace tkkn2025
                     keysPressed[3] = false;
                     e.Handled = true;
                     break;
-            }
-        }
-        
-        // Canvas event handler for focus management
-        private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // Make the canvas take focus when clicked
-            GameCanvas.Focus();
-            
-            if (gameRunning)
-            {
-                if (e.LeftButton == MouseButtonState.Pressed)
-                {
-                    // Left click - try to activate singularity at click position
-                    var clickPosition = e.GetPosition(GameCanvas);
-                    var clickVector = new Vector2((float)clickPosition.X, (float)clickPosition.Y);
-                    
-                    bool activated = powerUpManager.TryActivateSingularity(clickVector);
-                    if (!activated)
-                    {
-                        UpdateMessage("No Singularity power-up available!", Brushes.Red);
-                    }
-                }
-                else if (e.RightButton == MouseButtonState.Pressed)
-                {
-                    // Right click - try to activate repulsor at ship position
-                    var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
-                    
-                    bool activated = powerUpManager.TryActivateRepulsor(shipVector);
-                    if (!activated)
-                    {
-                        UpdateMessage("No Repulsor power-up available!", Brushes.Red);
-                    }
-                }
-            }
-            
-            e.Handled = true;
-        }
-
-        // Settings Management Button Event Handlers
-        private void ResetSettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Show confirmation dialog
-                var result = MessageBox.Show(
-                    "Are you sure you want to reset all settings to their default values?",
-                    "Reset Settings",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    // Reset to default settings using the new system
-                    SettingsManager.ResetToDefaults();
-                    UpdateMessage("Settings reset to defaults", Brushes.Orange);
-                    System.Diagnostics.Debug.WriteLine("Settings reset to default values");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateMessage($"Error resetting settings: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in ResetSettingsButton_Click: {ex.Message}");
-            }
-        }
-
-        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Show the GameConfigScreen instead of directly saving
-                ShowGameConfigScreen();
-            }
-            catch (Exception ex)
-            {
-                UpdateMessage($"Error opening save screen: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in SaveSettingsButton_Click: {ex.Message}");
-            }
-        }
-
-        private void LoadSettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var loadedSettings = SettingsManager.LoadSettings();
-                
-                if (loadedSettings != null)
-                {
-                    // Validate and apply the loaded settings using the new system
-                    var validated = SettingsManager.ValidateSavedOrLoadedSettings(loadedSettings);
-                    SettingsManager.FromGameConfig(validated);
-
-                    // Update audio manager with loaded music setting
-                    audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
-                    UpdateMusicButtonText();
-
-                    UpdateMessage("Settings loaded successfully", Brushes.LightGreen);
-                    System.Diagnostics.Debug.WriteLine("Settings loaded from file successfully");
-                }
-                else
-                {
-                    UpdateMessage("Load canceled or failed", Brushes.LightCoral);
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateMessage($"Error loading settings: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsButton_Click: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Show the GameConfigScreen overlay
-        /// </summary>
-        private void ShowGameConfigScreen()
-        {
-            try
-            {
-                // Get current settings
-                var currentSettings = SettingsManager.ToGameConfig();
-                
-                // Initialize and show the GameConfigScreen
-                GameConfigScreen.Initialize(currentSettings);
-                GameConfigScreen.Visibility = Visibility.Visible;
-                
-                // Focus on the GameConfigScreen
-                GameConfigScreen.Focus();
-                
-                System.Diagnostics.Debug.WriteLine("GameConfigScreen shown");
-            }
-            catch (Exception ex)
-            {
-                UpdateMessage($"Error showing config screen: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in ShowGameConfigScreen: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Hide the GameConfigScreen overlay
-        /// </summary>
-        private void HideGameConfigScreen()
-        {
-            try
-            {
-                GameConfigScreen.Visibility = Visibility.Hidden;
-                
-                // Return focus to main window
-                this.Focus();
-                
-                System.Diagnostics.Debug.WriteLine("GameConfigScreen hidden");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in HideGameConfigScreen: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Handle the back button or escape key from GameConfigScreen
-        /// </summary>
-        private void GameConfigScreen_BackRequested(object sender, EventArgs e)
-        {
-            HideGameConfigScreen();
-        }
-
-        /// <summary>
-        /// Handle when a configuration is saved from GameConfigScreen
-        /// </summary>
-        private void GameConfigScreen_ConfigSaved(object sender, GameConfig e)
-        {
-            try
-            {
-                UpdateMessage($"Configuration '{e.ConfigName}' saved successfully!", Brushes.LightGreen);
-                System.Diagnostics.Debug.WriteLine($"Configuration saved: {e.ConfigName}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GameConfigScreen_ConfigSaved: {ex.Message}");
-            }
-        }
-
-        private void MusicToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Toggle the music setting
-                GameSettings.MusicEnabled.Value = !GameSettings.MusicEnabled.Value;
-                
-                // Update the audio manager
-                audioManager.MusicEnabled = GameSettings.MusicEnabled.Value;
-                
-                // Update button text
-                UpdateMusicButtonText();
-                
-                // Save the settings immediately
-                SaveGameSettings();
-                
-                System.Diagnostics.Debug.WriteLine($"Music toggled to: {GameSettings.MusicEnabled.Value}");
-            }
-            catch (Exception ex)
-            {
-                UpdateMessage($"Error toggling music: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in MusicToggleButton_Click: {ex.Message}");
-            }
-        }
-
-        private void UpdateMusicButtonText()
-        {
-            if (MusicToggleButton != null && GameSettings.MusicEnabled != null)
-            {
-                bool isEnabled = GameSettings.MusicEnabled.Value;
-                MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
-                MusicToggleButton.Background = isEnabled ? new SolidColorBrush(Colors.DarkSlateBlue) : new SolidColorBrush(Colors.DarkRed);
             }
         }
     }

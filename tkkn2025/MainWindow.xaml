@@ -9,7 +9,7 @@
     xmlns:settingsModels="clr-namespace:tkkn2025.Settings.Models"
     xmlns:ui="clr-namespace:tkkn2025.UI"
     Title="TKKN 2025"
-    Width="1050"
+    Width="1100"
     Height="700"
     Focusable="True"
     KeyDown="Window_KeyDown"
@@ -50,7 +50,7 @@
         <Grid Name="MainContentGrid">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="225" />
+                <ColumnDefinition Width="275" />
             </Grid.ColumnDefinitions>
 
             <!--  Game Area  -->
@@ -71,8 +71,6 @@
                 <ui:GameOverScreen x:Name="GameOverScreen" Visibility="Hidden" />
                 <ui:GameConfigScreen
                     x:Name="GameConfigScreen"
-                    BackRequested="GameConfigScreen_BackRequested"
-                    ConfigSaved="GameConfigScreen_ConfigSaved"
                     Visibility="Hidden" />
             </Grid>
             <!--  Settings Panel  -->

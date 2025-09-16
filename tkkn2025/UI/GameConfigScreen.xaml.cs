@@ -8,9 +8,6 @@ namespace tkkn2025.UI
     /// </summary>
     public partial class GameConfigScreen : UserControl
     {
-        public event EventHandler? BackRequested;
-        public event EventHandler<GameConfig>? ConfigSaved;
-
         private GameConfig currentConfig = null!;
 
         public GameConfigScreen()
@@ -71,11 +68,11 @@ namespace tkkn2025.UI
                     MessageBox.Show($"Configuration '{currentConfig.ConfigName}' saved successfully!", 
                                   "Save Successful", MessageBoxButton.OK, MessageBoxImage.Information);
                     
-                    // Notify that config was saved
-                    ConfigSaved?.Invoke(this, currentConfig);
+                    // Notify via GameEvents that config was saved
+                    GameEvents.RaiseConfigurationSaved();
                     
-                    // Go back to previous screen
-                    BackRequested?.Invoke(this, EventArgs.Empty);
+                    // Go back to previous screen via GameEvents
+                    GameEvents.RaiseHideConfigScreen();
                 }
                 else
                 {
@@ -93,20 +90,8 @@ namespace tkkn2025.UI
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
-            BackRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Handle keyboard shortcuts
-        /// </summary>
-        protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Escape)
-            {
-                BackRequested?.Invoke(this, EventArgs.Empty);
-                e.Handled = true;
-            }
-            base.OnKeyDown(e);
+            // Use GameEvents to request going back
+            GameEvents.RaiseHideConfigScreen();
         }
     }
 }

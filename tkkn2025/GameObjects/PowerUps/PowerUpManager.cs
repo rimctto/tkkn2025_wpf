@@ -39,14 +39,6 @@ namespace tkkn2025.GameObjects.PowerUps
         
         // Physics constants
         private const float GravitationalConstant = 50000f; // Adjusted for game scale
-        
-        // Events
-        public event Action<string>? PowerUpCollected;
-        public event Action<string, double>? PowerUpEffectStarted;
-        public event Action<string>? PowerUpEffectEnded;
-        public event Action<string>? PowerUpStored;
-        public event Action<Vector2>? SingularityActivated;
-        public event Action<Vector2>? RepulsorActivated;
 
         public PowerUpManager(Canvas canvas, Random randomGenerator)
         {
@@ -160,7 +152,9 @@ namespace tkkn2025.GameObjects.PowerUps
                 }
                 
                 activeSingularities.Add(singularity);
-                SingularityActivated?.Invoke(position);
+                
+                // Use GameEvents instead of direct event
+                GameEvents.RaiseSingularityActivated(position);
                 
                 return true;
             }
@@ -193,7 +187,9 @@ namespace tkkn2025.GameObjects.PowerUps
                 }
                 
                 activeRepulsors.Add(repulsor);
-                RepulsorActivated?.Invoke(position);
+                
+                // Use GameEvents instead of direct event
+                GameEvents.RaiseRepulsorActivated(position);
                 
                 return true;
             }
@@ -360,7 +356,8 @@ namespace tkkn2025.GameObjects.PowerUps
 
         private void CollectPowerUp(PowerUp powerUp)
         {
-            PowerUpCollected?.Invoke(powerUp.Type);
+            // Use GameEvents instead of direct event
+            GameEvents.RaisePowerUpCollected(powerUp.Type);
 
             // Apply the power-up effect
             switch (powerUp.Type)
@@ -397,7 +394,9 @@ namespace tkkn2025.GameObjects.PowerUps
             };
 
             activePowerUpEffects.Add(effect);
-            PowerUpEffectStarted?.Invoke(powerUp.Type, powerUp.Duration);
+            
+            // Use GameEvents instead of direct event
+            GameEvents.RaisePowerUpEffectStarted(powerUp.Type, powerUp.Duration);
         }
 
         private void StoreSingularityPowerUp(PowerUp powerUp)
@@ -409,7 +408,8 @@ namespace tkkn2025.GameObjects.PowerUps
             }
             storedPowerUps["Singularity"]++;
             
-            PowerUpStored?.Invoke("Singularity");
+            // Use GameEvents instead of direct event
+            GameEvents.RaisePowerUpStored("Singularity");
         }
 
         private void StoreRepulsorPowerUp(PowerUp powerUp)
@@ -421,7 +421,8 @@ namespace tkkn2025.GameObjects.PowerUps
             }
             storedPowerUps["Repulsor"]++;
             
-            PowerUpStored?.Invoke("Repulsor");
+            // Use GameEvents instead of direct event
+            GameEvents.RaisePowerUpStored("Repulsor");
         }
 
         private void UpdateActivePowerUpEffects(double deltaTime)
@@ -435,7 +436,9 @@ namespace tkkn2025.GameObjects.PowerUps
                 if (effect.RemainingTime <= 0)
                 {
                     effectsToRemove.Add(effect);
-                    PowerUpEffectEnded?.Invoke(effect.Type);
+                    
+                    // Use GameEvents instead of direct event
+                    GameEvents.RaisePowerUpEffectEnded(effect.Type);
                 }
             }
 
