@@ -48,7 +48,7 @@ namespace tkkn2025
                 Uri audioUri = null;
                 
                 // Method 1: Try relative path (since file is copied to output)
-                var executableDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
+                var executableDir = AppDomain.CurrentDomain.BaseDirectory ?? "";
                 var relativePath = System.IO.Path.Combine(executableDir, "Audio", "Particles.mp3");
                 
                 System.Diagnostics.Debug.WriteLine($"Executable directory: {executableDir}");

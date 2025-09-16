@@ -19,8 +19,33 @@ namespace tkkn2025.Settings
             description: "How often power ups are created."
         );
 
-        public static DoubleSetting TimeWarpDuration{ get; } = new DoubleSetting(
-            name: nameof(TimeWarpDuration),
+        // Power-up enable/disable settings
+        public static BoolSetting IsPowerUpEnabled_TimeWarp { get; } = new BoolSetting(
+            name: nameof(IsPowerUpEnabled_TimeWarp),
+            displayName: "Enable TimeWarp PowerUp",
+            category: "PowerUps",
+            defaultValue: true,
+            description: "Enable or disable TimeWarp power-up spawning."
+        );
+
+        public static BoolSetting IsPowerUpEnabled_Singularity { get; } = new BoolSetting(
+            name: nameof(IsPowerUpEnabled_Singularity),
+            displayName: "Enable Singularity PowerUp",
+            category: "PowerUps",
+            defaultValue: true,
+            description: "Enable or disable Singularity power-up spawning."
+        );
+
+        public static BoolSetting IsPowerUpEnabled_Repulsor { get; } = new BoolSetting(
+            name: nameof(IsPowerUpEnabled_Repulsor),
+            displayName: "Enable Repulsor PowerUp",
+            category: "PowerUps",
+            defaultValue: true,
+            description: "Enable or disable Repulsor power-up spawning."
+        );
+
+        public static DoubleSetting PowerUpDuration_TimeWarp{ get; } = new DoubleSetting(
+            name: nameof(PowerUpDuration_TimeWarp),
             displayName: "TimeWarp Duration (s)",
             category: "PowerUps",
             defaultValue: 3,
@@ -30,8 +55,8 @@ namespace tkkn2025.Settings
         );
 
 
-        public static DoubleSetting SingularityDuration { get; } = new DoubleSetting(
-            name: nameof(SingularityDuration),
+        public static DoubleSetting PowerUpDuration_Singularity { get; } = new DoubleSetting(
+            name: nameof(PowerUpDuration_Singularity),
             displayName: "Singularity Duration (s)",
             category: "PowerUps",
             defaultValue: 5,
@@ -41,8 +66,8 @@ namespace tkkn2025.Settings
         );
 
 
-        public static DoubleSetting SingulaiortyForce { get; } = new DoubleSetting(
-            name: nameof(SingulaiortyForce),
+        public static DoubleSetting PowerUpForce_Singularity { get; } = new DoubleSetting(
+            name: nameof(PowerUpForce_Singularity),
             displayName: "Singularity Force",
             category: "Particles",
             defaultValue: 350,
@@ -52,8 +77,8 @@ namespace tkkn2025.Settings
         );
 
 
-        public static DoubleSetting RepulsorDuration { get; } = new DoubleSetting(
-            name: nameof(RepulsorDuration),
+        public static DoubleSetting PowerUpDuration_Repulsor { get; } = new DoubleSetting(
+            name: nameof(PowerUpDuration_Repulsor),
             displayName: "Repulsor Duration",
             category: "Particles",
             defaultValue: 5.0,
@@ -63,8 +88,8 @@ namespace tkkn2025.Settings
         );
 
 
-        public static DoubleSetting RepulsorForce { get; } = new DoubleSetting(
-            name: nameof(RepulsorForce),
+        public static DoubleSetting PowerUpForce_Repulsor { get; } = new DoubleSetting(
+            name: nameof(PowerUpForce_Repulsor),
             displayName: "Repulsor Force",
             category: "Particles",
             defaultValue: 50,

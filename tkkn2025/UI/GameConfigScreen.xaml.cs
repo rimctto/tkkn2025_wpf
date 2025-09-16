@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using tkkn2025.Helpers;
 
 namespace tkkn2025.UI
 {
@@ -71,6 +72,8 @@ namespace tkkn2025.UI
                     // Notify via GameEvents that config was saved
                     GameEvents.RaiseConfigurationSaved();
                     
+                    DebugHelper.WriteLine($"User saved configuration '{currentConfig.ConfigName}' via GameConfigScreen");
+                    
                     // Go back to previous screen via GameEvents
                     GameEvents.RaiseHideConfigScreen();
                 }
@@ -78,13 +81,14 @@ namespace tkkn2025.UI
                 {
                     MessageBox.Show("Failed to save configuration. Please try again.", 
                                   "Save Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    DebugHelper.WriteLine($"Failed to save configuration '{currentConfig.ConfigName}' via GameConfigScreen");
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error saving configuration: {ex.Message}", 
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                System.Diagnostics.Debug.WriteLine($"Error in SaveConfigButton_Click: {ex.Message}");
+                DebugHelper.WriteLine($"Error in GameConfigScreen save: {ex.Message}");
             }
         }
 

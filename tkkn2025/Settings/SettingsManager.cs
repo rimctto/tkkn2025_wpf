@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Win32;
 using System.ComponentModel;
 using tkkn2025.Settings.Models;
+using tkkn2025.Helpers;
 
 namespace tkkn2025.Settings
 {
@@ -15,7 +16,8 @@ namespace tkkn2025.Settings
 
         public SettingsManager()
         {
-                
+            // Initialize with default values on construction
+            InitializeWithDefaults();
         }
        
         public GameSettings GameSettings { get; set; } = new GameSettings();
@@ -57,6 +59,8 @@ namespace tkkn2025.Settings
                     FileName = $"GameSettings_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json"
                 };
 
+                DebugHelper.WriteLine($"Opening save dialog - Default directory: {ConfigManager.GetGameSettingsDirectory()}");
+
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     // Update metadata before saving
@@ -65,14 +69,26 @@ namespace tkkn2025.Settings
                     
                     // Use ConfigManager to save to the GameSettings directory
                     var fileName = System.IO.Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
-                    return ConfigManager.SaveGameConfigToSettings(settings, fileName);
+                    DebugHelper.WriteLine($"User selected save file: {saveFileDialog.FileName}");
+                    
+                    bool result = ConfigManager.SaveGameConfigToSettings(settings, fileName);
+                    if (result)
+                    {
+                        DebugHelper.WriteLine($"Settings save completed successfully for config: '{settings.ConfigName}'");
+                    }
+                    else
+                    {
+                        DebugHelper.WriteLine($"Settings save failed for config: '{settings.ConfigName}'");
+                    }
+                    return result;
                 }
 
+                DebugHelper.WriteLine("Save dialog was canceled by user");
                 return false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in SaveSettings: {ex.Message}");
+                DebugHelper.WriteLine($"Error in SaveSettings: {ex.Message}");
                 return false;
             }
         }
@@ -88,13 +104,19 @@ namespace tkkn2025.Settings
                 var loadedSettings = LoadSettingsWithDialog();
                 if (loadedSettings != null)
                 {
+                    DebugHelper.WriteLine($"Applying loaded settings: '{loadedSettings.ConfigName}' to current GameSettings");
                     FromGameConfig(loadedSettings);
+                    DebugHelper.WriteLine("Settings applied successfully to UI");
+                }
+                else
+                {
+                    DebugHelper.WriteLine("No settings were loaded (dialog canceled or load failed)");
                 }
                 return loadedSettings;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettings: {ex.Message}");
+                DebugHelper.WriteLine($"Error in LoadSettings: {ex.Message}");
                 return null;
             }
         }
@@ -118,16 +140,31 @@ namespace tkkn2025.Settings
                     Multiselect = false
                 };
 
+                DebugHelper.WriteLine($"Opening load dialog - Default directory: {ConfigManager.GetGameSettingsDirectory()}");
+
                 if (openFileDialog.ShowDialog() == true)
                 {
-                    return ConfigManager.LoadGameConfigFromSettings(openFileDialog.FileName);
+                    DebugHelper.WriteLine($"User selected load file: {openFileDialog.FileName}");
+                    var config = ConfigManager.LoadGameConfigFromSettings(openFileDialog.FileName);
+                    
+                    if (config != null)
+                    {
+                        DebugHelper.WriteLine($"Successfully loaded config: '{config.ConfigName}' from dialog");
+                    }
+                    else
+                    {
+                        DebugHelper.WriteLine("Failed to load config from selected file");
+                    }
+                    
+                    return config;
                 }
 
+                DebugHelper.WriteLine("Load dialog was canceled by user");
                 return null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
+                DebugHelper.WriteLine($"Error in LoadSettingsWithDialog: {ex.Message}");
                 return null;
             }
         }
@@ -163,11 +200,11 @@ namespace tkkn2025.Settings
             
             // Validate power-up settings
             validated.PowerUpSpawnRate = Math.Max(1, Math.Min(60, validated.PowerUpSpawnRate));
-            validated.TimeWarpDuration = Math.Max(1, Math.Min(30, validated.TimeWarpDuration));
-            validated.RepulsorDuration = Math.Max(1, Math.Min(15, validated.RepulsorDuration));
-            validated.RepulsorForce = Math.Max(50, Math.Min(500, validated.RepulsorForce));
-            validated.SingularityDuration = Math.Max(1, Math.Min(15, validated.SingularityDuration));
-            validated.SingulaiortyForce = Math.Max(50, Math.Min(300, validated.SingulaiortyForce));
+            validated.PowerUpDuration_TimeWarp = Math.Max(1, Math.Min(30, validated.PowerUpDuration_TimeWarp));
+            validated.PowerUpDuration_Repulsor = Math.Max(1, Math.Min(15, validated.PowerUpDuration_Repulsor));
+            validated.PowerUpForce_Repulsor = Math.Max(50, Math.Min(500, validated.PowerUpForce_Repulsor));
+            validated.PowerUpDuration_Singularity = Math.Max(1, Math.Min(15, validated.PowerUpDuration_Singularity));
+            validated.PowerUpForce_Singulaiorty = Math.Max(50, Math.Min(300, validated.PowerUpForce_Singulaiorty));
             
             return validated;
         }
@@ -193,6 +230,16 @@ namespace tkkn2025.Settings
         protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// Initialize the GameSettings with default values from a default GameConfig
+        /// </summary>
+        public void InitializeWithDefaults()
+        {
+            var defaultConfig = ConfigManager.CreateDefaultGameConfig();
+            GameSettings.LoadFromConfig(defaultConfig);
+            OnPropertyChanged();
         }
     }
 }

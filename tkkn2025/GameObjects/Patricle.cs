@@ -12,6 +12,7 @@ namespace tkkn2025
     /// </summary>
     public class Patricle : GameObject
     {
+        public bool IsFreshlySpawned { get; set; } = true;
         public Ellipse Visual { get; set; } = null!;
         
         /// <summary>

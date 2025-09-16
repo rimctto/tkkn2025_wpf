@@ -1,0 +1,131 @@
+<Window
+    x:Class="tkkn2025.UI.Windows.DebugWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="TKKN 2025 - Debug Log"
+    Width="1200"
+    Height="500"
+    MinWidth="400"
+    MinHeight="300"
+    Background="Black"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <!--  Debug Window specific styles  -->
+        <Style x:Key="DebugTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Black" />
+            <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="FontFamily" Value="Consolas, Courier New, monospace" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="5" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+
+        <Style x:Key="DebugButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Header with controls  -->
+        <Border
+            Grid.Row="0"
+            Padding="5"
+            Background="#FF1E1E1E">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Debug Output Log" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button
+                        Name="CopyAllButton"
+                        Click="CopyAllButton_Click"
+                        Content="Copy All"
+                        Style="{StaticResource DebugButtonStyle}"
+                        ToolTip="Copy all debug output to clipboard" />
+
+                    <Button
+                        Name="CopySelectedButton"
+                        Click="CopySelectedButton_Click"
+                        Content="Copy Selected"
+                        Style="{StaticResource DebugButtonStyle}"
+                        ToolTip="Copy selected text to clipboard" />
+
+                    <Button
+                        Name="ClearButton"
+                        Click="ClearButton_Click"
+                        Content="Clear"
+                        Style="{StaticResource DebugButtonStyle}"
+                        ToolTip="Clear all debug output" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Debug output area  -->
+        <TextBox
+            Name="DebugTextBox"
+            Grid.Row="1"
+            AcceptsReturn="True"
+            HorizontalScrollBarVisibility="Auto"
+            Style="{StaticResource DebugTextBoxStyle}"
+            VerticalScrollBarVisibility="Auto" />
+
+        <!--  Status bar  -->
+        <Border
+            Grid.Row="2"
+            Padding="5"
+            Background="#FF1E1E1E">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Name="StatusText"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    Foreground="Gray"
+                    Text="Debug output will appear here..." />
+
+                <TextBlock
+                    Name="LineCountText"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    Foreground="Gray"
+                    Text="Lines: 0" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

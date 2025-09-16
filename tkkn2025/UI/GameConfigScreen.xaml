@@ -14,7 +14,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!--  Header  -->
         <TextBlock
             Grid.Row="0"
             Margin="0,0,0,20"
@@ -24,7 +24,7 @@
             Foreground="DarkCyan"
             Text="Save Game Configuration" />
 
-        <!-- Main Content Area -->
+        <!--  Main Content Area  -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width=".5*" />
@@ -32,7 +32,7 @@
                 <ColumnDefinition Width=".5*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left Side - Save Configuration Controls -->
+            <!--  Left Side - Save Configuration Controls  -->
             <Border
                 Grid.Column="0"
                 Padding="20"
@@ -48,7 +48,7 @@
                         Foreground="White"
                         Text="Configuration Details" />
 
-                    <!-- Config Name -->
+                    <!--  Config Name  -->
                     <Grid Margin="0,0,0,15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -64,14 +64,14 @@
                         <TextBox
                             Name="ConfigNameTextBox"
                             Grid.Row="2"
+                            Padding="5"
                             Background="#FF3D3D40"
                             BorderBrush="MediumPurple"
                             Foreground="White"
-                            Padding="5"
                             Text="My Custom Config" />
                     </Grid>
 
-                    <!-- Description -->
+                    <!--  Description  -->
                     <Grid Margin="0,0,0,15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -88,17 +88,17 @@
                             Name="DescriptionTextBox"
                             Grid.Row="2"
                             Height="80"
+                            Padding="5"
+                            AcceptsReturn="True"
                             Background="#FF3D3D40"
                             BorderBrush="MediumPurple"
                             Foreground="White"
-                            Padding="5"
-                            AcceptsReturn="True"
+                            Text="Enter a description for this configuration..."
                             TextWrapping="Wrap"
-                            VerticalScrollBarVisibility="Auto"
-                            Text="Enter a description for this configuration..." />
+                            VerticalScrollBarVisibility="Auto" />
                     </Grid>
 
-                    <!-- Date Created (Read-only) -->
+                    <!--  Date Created (Read-only)  -->
                     <Grid Margin="0,0,0,20">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -112,31 +112,30 @@
                             Foreground="White"
                             Text="Date Created:" />
                         <TextBlock
+                            xmlns:sys="clr-namespace:System;assembly=mscorlib"
                             Name="DateCreatedText"
                             Grid.Row="2"
                             Padding="5"
                             Background="#FF1D1D20"
                             Foreground="LightGray"
-                            Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='yyyy-MM-dd HH:mm:ss'}" 
-                            xmlns:sys="clr-namespace:System;assembly=mscorlib"/>
+                            Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='yyyy-MM-dd HH:mm:ss'}" />
                     </Grid>
 
-                    <!-- Save Button -->
+                    <!--  Save Button  -->
                     <Button
                         Name="SaveConfigButton"
                         Height="40"
                         Background="Green"
                         BorderBrush="DarkGreen"
                         Click="SaveConfigButton_Click"
+                        Content="Save Settings Config"
                         FontSize="14"
                         FontWeight="Bold"
-                        Foreground="White"
-						Content="Save Settings Config">
-                    </Button>
+                        Foreground="White" />
                 </StackPanel>
             </Border>
 
-            <!-- Right Side - Reserved for Future -->
+            <!--  Right Side - Reserved for Future  -->
             <Border
                 Grid.Column="2"
                 Padding="20"
@@ -161,7 +160,7 @@
             </Border>
         </Grid>
 
-        <!-- Bottom Buttons -->
+        <!--  Bottom Buttons  -->
         <StackPanel
             Grid.Row="2"
             Margin="0,20,0,0"
@@ -174,11 +173,9 @@
                 Background="DarkGray"
                 BorderBrush="Gray"
                 Click="BackButton_Click"
+                Content="Back"
                 FontWeight="Bold"
-                Foreground="White"
-				Content="Back">
-               
-            </Button>
+                Foreground="White" />
         </StackPanel>
     </Grid>
 </UserControl>

@@ -1,4 +1,6 @@
 using System.Text.Json;
+using tkkn2025.Settings;
+using static tkkn2025.Helpers.DebugHelper;
 
 namespace tkkn2025
 {
@@ -29,11 +31,14 @@ namespace tkkn2025
 
         // PowerUp settings
         public double PowerUpSpawnRate { get; set; }
-        public double TimeWarpDuration { get; set; }
-        public double RepulsorDuration { get; set; }
-        public double RepulsorForce { get; set; }
-        public double SingularityDuration { get; set; }
-        public double SingulaiortyForce { get; set; }
+        public bool IsPowerUpEnabled_TimeWarp { get; set; }
+        public bool IsPowerUpEnabled_Singularity { get; set; }
+        public bool IsPowerUpEnabled_Repulsor { get; set; }
+        public double PowerUpDuration_TimeWarp { get; set; }
+        public double PowerUpDuration_Repulsor { get; set; }
+        public double PowerUpForce_Repulsor { get; set; }
+        public double PowerUpDuration_Singularity { get; set; }
+        public double PowerUpForce_Singulaiorty { get; set; }
 
         /// <summary>
         /// Creates a deep copy of this GameConfig for game instances
@@ -42,28 +47,38 @@ namespace tkkn2025
         {
             return new GameConfig
             {
+                // Metadata
                 ConfigName = this.ConfigName,
                 Description = this.Description,
                 CreatedBy = this.CreatedBy,
                 DateCreated = this.DateCreated,
                 LastModified = this.LastModified,
                 Version = this.Version,
+
+                // Basic Settings
                 ShipSpeed = this.ShipSpeed,
                 ParticleSpeed = this.ParticleSpeed,
                 ParticleTurnSpeed = this.ParticleTurnSpeed,
                 StartingParticles = this.StartingParticles,
                 LevelDuration = this.LevelDuration,
+
+                // Particle Settings
                 NewParticlesPerLevel = this.NewParticlesPerLevel,
                 ParticleSpeedVariance = this.ParticleSpeedVariance,
                 ParticleRandomizerPercentage = this.ParticleRandomizerPercentage,
                 IsParticleSpawnVectorTowardsShip = this.IsParticleSpawnVectorTowardsShip,
                 IsParticleChaseShip = this.IsParticleChaseShip,
+
+                // PowerUp Settings
                 PowerUpSpawnRate = this.PowerUpSpawnRate,
-                TimeWarpDuration = this.TimeWarpDuration,
-                RepulsorDuration = this.RepulsorDuration,
-                RepulsorForce = this.RepulsorForce,
-                SingularityDuration = this.SingularityDuration,
-                SingulaiortyForce = this.SingulaiortyForce
+                IsPowerUpEnabled_TimeWarp = this.IsPowerUpEnabled_TimeWarp,
+                IsPowerUpEnabled_Singularity = this.IsPowerUpEnabled_Singularity,
+                IsPowerUpEnabled_Repulsor = this.IsPowerUpEnabled_Repulsor,
+                PowerUpDuration_TimeWarp = this.PowerUpDuration_TimeWarp,
+                PowerUpDuration_Repulsor = this.PowerUpDuration_Repulsor,
+                PowerUpForce_Repulsor = this.PowerUpForce_Repulsor,
+                PowerUpDuration_Singularity = this.PowerUpDuration_Singularity,
+                PowerUpForce_Singulaiorty = this.PowerUpForce_Singulaiorty
             };
         }
     }
@@ -84,28 +99,26 @@ namespace tkkn2025
     /// </summary>
     public static class ConfigManager
     {
-        private static readonly string DefaultConfigFileName = "default_gameconfig.json";
+        private static readonly string AppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        private static readonly string AppDataDirectory = System.IO.Path.Combine(AppDataPath, "tkkn2025"); 
+        
+        private static readonly string DefaultConfigFileName = "gameconfig_default.json";
         private static readonly string AppConfigFileName = "appconfig.json";
         private static readonly string GameSettingsDirectory = "GameSettings";
-        
-        private static readonly string DefaultConfigFilePath = System.IO.Path.Combine(
-            System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-            DefaultConfigFileName);
-        private static readonly string AppConfigFilePath = System.IO.Path.Combine(
-            System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-            AppConfigFileName);
-        private static readonly string GameSettingsDirectoryPath = System.IO.Path.Combine(
-            System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? ".",
-            GameSettingsDirectory);
+                
+        private static readonly string DefaultConfigFilePath = System.IO.Path.Combine(AppDataDirectory, DefaultConfigFileName);
+        private static readonly string AppConfigFilePath = System.IO.Path.Combine(AppDataDirectory, AppConfigFileName);
+        private static readonly string GameSettingsDirectoryPath = System.IO.Path.Combine(AppDataDirectory, GameSettingsDirectory);
+
 
         #region Default Game Configuration
 
         /// <summary>
-        /// Creates a default game configuration with sensible values
+        /// Uses the actual default values from the GameSettings class definitions
         /// </summary>
         public static GameConfig CreateDefaultGameConfig()
         {
-            return new GameConfig
+            var defaultConfig = new GameConfig
             {
                 ConfigName = "Default Configuration",
                 Description = "Default game settings",
@@ -114,26 +127,34 @@ namespace tkkn2025
                 LastModified = DateTime.Now,
                 Version = "2.0",
                 
-                // Game settings with default values (removed MusicEnabled)
-                ShipSpeed = 150.0,
-                ParticleSpeed = 75.0,
-                ParticleTurnSpeed = 2.0,
-                StartingParticles = 5,
-                LevelDuration = 10.0,
-                NewParticlesPerLevel = 3.0,
-                ParticleSpeedVariance = 25.0,
-                ParticleRandomizerPercentage = 15.0,
-                IsParticleSpawnVectorTowardsShip = true,
-                IsParticleChaseShip = false,
+                // Game settings with default values from GameSettings_Basic.cs
+                ShipSpeed = GameSettings.ShipSpeed.DefaultValue,
+                LevelDuration = GameSettings.LevelDuration.DefaultValue,
+                StartingParticles = GameSettings.StartingParticles.DefaultValue,
+                NewParticlesPerLevel = GameSettings.NewParticlesPerLevel.DefaultValue,
                 
-                // PowerUp settings with default values
-                PowerUpSpawnRate = 15.0,
-                TimeWarpDuration = 5.0,
-                RepulsorDuration = 3.0,
-                RepulsorForce = 200.0,
-                SingularityDuration = 5.0,
-                SingulaiortyForce = 150.0
+                // Particle settings with default values from GameSettings_Particles.cs
+                ParticleSpeed = GameSettings.ParticleSpeed.DefaultValue,
+                ParticleTurnSpeed = GameSettings.ParticleTurnSpeed.DefaultValue,
+                ParticleSpeedVariance = GameSettings.ParticleSpeedVariance.DefaultValue,
+                ParticleRandomizerPercentage = GameSettings.ParticleRandomizerPercentage.DefaultValue,
+                IsParticleSpawnVectorTowardsShip = GameSettings.IsParticleSpawnVectorTowardsShip.DefaultValue,
+                IsParticleChaseShip = GameSettings.IsParticleChaseShip.DefaultValue,
+                
+                // PowerUp settings with default values from GameSettings_PowerUps.cs
+                PowerUpSpawnRate = GameSettings.PowerUpSpawnRate.DefaultValue,
+                IsPowerUpEnabled_TimeWarp = GameSettings.IsPowerUpEnabled_TimeWarp.DefaultValue,
+                IsPowerUpEnabled_Singularity = GameSettings.IsPowerUpEnabled_Singularity.DefaultValue,
+                IsPowerUpEnabled_Repulsor = GameSettings.IsPowerUpEnabled_Repulsor.DefaultValue,
+                PowerUpDuration_TimeWarp = GameSettings.PowerUpDuration_TimeWarp.DefaultValue,
+                PowerUpDuration_Repulsor = GameSettings.PowerUpDuration_Repulsor.DefaultValue,
+                PowerUpForce_Repulsor = GameSettings.PowerUpForce_Repulsor.DefaultValue,
+                PowerUpDuration_Singularity = GameSettings.PowerUpDuration_Singularity.DefaultValue,
+                PowerUpForce_Singulaiorty = GameSettings.PowerUpForce_Singularity.DefaultValue
             };
+            
+               
+            return defaultConfig;
         }
 
         #endregion
@@ -150,6 +171,13 @@ namespace tkkn2025
         {
             try
             {
+                // Ensure the AppData directory exists
+                if (!System.IO.Directory.Exists(AppDataDirectory))
+                {
+                    System.IO.Directory.CreateDirectory(AppDataDirectory);
+                    WriteLine($"Created AppData directory: {AppDataDirectory}");
+                }
+                
                 config.LastModified = DateTime.Now;
                 config.Version = "2.0";
                 config.ConfigName = "Current Default Settings";
@@ -164,12 +192,12 @@ namespace tkkn2025
                 string jsonString = JsonSerializer.Serialize(config, options);
                 System.IO.File.WriteAllText(DefaultConfigFilePath, jsonString);
                 
-                System.Diagnostics.Debug.WriteLine($"Default game config saved to: {DefaultConfigFilePath}");
+                WriteLine($"Default game config saved to: {DefaultConfigFilePath}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save default config: {ex.Message}");
+                WriteLine($"Failed to save default config to {DefaultConfigFilePath}: {ex.Message}");
                 return false;
             }
         }
@@ -185,7 +213,7 @@ namespace tkkn2025
             {
                 if (!System.IO.File.Exists(DefaultConfigFilePath))
                 {
-                    System.Diagnostics.Debug.WriteLine("Default config file not found, returning system default config");
+                    WriteLine($"Default config file not found at {DefaultConfigFilePath}, creating system default config");
                     var defaultConfig = CreateDefaultGameConfig();
                     // Save the system defaults as the new default config
                     SaveDefaultConfig(defaultConfig);
@@ -204,12 +232,12 @@ namespace tkkn2025
                 // Migrate old config versions if needed
                 result = MigrateGameConfig(result);
                 
-                System.Diagnostics.Debug.WriteLine($"Default game config loaded successfully from: {DefaultConfigFilePath}");
+                WriteLine($"Default game config '{result.ConfigName}' loaded successfully from: {DefaultConfigFilePath}");
                 return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load default config: {ex.Message}");
+                WriteLine($"Failed to load default config from {DefaultConfigFilePath}: {ex.Message}");
                 var defaultConfig = CreateDefaultGameConfig();
                 // Try to save the system defaults as backup
                 SaveDefaultConfig(defaultConfig);
@@ -233,35 +261,6 @@ namespace tkkn2025
         public static string GetDefaultConfigFilePath()
         {
             return DefaultConfigFilePath;
-        }
-
-        #endregion
-
-        #region Legacy Game Configuration Management (for backward compatibility)
-
-        /// <summary>
-        /// Saves the current game configuration to the legacy JSON file
-        /// This method is kept for backward compatibility
-        /// </summary>
-        /// <param name="config">The configuration to save</param>
-        /// <returns>True if save was successful, false otherwise</returns>
-        [Obsolete("Use SaveDefaultConfig for automatic persistence. This method is kept for backward compatibility.")]
-        public static bool SaveConfig(GameConfig config)
-        {
-            // Redirect to the new default config system
-            return SaveDefaultConfig(config);
-        }
-
-        /// <summary>
-        /// Loads game configuration from the legacy JSON file, returns default if file doesn't exist
-        /// This method is kept for backward compatibility
-        /// </summary>
-        /// <returns>Loaded configuration or default configuration</returns>
-        [Obsolete("Use LoadDefaultConfig for automatic persistence. This method is kept for backward compatibility.")]
-        public static GameConfig LoadConfig()
-        {
-            // Redirect to the new default config system
-            return LoadDefaultConfig();
         }
 
         #endregion
@@ -301,12 +300,14 @@ namespace tkkn2025
                 string jsonString = JsonSerializer.Serialize(config, options);
                 System.IO.File.WriteAllText(filePath, jsonString);
                 
-                System.Diagnostics.Debug.WriteLine($"Game config saved to settings: {filePath}");
+                WriteLine($"Game config '{config.ConfigName}' saved to: {filePath}");
+                WriteLine($"Config details: Created by {config.CreatedBy}, Version {config.Version}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save config to settings: {ex.Message}");
+                WriteLine($"Failed to save config '{config.ConfigName}' to GameSettings directory: {ex.Message}");
+                WriteLine($"Target directory: {GameSettingsDirectoryPath}");
                 return false;
             }
         }
@@ -322,7 +323,7 @@ namespace tkkn2025
             {
                 if (!System.IO.File.Exists(filePath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Game config file not found: {filePath}");
+                    WriteLine($"Game config file not found at: {filePath}");
                     return null;
                 }
 
@@ -336,14 +337,16 @@ namespace tkkn2025
                 if (config != null)
                 {
                     config = MigrateGameConfig(config);
-                    System.Diagnostics.Debug.WriteLine($"Game config loaded from settings: {filePath}");
+                    WriteLine($"Game config '{config.ConfigName}' loaded from: {filePath}");
+                    WriteLine($"Config details: Created by {config.CreatedBy}, Version {config.Version}, Last modified: {config.LastModified}");
                 }
                 
                 return config;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load config from settings: {ex.Message}");
+                WriteLine($"Failed to load config from: {filePath}");
+                WriteLine($"Error: {ex.Message}");
                 return null;
             }
         }
@@ -357,11 +360,13 @@ namespace tkkn2025
             try
             {
                 EnsureGameSettingsDirectoryExistsInternal();
-                return System.IO.Directory.GetFiles(GameSettingsDirectoryPath, "*.json");
+                var files = System.IO.Directory.GetFiles(GameSettingsDirectoryPath, "*.json");
+                WriteLine($"Found {files.Length} saved game config files in: {GameSettingsDirectoryPath}");
+                return files;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to get saved game configs: {ex.Message}");
+                WriteLine($"Failed to get saved game configs from {GameSettingsDirectoryPath}: {ex.Message}");
                 return Array.Empty<string>();
             }
         }
@@ -379,6 +384,13 @@ namespace tkkn2025
         {
             try
             {
+                // Ensure the AppData directory exists
+                if (!System.IO.Directory.Exists(AppDataDirectory))
+                {
+                    System.IO.Directory.CreateDirectory(AppDataDirectory);
+                    WriteLine($"Created AppData directory: {AppDataDirectory}");
+                }
+                
                 config.LastSaved = DateTime.Now;
                 config.Version = "1.0";
                 
@@ -391,12 +403,13 @@ namespace tkkn2025
                 string jsonString = JsonSerializer.Serialize(config, options);
                 System.IO.File.WriteAllText(AppConfigFilePath, jsonString);
                 
-                System.Diagnostics.Debug.WriteLine($"App config saved successfully. Player name: {config.PlayerName}");
+                WriteLine($"App config saved to: {AppConfigFilePath}");
+                WriteLine($"Player name: '{config.PlayerName}', Music enabled: {config.MusicEnabled}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save app config: {ex.Message}");
+                WriteLine($"Failed to save app config to {AppConfigFilePath}: {ex.Message}");
                 return false;
             }
         }
@@ -411,7 +424,7 @@ namespace tkkn2025
             {
                 if (!System.IO.File.Exists(AppConfigFilePath))
                 {
-                    System.Diagnostics.Debug.WriteLine("App config file not found, returning default config");
+                    WriteLine($"App config file not found at {AppConfigFilePath}, returning default config");
                     return new AppConfig();
                 }
 
@@ -424,12 +437,13 @@ namespace tkkn2025
                 var config = JsonSerializer.Deserialize<AppConfig>(jsonString, options);
                 var result = config ?? new AppConfig();
                 
-                System.Diagnostics.Debug.WriteLine($"App config loaded successfully. Player name: {result.PlayerName}");
+                WriteLine($"App config loaded from: {AppConfigFilePath}");
+                WriteLine($"Player name: '{result.PlayerName}', Music enabled: {result.MusicEnabled}");
                 return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load app config: {ex.Message}");
+                WriteLine($"Failed to load app config from {AppConfigFilePath}: {ex.Message}");
                 return new AppConfig();
             }
         }
@@ -476,15 +490,23 @@ namespace tkkn2025
         {
             try
             {
+                // First ensure the main AppData directory exists
+                if (!System.IO.Directory.Exists(AppDataDirectory))
+                {
+                    System.IO.Directory.CreateDirectory(AppDataDirectory);
+                    WriteLine($"Created AppData directory: {AppDataDirectory}");
+                }
+                
+                // Then ensure the GameSettings subdirectory exists
                 if (!System.IO.Directory.Exists(GameSettingsDirectoryPath))
                 {
                     System.IO.Directory.CreateDirectory(GameSettingsDirectoryPath);
-                    System.Diagnostics.Debug.WriteLine($"Created GameSettings directory: {GameSettingsDirectoryPath}");
+                    WriteLine($"Created GameSettings directory: {GameSettingsDirectoryPath}");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to create GameSettings directory: {ex.Message}");
+                WriteLine($"Failed to create GameSettings directory {GameSettingsDirectoryPath}: {ex.Message}");
                 throw;
             }
         }
@@ -513,30 +535,19 @@ namespace tkkn2025
         }
 
         /// <summary>
-        /// Migrates old config versions to the current version
+        /// Ensures the configuration is compatible with the current version
         /// </summary>
-        /// <param name="config">The configuration to migrate</param>
-        /// <returns>Migrated configuration</returns>
+        /// <param name="config">The configuration to validate</param>
+        /// <returns>The validated configuration</returns>
         private static GameConfig MigrateGameConfig(GameConfig config)
         {
-            // Handle version migration
-            if (string.IsNullOrEmpty(config.Version) || config.Version == "1.0")
+            // Assume all configs are latest version - no migration needed
+            // Just ensure version is set correctly
+            if (string.IsNullOrEmpty(config.Version))
             {
-                // Migrate from version 1.0 to 2.0
                 config.Version = "2.0";
                 config.LastModified = DateTime.Now;
-                
-                if (string.IsNullOrEmpty(config.ConfigName))
-                {
-                    config.ConfigName = "Migrated Configuration";
-                }
-                
-                if (string.IsNullOrEmpty(config.CreatedBy))
-                {
-                    config.CreatedBy = "System Migration";
-                }
-                
-                System.Diagnostics.Debug.WriteLine("GameConfig migrated from v1.0 to v2.0");
+                WriteLine($"Updated version for config '{config.ConfigName}' to v2.0");
             }
             
             return config;

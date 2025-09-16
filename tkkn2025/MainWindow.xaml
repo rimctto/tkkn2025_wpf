@@ -27,12 +27,15 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="5,2" />
             <Setter Property="FontWeight" Value="Normal" />
+
         </Style>
 
         <!--  Default TextBlock Style  -->
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Focusable" Value="False" />
+
         </Style>
 
         <!--  Default TextBox Style  -->
@@ -42,7 +45,9 @@
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="2" />
+
         </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -54,37 +59,35 @@
             </Grid.ColumnDefinitions>
 
             <!--  Game Area  -->
-            <Grid>
-                <Canvas
-                    Name="GameCanvas"
-                    Grid.Column="0"
-                    Background="Black"
-                    Focusable="True"
-                    MouseDown="GameCanvas_MouseDown">
+            <Canvas
+                Name="GameCanvas"
+                Grid.Column="0"
+                Background="Black"
+                Focusable="True"
+                MouseDown="GameCanvas_MouseDown">
 
-                    <!--  Start Screen - shown when game is not running  -->
+                <!--  Start Screen - shown when game is not running  -->
 
 
-                </Canvas>
+            </Canvas>
 
-                <ui:StartScreen x:Name="StartScreen" Visibility="Visible" />
-                <ui:GameOverScreen x:Name="GameOverScreen" Visibility="Hidden" />
-                <ui:GameConfigScreen
-                    x:Name="GameConfigScreen"
-                    Visibility="Hidden" />
-            </Grid>
+            <ui:StartScreen x:Name="StartScreen" Visibility="Visible" />
+            <ui:GameOverScreen x:Name="GameOverScreen" Visibility="Hidden" />
+            <ui:GameConfigScreen x:Name="GameConfigScreen" Visibility="Hidden" />
             <!--  Settings Panel  -->
             <Border
                 Grid.Column="1"
-                Padding="10"
+                Padding="0"
                 Background="#FF151515">
                 <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="25" />
+
                     </Grid.RowDefinitions>
 
-                    <StackPanel>
+                    <StackPanel Margin="10">
                         <!--  FPS Counter in top right  -->
                         <TextBlock
                             Name="FpsText"
@@ -182,100 +185,154 @@
                         <!--  Music Control  -->
                         <Button
                             Name="MusicToggleButton"
+                            Width="150"
                             Margin="0,10,0,10"
                             Background="DarkSlateBlue"
                             Click="MusicToggleButton_Click"
                             Content="🎵 Music: ON"
+                            Focusable="False"
                             Foreground="White" />
 
+
+
+
+
+                        <!--  Game Settings Header  -->
+                        <TextBlock
+                            Margin="0,5,0,0"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Game Settings" />
+
+                        <!--  Settings Management Buttons  -->
+                        <StackPanel
+                            Margin="0,5,0,0"
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal">
+                            <Button
+                                Name="SaveSettingsButton"
+                                Width="60"
+                                Click="SaveSettingsButton_Click"
+                                Content="Save"
+                                FontSize="10" />
+                            <Button
+                                Name="LoadSettingsButton"
+                                Width="60"
+                                Margin="5,0,0,0"
+                                Click="LoadSettingsButton_Click"
+                                Content="Load"
+                                FontSize="10" />
+                            <Button
+                                Name="ResetSettingsButton"
+                                Width="60"
+                                Margin="5,0,0,0"
+                                Click="ResetSettingsButton_Click"
+                                Content="Default"
+                                FontSize="10" />
+                        </StackPanel>
+
+                        <!--  Config Status  -->
+                        <TextBlock
+                            Name="ConfigStatusText"
+                            Margin="0,5,0,10"
+                            HorizontalAlignment="Center"
+                            FontSize="10"
+                            Foreground="LightGray"
+                            Text="" />
+
+
+                        <Grid Margin="10,10,10,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="15" />
+                                <ColumnDefinition Width="auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="0"
+                                FontSize="14"
+                                Text="Difficulty:" />
+                            <TextBlock
+                                Grid.Column="2"
+                                d:Text="345"
+                                FontSize="14"
+                                Text="{Binding GameSettings.Difficulty}" />
+                        </Grid>
                     </StackPanel>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <!--  Game Settings  -->
 
-                        <StackPanel>
-
-                            <!--  Game Settings  -->
-                            <StackPanel>
-
-                                <!--  Header  -->
-                                <TextBlock
-                                    Margin="0,5,0,0"
-                                    FontSize="14"
-                                    FontWeight="Bold"
-                                    Text="Game Settings" />
-
-                                <!--  Settings Management Buttons  -->
-                                <StackPanel
-                                    Margin="0,5,0,0"
-                                    HorizontalAlignment="Center"
-                                    Orientation="Horizontal">
-                                    <Button
-                                        Name="SaveSettingsButton"
-                                        Width="60"
-                                        Click="SaveSettingsButton_Click"
-                                        Content="Save"
-                                        FontSize="10" />
-                                    <Button
-                                        Name="LoadSettingsButton"
-                                        Width="60"
-                                        Margin="5,0,0,0"
-                                        Click="LoadSettingsButton_Click"
-                                        Content="Load"
-                                        FontSize="10" />
-                                    <Button
-                                        Name="ResetSettingsButton"
-                                        Width="60"
-                                        Margin="5,0,0,0"
-                                        Click="ResetSettingsButton_Click"
-                                        Content="Default"
-                                        FontSize="10" />
-                                </StackPanel>
-
-                                <!--  Config Status  -->
-                                <TextBlock
-                                    Name="ConfigStatusText"
-                                    Margin="0,5,0,10"
-                                    HorizontalAlignment="Center"
-                                    FontSize="10"
-                                    Foreground="LightGray"
-                                    Text="" />
-
-                            </StackPanel>
+                    <ScrollViewer
+                        Grid.Row="1"
+                        Margin="10"
+                        VerticalScrollBarVisibility="Auto">
 
 
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <StackPanel DataContext="{Binding}">
 
                                 <!--  Basic Settings  -->
                                 <Expander Foreground="White" IsExpanded="False">
                                     <Expander.Header>
-                                        <TextBlock FontSize="14" Text="Basic Settings" />
+                                        <TextBlock
+                                            FontSize="14"
+                                            Foreground="DarkCyan"
+                                            Text="Basic Settings" />
                                     </Expander.Header>
 
-                                    <settingsModels:SettingList DataContext="{Binding GameSettings.BasicSettings}" />
+                                    <settingsModels:SettingList Margin="0,10,0,0" DataContext="{Binding GameSettings.BasicSettings}" />
                                 </Expander>
 
                                 <!--  Particle Settings  -->
                                 <Expander Foreground="White" IsExpanded="False">
                                     <Expander.Header>
-                                        <TextBlock FontSize="14" Text="Particle Settings" />
+                                        <TextBlock
+                                            FontSize="14"
+                                            Foreground="DarkCyan"
+                                            Text="Particle Settings" />
                                     </Expander.Header>
 
-                                    <settingsModels:SettingList DataContext="{Binding GameSettings.ParticleSettings}" />
+                                    <settingsModels:SettingList Margin="0,10,0,0" DataContext="{Binding GameSettings.ParticleSettings}" />
                                 </Expander>
 
                                 <!--  PowerUp Settings  -->
                                 <Expander Foreground="White" IsExpanded="False">
                                     <Expander.Header>
-                                        <TextBlock FontSize="14" Text="Power-Up Settings" />
+                                        <TextBlock
+                                            FontSize="14"
+                                            Foreground="DarkCyan"
+                                            Text="Power-Up Settings" />
                                     </Expander.Header>
-
-                                    <settingsModels:SettingList DataContext="{Binding GameSettings.PowerUpSettings}" />
+                                    <settingsModels:SettingList Margin="0,10,0,0" DataContext="{Binding GameSettings.PowerUpSettings}" />
                                 </Expander>
 
 
                             </StackPanel>
-                        </StackPanel>
+                        </Grid>
                     </ScrollViewer>
+
+                    <StackPanel
+                        Grid.Row="2"
+                        Margin="5,0"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                        <Button
+                            Name="DatabaseButton"
+                            Width="35"
+                            Margin="0,0,5,0"
+                            Click="DatabaseButton_Click"
+                            Content="🗄️"
+                            ToolTip="Open Firebase Database Editor" />
+                        <Button
+                            Name="LogButton"
+                            Width="35"
+                            Click="LogButton_Click"
+                            Content="Log"
+                            ToolTip="Open Debug Log Window" />
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

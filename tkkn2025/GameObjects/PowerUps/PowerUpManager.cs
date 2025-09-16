@@ -286,43 +286,91 @@ namespace tkkn2025.GameObjects.PowerUps
             return new Dictionary<string, int>(storedPowerUps);
         }
 
+        /// <summary>
+        /// Get the number of enabled power-up types
+        /// </summary>
+        /// <returns>Number of enabled power-up types</returns>
+        public static int GetEnabledPowerUpCount()
+        {
+            int count = 0;
+            if (GameSettings.IsPowerUpEnabled_TimeWarp.Value) count++;
+            if (GameSettings.IsPowerUpEnabled_Singularity.Value) count++;
+            if (GameSettings.IsPowerUpEnabled_Repulsor.Value) count++;
+            return count;
+        }
+
+        /// <summary>
+        /// Get the list of enabled power-up types
+        /// </summary>
+        /// <returns>List of enabled power-up type names</returns>
+        public static List<string> GetEnabledPowerUpTypes()
+        {
+            var enabledPowerUps = new List<string>();
+            
+            if (GameSettings.IsPowerUpEnabled_TimeWarp.Value)
+                enabledPowerUps.Add("TimeWarp");
+            if (GameSettings.IsPowerUpEnabled_Singularity.Value)
+                enabledPowerUps.Add("Singularity");
+            if (GameSettings.IsPowerUpEnabled_Repulsor.Value)
+                enabledPowerUps.Add("Repulsor");
+            
+            return enabledPowerUps;
+        }
+
         private void SpawnRandomPowerUp()
         {
+            // Get the list of enabled power-ups using current settings
+            var enabledPowerUps = new List<string>();
+            
+            if (GameSettings.IsPowerUpEnabled_TimeWarp.Value)
+                enabledPowerUps.Add("TimeWarp");
+            if (GameSettings.IsPowerUpEnabled_Singularity.Value)
+                enabledPowerUps.Add("Singularity");
+            if (GameSettings.IsPowerUpEnabled_Repulsor.Value)
+                enabledPowerUps.Add("Repulsor");
+            
+            // If no power-ups are enabled, don't spawn anything
+            if (enabledPowerUps.Count == 0)
+                return;
+            
             var position = GetRandomSpawnPosition();
             PowerUp powerUp;
             PowerUpControl visual;
 
-            // Randomly choose between TimeWarp, Singularity, and Repulsor
-            double randomValue = random.NextDouble();
-            if (randomValue < 0.33) // 33% chance for TimeWarp
+            // Randomly choose from enabled power-ups
+            string selectedPowerUp = enabledPowerUps[random.Next(enabledPowerUps.Count)];
+            
+            switch (selectedPowerUp)
             {
-                // TimeWarp power-up
-                powerUp = new PowerUp(position, "TimeWarp", "Slows down time for 3 seconds", 0.5, 3.0)
-                {
-                    IsActive = true
-                };
-                visual = new PowerUpControl();
-                visual.SphereColor = TimeWarpBrush; // Gold for TimeWarp
-            }
-            else if (randomValue < 0.66) // 33% chance for Singularity
-            {
-                // Singularity power-up
-                powerUp = new PowerUp(position, "Singularity", "Creates a gravity well when activated", 1000f, 5.0)
-                {
-                    IsActive = true
-                };
-                visual = new PowerUpControl();
-                visual.SphereColor = SingularityBrush; // Red for Singularity
-            }
-            else // 33% chance for Repulsor
-            {
-                // Repulsor power-up
-                powerUp = new PowerUp(position, "Repulsor", "Creates a repelling field that follows you when activated", -1000f, 5.0)
-                {
-                    IsActive = true
-                };
-                visual = new PowerUpControl();
-                visual.SphereColor = RepulsorBrush; // Green for Repulsor
+                case "TimeWarp":
+                    // TimeWarp power-up
+                    powerUp = new PowerUp(position, "TimeWarp", "Slows down time for 3 seconds", 0.5, 3.0)
+                    {
+                        IsActive = true
+                    };
+                    visual = new PowerUpControl();
+                    visual.SphereColor = TimeWarpBrush; // Gold for TimeWarp
+                    break;
+                case "Singularity":
+                    // Singularity power-up
+                    powerUp = new PowerUp(position, "Singularity", "Creates a gravity well when activated", 1000f, 5.0)
+                    {
+                        IsActive = true
+                    };
+                    visual = new PowerUpControl();
+                    visual.SphereColor = SingularityBrush; // Red for Singularity
+                    break;
+                case "Repulsor":
+                    // Repulsor power-up
+                    powerUp = new PowerUp(position, "Repulsor", "Creates a repelling field that follows you when activated", -1000f, 5.0)
+                    {
+                        IsActive = true
+                    };
+                    visual = new PowerUpControl();
+                    visual.SphereColor = RepulsorBrush; // Green for Repulsor
+                    break;
+                default:
+                    return; // Should not happen, but safety check
             }
 
             //Spawn Default Power Up for testing

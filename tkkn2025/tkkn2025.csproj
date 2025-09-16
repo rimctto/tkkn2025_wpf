@@ -6,19 +6,20 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>tkkn2025 (1).ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="Audio\Particles.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="tkkn2025 (1).ico" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Events\" />
     <Folder Include="Graphics\" />
-    <Folder Include="Assets\" />
-    <Folder Include="UI\Windows\" />
+    <Folder Include="UI\UserControls\" />
   </ItemGroup>
 
   <ItemGroup>

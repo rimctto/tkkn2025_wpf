@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using tkkn2025.Helpers;
 using tkkn2025.Settings.Models;
 
 namespace tkkn2025.Settings
@@ -6,24 +9,38 @@ namespace tkkn2025.Settings
     /// <summary>
     /// Contains all basic game settings as SettingModelBase instances
     /// </summary>
-    public partial class GameSettings
+    public partial class GameSettings : INotifyPropertyChanged
     {
-      
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public List<ISettingModel> BasicSettings { get; }
         public List<ISettingModel> ParticleSettings { get; }
         public List<ISettingModel> PowerUpSettings { get; }
 
         public List<ISettingModel> AllSettings { get; }
 
-        
+        private double _difficulty;
+        public double Difficulty
+        {
+            get => _difficulty;
+            private set
+            {
+                if (_difficulty != value)
+                {
+                    _difficulty = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Difficulty)));
+                }
+            }
+        }
+
         public GameSettings()
         {
             // Create the settings list (removed MusicEnabled)
             BasicSettings = new List<ISettingModel>
             {
-                ShipSpeed,                                
-                LevelDuration,
+                ShipSpeed,
                 StartingParticles,
+                LevelDuration,
                 NewParticlesPerLevel,
             };
 
@@ -39,15 +56,19 @@ namespace tkkn2025.Settings
 
             PowerUpSettings = new List<ISettingModel>
             {
+
                 PowerUpSpawnRate,
-                TimeWarpDuration,
-               
-                SingularityDuration,
-                SingulaiortyForce,
 
-                RepulsorDuration,
-                RepulsorForce,
+                IsPowerUpEnabled_TimeWarp,
+                PowerUpDuration_TimeWarp,
 
+                IsPowerUpEnabled_Singularity,
+                PowerUpDuration_Singularity,
+                PowerUpForce_Singularity,
+
+                IsPowerUpEnabled_Repulsor,
+                PowerUpDuration_Repulsor,
+                PowerUpForce_Repulsor,
             };
 
             AllSettings = new List<ISettingModel>();
@@ -55,9 +76,43 @@ namespace tkkn2025.Settings
             AllSettings.AddRange(ParticleSettings);
             AllSettings.AddRange(PowerUpSettings);
 
+            // Subscribe to changes in settings that affect difficulty calculation
+            SubscribeToSettingChanges();
+
+            // Calculate initial difficulty
+            CalculateDifficuly();
         }
 
-       
+        private void SubscribeToSettingChanges()
+        {
+            // Subscribe to the settings that affect difficulty calculation
+            ShipSpeed.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            ParticleSpeed.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            ParticleTurnSpeed.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            StartingParticles.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            NewParticlesPerLevel.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            LevelDuration.PropertyChanged += OnDifficultyRelevantSettingChanged;
+        }
+
+        private void OnDifficultyRelevantSettingChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ISettingModel.Value))
+            {
+                CalculateDifficuly();
+            }
+        }
+
+        private void CalculateDifficuly()
+        {
+            var speedRatio = ParticleSpeed / ShipSpeed * ParticleTurnSpeed * ParticleTurnSpeed;
+            var particleCount = StartingParticles * ((1 + NewParticlesPerLevel) / LevelDuration);
+            var powerUpFactor = PowerUpDuration_Repulsor + PowerUpDuration_Singularity + PowerUpDuration_TimeWarp;
+
+            Difficulty = speedRatio * particleCount;
+
+            Difficulty = Math.Round(Difficulty, 2);
+        }
+
         public GameConfig ToGameConfig()
         {
             return new GameConfig
@@ -85,17 +140,27 @@ namespace tkkn2025.Settings
 
                 // PowerUp settings
                 PowerUpSpawnRate = PowerUpSpawnRate,
-                TimeWarpDuration = TimeWarpDuration,
-                RepulsorDuration = RepulsorDuration,
-                RepulsorForce = RepulsorForce,
-                SingularityDuration = SingularityDuration,
-                SingulaiortyForce = SingulaiortyForce,
+                IsPowerUpEnabled_TimeWarp = IsPowerUpEnabled_TimeWarp,
+                IsPowerUpEnabled_Singularity = IsPowerUpEnabled_Singularity,
+                IsPowerUpEnabled_Repulsor = IsPowerUpEnabled_Repulsor,
+                PowerUpDuration_TimeWarp = PowerUpDuration_TimeWarp,
+                PowerUpDuration_Repulsor = PowerUpDuration_Repulsor,
+                PowerUpForce_Repulsor = PowerUpForce_Repulsor,
+                PowerUpDuration_Singularity = PowerUpDuration_Singularity,
+                PowerUpForce_Singulaiorty = PowerUpForce_Singularity,
             };
         }
 
-    
         public void LoadFromConfig(GameConfig config)
         {
+            // Temporarily unsubscribe to avoid multiple calculations during bulk updates
+            UnsubscribeFromSettingChanges();
+
+            DebugHelper.WriteLine($"Loading config values into GameSettings:");
+            DebugHelper.WriteLine($"  IsPowerUpTimeWarpEnabled: {config.IsPowerUpEnabled_TimeWarp}");
+            DebugHelper.WriteLine($"  IsPowerUpSingularityEnabled: {config.IsPowerUpEnabled_Singularity}");
+            DebugHelper.WriteLine($"  IsPowerUpRepulsorEnabled: {config.IsPowerUpEnabled_Repulsor}");
+
             ShipSpeed.Value = config.ShipSpeed;
             ParticleSpeed.Value = config.ParticleSpeed;
             ParticleTurnSpeed.Value = config.ParticleTurnSpeed;
@@ -110,27 +175,56 @@ namespace tkkn2025.Settings
 
             // PowerUp settings
             PowerUpSpawnRate.Value = config.PowerUpSpawnRate;
-            TimeWarpDuration.Value = config.TimeWarpDuration;
-            RepulsorDuration.Value = config.RepulsorDuration;
-            RepulsorForce.Value = config.RepulsorForce;
-            SingularityDuration.Value = config.SingularityDuration;
-            SingulaiortyForce.Value = config.SingulaiortyForce;
+            IsPowerUpEnabled_TimeWarp.Value = config.IsPowerUpEnabled_TimeWarp;
+            IsPowerUpEnabled_Singularity.Value = config.IsPowerUpEnabled_Singularity;
+            IsPowerUpEnabled_Repulsor.Value = config.IsPowerUpEnabled_Repulsor;
+            PowerUpDuration_TimeWarp.Value = config.PowerUpDuration_TimeWarp;
+            PowerUpDuration_Repulsor.Value = config.PowerUpDuration_Repulsor;
+            PowerUpForce_Repulsor.Value = config.PowerUpForce_Repulsor;
+            PowerUpDuration_Singularity.Value = config.PowerUpDuration_Singularity;
+            PowerUpForce_Singularity.Value = config.PowerUpForce_Singulaiorty;
+
+            DebugHelper.WriteLine($"After loading - PowerUp enabled states:");
+            DebugHelper.WriteLine($"  IsPowerUpTimeWarpEnabled: {IsPowerUpEnabled_TimeWarp.Value}");
+            DebugHelper.WriteLine($"  IsPowerUpSingularityEnabled: {IsPowerUpEnabled_Singularity.Value}");
+            DebugHelper.WriteLine($"  IsPowerUpRepulsorEnabled: {IsPowerUpEnabled_Repulsor.Value}");
+
+            // Re-subscribe and calculate difficulty once
+            SubscribeToSettingChanges();
+            CalculateDifficuly();
         }
 
+        private void UnsubscribeFromSettingChanges()
+        {
+            // Unsubscribe from the settings that affect difficulty calculation
+            ShipSpeed.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            ParticleSpeed.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            ParticleTurnSpeed.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            StartingParticles.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            NewParticlesPerLevel.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            LevelDuration.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+        }
 
         public void ResetToDefaults()
         {
+            // Temporarily unsubscribe to avoid multiple calculations during bulk updates
+            UnsubscribeFromSettingChanges();
+
             foreach (var setting in AllSettings)
             {
                 setting.Value = setting.DefaultValue;
             }
+
+            // Re-subscribe and calculate difficulty once
+            SubscribeToSettingChanges();
+            CalculateDifficuly();
         }
 
-        
+
         public Dictionary<string, List<ISettingModel>> GetSettingsByCategory()
         {
             var result = new Dictionary<string, List<ISettingModel>>();
-            
+
             // Process BasicSettings
             foreach (var setting in BasicSettings)
             {
@@ -140,7 +234,7 @@ namespace tkkn2025.Settings
                 }
                 result[setting.Category].Add(setting);
             }
-            
+
             // Process ParticleSettings
             foreach (var setting in ParticleSettings)
             {
@@ -150,7 +244,7 @@ namespace tkkn2025.Settings
                 }
                 result[setting.Category].Add(setting);
             }
-            
+
             return result;
         }
     }

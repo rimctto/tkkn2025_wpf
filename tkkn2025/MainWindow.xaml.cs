@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +11,8 @@ using tkkn2025.GameObjects.PowerUps;
 using tkkn2025.GameObjects.Ship;
 using tkkn2025.Settings;
 using tkkn2025.DataAccess;
+using tkkn2025.UI.Windows;
+using tkkn2025.Helpers;
 
 namespace tkkn2025
 {
@@ -64,6 +67,12 @@ namespace tkkn2025
         // Firebase connector for saving game data
         private FireBaseConnector firebaseConnector = null!;
 
+        // Debug window
+        private DebugWindow? debugWindow = null;
+        
+        // Firebase editor window
+        private FireBaseEditor? firebaseEditorWindow = null;
+
         public MainWindow()
         {
 
@@ -88,7 +97,20 @@ namespace tkkn2025
             this.Closing += (s, e) => {
                 SaveGameSettings();
                 UnsubscribeFromGameEvents();
-                System.Diagnostics.Debug.WriteLine("Window closing - settings saved");
+                
+                // Close debug window if open
+                if (debugWindow != null)
+                {
+                    debugWindow.Close();
+                    debugWindow = null;
+                }
+                
+                // Close firebase editor window if open
+                if (firebaseEditorWindow != null)
+                {
+                    firebaseEditorWindow.Close();
+                    firebaseEditorWindow = null;
+                }
             };
             
             InitializeGame();
@@ -157,13 +179,16 @@ namespace tkkn2025
 
         private void InitializeSession()
         {
+            // Check if default config file exists before creating session (which loads/creates config)
+            bool hadExistingConfig = ConfigManager.DefaultConfigFileExists();
+            
             currentSession = new Session();
             
             // Register the session with the App for automatic config saving on exit
             App.CurrentSession = currentSession;
             
-            // Load the current configurations into the UI
-            LoadGameSettings();
+            // Load the current configurations into the UI, passing whether we had existing config
+            LoadGameSettings(hadExistingConfig);
             
             System.Diagnostics.Debug.WriteLine("New session started and registered with App");
         }
@@ -196,7 +221,7 @@ namespace tkkn2025
 
 
         //App start and close
-        private void LoadGameSettings()
+        private void LoadGameSettings(bool hadExistingConfig = true)
         {
             try
             {
@@ -204,18 +229,34 @@ namespace tkkn2025
                 if (currentSession?.GameConfig != null)
                 {
                     SettingsManager.GameSettings.LoadFromConfig(currentSession.GameConfig);
-                    GameEvents.RaiseMessageRequested($"Settings loaded: {currentSession.GameConfig.ConfigName}", Brushes.LightGreen);
+                    
+                    // Determine appropriate message based on whether we had an existing config
+                    if (!hadExistingConfig || currentSession.GameConfig.ConfigName == "Default Configuration")
+                    {
+                        GameEvents.RaiseMessageRequested("Initialized with default settings", Brushes.LightBlue);
+                        DebugHelper.WriteLine("UI initialized with default game settings");
+                    }
+                    else
+                    {
+                        GameEvents.RaiseMessageRequested($"Settings loaded: {currentSession.GameConfig.ConfigName}", Brushes.LightGreen);
+                        DebugHelper.WriteLine($"UI loaded with saved settings: '{currentSession.GameConfig.ConfigName}'");
+                        DebugHelper.WriteLine($"Config path: {ConfigManager.GetDefaultConfigFilePath()}");
+                    }
                 }
                 else
                 {
+                    // Fallback: Initialize with defaults if no config available
+                    SettingsManager.InitializeWithDefaults();
                     GameEvents.RaiseMessageRequested("Using default settings", Brushes.LightBlue);
+                    DebugHelper.WriteLine("UI fallback to default settings");
                 }
 
                 // Load music setting from app config
                 if (currentSession?.AppConfig != null)
                 {
                     audioManager.MusicEnabled = currentSession.AppConfig.MusicEnabled;
-                    System.Diagnostics.Debug.WriteLine($"Music setting loaded: {currentSession.AppConfig.MusicEnabled}");
+                    DebugHelper.WriteLine($"Music setting loaded from app config: {currentSession.AppConfig.MusicEnabled}");
+                    DebugHelper.WriteLine($"App config path: {ConfigManager.GetAppConfigFilePath()}");
                 }
 
                 // Update player name TextBox if it exists
@@ -226,8 +267,10 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                GameEvents.RaiseMessageRequested($"Error loading config: {ex.Message}", Brushes.LightCoral);
-                System.Diagnostics.Debug.WriteLine($"Error loading game settings: {ex.Message}");
+                // On any error, ensure we have default settings loaded
+                SettingsManager.InitializeWithDefaults();
+                GameEvents.RaiseMessageRequested($"Error loading config, using defaults: {ex.Message}", Brushes.LightCoral);
+                DebugHelper.WriteLine($"Error loading game settings: {ex.Message}");
             }
         }
          
@@ -246,11 +289,13 @@ namespace tkkn2025
                 }
                 
                 GameEvents.RaiseMessageRequested("Settings saved as new default", Brushes.LightGreen);
+                DebugHelper.WriteLine($"Game settings auto-saved as default to: {ConfigManager.GetDefaultConfigFilePath()}");
+                DebugHelper.WriteLine($"App config auto-saved to: {ConfigManager.GetAppConfigFilePath()}");
             }
             catch (Exception ex)
             {
                 GameEvents.RaiseMessageRequested($"Error saving settings: {ex.Message}", Brushes.LightCoral);
-                System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
+                DebugHelper.WriteLine($"Error saving settings: {ex.Message}");
             }
         }
 
@@ -333,6 +378,11 @@ namespace tkkn2025
             CompositionTarget.Rendering += GameLoop;
 
             CreateShip();
+            
+            // Debug initialization info
+            DebugHelper.WriteLine("Game initialization completed");
+            DebugHelper.WriteLine($"Audio Manager initialized, Music enabled: {audioManager.MusicEnabled}");
+            DebugHelper.WriteLine($"Player name: {Session.PlayerName}");
         }
         
         private async void OnParticleShipCollisionDetected()
@@ -531,6 +581,9 @@ namespace tkkn2025
             
             // Show that settings are locked during game
             GameEvents.RaiseMessageRequested("Settings locked during game (saved as default)", Brushes.Yellow);
+            
+            // Debug output for game start
+            DebugHelper.WriteLine($"Game started with {GameSettings.StartingParticles.Value} particles, Ship Speed: {activeShipSpeed}");
         }
         
         private async void StopGame()
@@ -543,8 +596,8 @@ namespace tkkn2025
             if (currentGame != null)
             {
                 currentSession.CompleteCurrentGame(particleManager.ParticleCount);
-                System.Diagnostics.Debug.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
-                System.Diagnostics.Debug.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
+                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
+                DebugHelper.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
                 
                 // Raise game completed event
                 GameEvents.RaiseGameCompleted(currentGame);
@@ -656,7 +709,7 @@ namespace tkkn2025
             {
                 double fps = frameCount / elapsed;
                 FpsText.Text = $"FPS: {fps:F0}";
-                
+
                 // Change color based on FPS performance
                 FpsText.Foreground = fps switch
                 {
@@ -711,23 +764,23 @@ namespace tkkn2025
                 ship.ShowNeutral();
             }
         }
-        
+
         private void UpdateUI()
         {
             ParticleCountText.Text = $"Particles: {particleManager.ParticleCount}";
-            
+
             if (gameRunning)
             {
                 var elapsed = DateTime.Now - gameStartTime;
                 GameTimeText.Text = $"Time: {elapsed.TotalSeconds:F0}s";
-                
+
                 // Show active power-up effects
                 if (powerUpManager.IsEffectActive("TimeWarp"))
                 {
                     var remaining = powerUpManager.GetEffectRemainingTime("TimeWarp");
                     GameTimeText.Text += $" | TimeWarp: {remaining:F1}s";
                 }
-                
+
                 // Show stored power-ups
                 var singularityCount = powerUpManager.GetStoredPowerUpCount("Singularity");
                 var repulsorCount = powerUpManager.GetStoredPowerUpCount("Repulsor");
@@ -743,20 +796,20 @@ namespace tkkn2025
                         GameTimeText.Text += $" Repulsor: {repulsorCount}";
                     }
                 }
-            }
 
-            // Update session stats
-            if (currentSession != null && SessionStatsText != null)
-            {
-                if (currentSession.GamesPlayed == 0)
+                // Update session stats
+                if (currentSession != null && SessionStatsText != null)
                 {
-                    SessionStatsText.Text = "No games completed yet";
-                }
-                else
-                {
-                    SessionStatsText.Text = $"Games: {currentSession.GamesPlayed} | " +
-                                          $"Best: {currentSession.LongestGame?.DurationSeconds:F1}s | " +
-                                          $"Avg: {currentSession.AverageGameTime:F1}s";
+                    if (currentSession.GamesPlayed == 0)
+                    {
+                        SessionStatsText.Text = "No games completed yet";
+                    }
+                    else
+                    {
+                        SessionStatsText.Text = $"Games: {currentSession.GamesPlayed} | " +
+                                              $"Best: {currentSession.LongestGame?.DurationSeconds:F1}s | " +
+                                              $"Avg: {currentSession.AverageGameTime:F1}s";
+                    }
                 }
             }
         }
@@ -814,13 +867,13 @@ namespace tkkn2025
                     // Reset to default settings using the new system
                     SettingsManager.ResetToDefaults();
                     GameEvents.RaiseMessageRequested("Settings reset to defaults", Brushes.Orange);
-                    System.Diagnostics.Debug.WriteLine("Settings reset to default values");
+                    DebugHelper.WriteLine("Settings reset to default values by user");
                 }
             }
             catch (Exception ex)
             {
                 GameEvents.RaiseMessageRequested($"Error resetting settings: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in ResetSettingsButton_Click: {ex.Message}");
+                DebugHelper.WriteLine($"Error in ResetSettingsButton_Click: {ex.Message}");
             }
         }
 
@@ -854,17 +907,18 @@ namespace tkkn2025
                     currentSession?.UpdateGameConfig(validated, true);
 
                     GameEvents.RaiseMessageRequested("Settings loaded successfully", Brushes.LightGreen);
-                    System.Diagnostics.Debug.WriteLine("Settings loaded from file successfully");
+                    DebugHelper.WriteLine($"Settings loaded from file: {loadedSettings.ConfigName}");
                 }
                 else
                 {
                     GameEvents.RaiseMessageRequested("Load canceled or failed", Brushes.LightCoral);
+                    DebugHelper.WriteLine("Settings load was canceled or failed");
                 }
             }
             catch (Exception ex)
             {
                 GameEvents.RaiseMessageRequested($"Error loading settings: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in LoadSettingsButton_Click: {ex.Message}");
+                DebugHelper.WriteLine($"Error in LoadSettingsButton_Click: {ex.Message}");
             }
         }
 
@@ -942,6 +996,9 @@ namespace tkkn2025
         {
             try
             {
+                // Store the currently focused element before the button click
+                var previouslyFocusedElement = FocusManager.GetFocusedElement(this);
+                
                 // Toggle the music setting in the audio manager
                 audioManager.MusicEnabled = !audioManager.MusicEnabled;
                 
@@ -959,6 +1016,22 @@ namespace tkkn2025
                 
                 // Raise music toggled event
                 GameEvents.RaiseMusicToggled(audioManager.MusicEnabled);
+                
+                // Restore focus to the previously focused element or the game canvas
+                if (previouslyFocusedElement is UIElement previousElement && previousElement.IsEnabled && previousElement.Focusable)
+                {
+                    previousElement.Focus();
+                }
+                else if (gameRunning)
+                {
+                    // If game is running, ensure the game canvas has focus for key input
+                    GameCanvas.Focus();
+                }
+                else
+                {
+                    // Return focus to the main window
+                    this.Focus();
+                }
                 
                 System.Diagnostics.Debug.WriteLine($"Music toggled to: {audioManager.MusicEnabled}");
             }
@@ -988,6 +1061,28 @@ namespace tkkn2025
                 GameEvents.RaiseHideConfigScreen();
                 e.Handled = true;
                 return;
+            }                   
+
+            // Check if a text input control has focus - if so, don't handle movement keys
+            if (IsTextInputControlFocused())
+            {
+                // Only handle non-text keys like Space and Escape
+                switch (e.Key)
+                {
+                    case Key.Space:
+                        if (gameOverScreenVisible)
+                        {
+                            // Transition from game over screen to start screen
+                            GameEvents.RaiseShowStartScreen();
+                        }
+                        else if (!gameRunning)
+                        {
+                            StartGame();
+                        }
+                        e.Handled = true;
+                        break;
+                }
+                return; // Don't handle movement keys when text input has focus
             }
 
             switch (e.Key)
@@ -1009,38 +1104,44 @@ namespace tkkn2025
                     if (gameRunning)
                     {
                         keysPressed[0] = true;
+                        e.Handled = true;
                     }
-                    e.Handled = true;
                     break;
                 case Key.Down:
                 case Key.S:
                     if (gameRunning)
                     {
                         keysPressed[1] = true;
+                        e.Handled = true;
                     }
-                    e.Handled = true;
                     break;
                 case Key.Left:
                 case Key.A:
                     if (gameRunning)
                     {
                         keysPressed[2] = true;
+                        e.Handled = true;
                     }
-                    e.Handled = true;
                     break;
                 case Key.Right:
                 case Key.D:
                     if (gameRunning)
                     {
                         keysPressed[3] = true;
+                        e.Handled = true;
                     }
-                    e.Handled = true;
                     break;
             }
         }
         
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
+            // Check if a text input control has focus - if so, don't handle movement keys
+            if (IsTextInputControlFocused())
+            {
+                return; // Don't handle movement keys when text input has focus
+            }
+
             switch (e.Key)
             {
                 case Key.Up:
@@ -1063,6 +1164,98 @@ namespace tkkn2025
                     keysPressed[3] = false;
                     e.Handled = true;
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Check if a text input control currently has focus
+        /// </summary>
+        /// <returns>True if a text input control has focus</returns>
+        private bool IsTextInputControlFocused()
+        {
+            var focusedElement = FocusManager.GetFocusedElement(this);
+            
+            return focusedElement is TextBox || 
+                   focusedElement is PasswordBox || 
+                   focusedElement is RichTextBox ||
+                   focusedElement is ComboBox ||
+                   (focusedElement is Control control && control.IsTabStop && control.Focusable);
+        }
+
+        /// <summary>
+        /// Open or focus the debug log window
+        /// </summary>
+        private void LogButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (debugWindow == null || !debugWindow.IsLoaded)
+                {
+                    // Create new debug window
+                    debugWindow = new DebugWindow
+                    {
+                        //Owner = this
+                    };
+                    
+                    // Handle window closed event
+                    debugWindow.Closed += (s, args) => debugWindow = null;
+                    
+                    debugWindow.Show();
+                    
+                    // Add a welcome message using our debug helper
+                    DebugHelper.WriteLine("Debug window opened - all debug output will appear here");
+                    DebugHelper.WriteLine($"Application started at: {DateTime.Now}");
+                    DebugHelper.WriteLine("=" + new string('=', 50));
+                }
+                else
+                {
+                    // Window exists, just bring it to front
+                    debugWindow.Activate();
+                    debugWindow.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open debug window: {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                DebugHelper.WriteLine($"Error opening debug window: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Open or focus the Firebase database editor window
+        /// </summary>
+        private void DatabaseButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (firebaseEditorWindow == null || !firebaseEditorWindow.IsLoaded)
+                {
+                    // Create new Firebase editor window
+                    firebaseEditorWindow = new FireBaseEditor
+                    {
+                        Owner = this
+                    };
+                    
+                    // Handle window closed event
+                    firebaseEditorWindow.Closed += (s, args) => firebaseEditorWindow = null;
+                    
+                    firebaseEditorWindow.Show();
+                    
+                    DebugHelper.WriteLine("Firebase Database Editor opened");
+                }
+                else
+                {
+                    // Window exists, just bring it to front
+                    firebaseEditorWindow.Activate();
+                    firebaseEditorWindow.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open Firebase Database Editor: {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                DebugHelper.WriteLine($"Error opening Firebase Database Editor: {ex.Message}");
             }
         }
     }
