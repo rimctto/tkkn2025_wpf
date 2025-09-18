@@ -69,42 +69,113 @@ namespace tkkn2025.UI.Windows
 
             try
             {
-                UpdateStatus("Loading root nodes...");
-                
-                // Get all root level paths - this is a simplified approach
-                // In a real scenario, you might want to query specific known paths
-                var knownRootPaths = new[] { "users", "scores", "settings", "games", "sessions" };
+               UpdateStatus("Discovering root nodes...");
                 
                 _rootNodes.Clear();
                 
-                foreach (var path in knownRootPaths)
+                // First approach: Try to read from root and discover available paths
+                try
                 {
-                    try
+                    // Read all data from the root level
+                    var rootData = await _firebaseConnector.ReadAllDataAsync<object>("");
+                    
+                    if (rootData?.Count > 0)
                     {
-                        var data = await _firebaseConnector.ReadAllDataAsync<object>(path);
-                        if (data?.Count > 0)
+                        UpdateStatus($"Found {rootData.Count} root nodes, loading details...");
+                        
+                        foreach (var rootItem in rootData)
                         {
-                            var node = new DatabaseNode
+                            try
                             {
-                                Name = path,
-                                Path = path,
-                                ChildCount = data.Count,
-                                Data = data
-                            };
-                            _rootNodes.Add(node);
+                                // Each root item key is a potential node path
+                                var nodePath = rootItem.Key;
+                                
+                                // Read the data for this specific path to get accurate count and structure
+                                var nodeData = await _firebaseConnector.ReadAllDataAsync<object>(nodePath);
+                                
+                                if (nodeData?.Count > 0)
+                                {
+                                    var node = new DatabaseNode
+                                    {
+                                        Name = nodePath,
+                                        Path = nodePath,
+                                        ChildCount = nodeData.Count,
+                                        Data = nodeData
+                                    };
+                                    _rootNodes.Add(node);
+                                    UpdateStatus($"Loaded node '{nodePath}' with {nodeData.Count} items");
+                                }
+                                else
+                                {
+                                    // Handle nodes that might be single values or empty
+                                    var node = new DatabaseNode
+                                    {
+                                        Name = nodePath,
+                                        Path = nodePath,
+                                        ChildCount = rootItem.Object != null ? 1 : 0,
+                                        Data = rootItem.Object != null ? new[] { rootItem } : Array.Empty<FirebaseObject<object>>()
+                                    };
+                                    _rootNodes.Add(node);
+                                    UpdateStatus($"Loaded node '{nodePath}' as single value");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                UpdateStatus($"Error loading node '{rootItem.Key}': {ex.Message}");
+                                // Continue with other nodes
+                            }
                         }
                     }
-                    catch
+                    else
                     {
-                        // Path might not exist, skip it
+                        UpdateStatus("No root nodes found in database");
                     }
                 }
+                catch (Exception rootEx)
+                {
+                    UpdateStatus($"Could not read from root level, falling back to known paths: {rootEx.Message}");
+                    
+                    // Fallback to the original approach with known paths
+                    await LoadKnownRootPaths();
+                }
 
-                UpdateStatus($"Loaded {_rootNodes.Count} root nodes");
+                UpdateStatus($"Successfully loaded {_rootNodes.Count} root nodes");
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Error loading root nodes: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fallback method to load known root paths when dynamic discovery fails
+        /// </summary>
+        private async Task LoadKnownRootPaths()
+        {
+            var knownRootPaths = new[] { "users", "scores", "settings", "games", "sessions" };
+            
+            foreach (var path in knownRootPaths)
+            {
+                try
+                {
+                    var data = await _firebaseConnector.ReadAllDataAsync<object>(path);
+                    if (data?.Count > 0)
+                    {
+                        var node = new DatabaseNode
+                        {
+                            Name = path,
+                            Path = path,
+                            ChildCount = data.Count,
+                            Data = data
+                        };
+                        _rootNodes.Add(node);
+                        UpdateStatus($"Loaded known path '{path}' with {data.Count} items");
+                    }
+                }
+                catch
+                {
+                    // Path might not exist, skip it
+                }
             }
         }
 
@@ -469,34 +540,67 @@ namespace tkkn2025.UI.Windows
             }
         }
 
-        private async void DeleteSubNodeButton_Click(object sender, RoutedEventArgs e)
+        private async void CopyNodeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is DynamicSubNodeItem subNode && _firebaseConnector != null && _selectedNode != null)
+            if (_selectedNode == null || _firebaseConnector == null)
             {
-                var result = MessageBox.Show(
-                    $"Are you sure you want to delete the sub-node '{subNode.Key}'?\n\nThis action cannot be undone and will permanently remove all data for this item.",
-                    "Confirm Delete Sub-Node",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning,
-                    MessageBoxResult.No);
+                UpdateStatus("Please select a node to copy");
+                return;
+            }
 
-                if (result == MessageBoxResult.Yes)
+            var dialog = new CopyNodeDialog(_selectedNode.Name);
+            if (dialog.ShowDialog() == true)
+            {
+                await CopyNodeWithAllData(_selectedNode, dialog.CopyName);
+            }
+        }
+
+        private async Task CopyNodeWithAllData(DatabaseNode sourceNode, string copyName)
+        {
+            if (_firebaseConnector == null) return;
+
+            try
+            {
+                UpdateStatus($"Copying node '{sourceNode.Name}' to '{copyName}'...");
+
+                // Read all data from the source node
+                var sourceData = await _firebaseConnector.ReadAllDataAsync<object>(sourceNode.Path);
+                if (sourceData == null || sourceData.Count == 0)
+                {
+                    UpdateStatus("No data found in source node to copy");
+                    return;
+                }
+
+                var totalItems = sourceData.Count;
+                var copiedItems = 0;
+
+                // Copy each item to the new node
+                foreach (var item in sourceData)
                 {
                     try
                     {
-                        UpdateStatus($"Deleting sub-node '{subNode.Key}'...");
-                        await _firebaseConnector.DeleteDataAsync(_selectedNode.Path, subNode.Key);
-                        UpdateStatus($"Sub-node '{subNode.Key}' deleted successfully");
+                        // Write the item to the new path using the same key
+                        await _firebaseConnector.UpdateDataAsync(copyName, item.Key, item.Object);
+                        copiedItems++;
                         
-                        // Refresh the sub-nodes list
-                        await LoadSubNodesAsDynamic(_selectedNode);
-                        PopulateSortOptions();
+                        // Update progress
+                        UpdateStatus($"Copying... {copiedItems}/{totalItems} items copied");
                     }
                     catch (Exception ex)
                     {
-                        UpdateStatus($"Error deleting sub-node '{subNode.Key}': {ex.Message}");
+                        UpdateStatus($"Error copying item '{item.Key}': {ex.Message}");
+                        // Continue with other items even if one fails
                     }
                 }
+
+                UpdateStatus($"Successfully copied node '{sourceNode.Name}' to '{copyName}' with {copiedItems} items");
+                
+                // Refresh the root nodes to show the new copied node
+                await LoadRootNodes();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error copying node: {ex.Message}");
             }
         }
 
@@ -567,6 +671,37 @@ namespace tkkn2025.UI.Windows
                 // Handle adding new sub-node
                 // This would require additional implementation
                 UpdateStatus($"Add sub-node functionality not yet implemented for: {dialog.NodeName}");
+            }
+        }
+
+        private async void DeleteSubNodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is DynamicSubNodeItem subNode && _firebaseConnector != null && _selectedNode != null)
+            {
+                var result = MessageBox.Show(
+                    $"Are you sure you want to delete the sub-node '{subNode.Key}'?\n\nThis action cannot be undone and will permanently remove all data for this item.",
+                    "Confirm Delete Sub-Node",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.No);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        UpdateStatus($"Deleting sub-node '{subNode.Key}'...");
+                        await _firebaseConnector.DeleteDataAsync(_selectedNode.Path, subNode.Key);
+                        UpdateStatus($"Sub-node '{subNode.Key}' deleted successfully");
+                        
+                        // Refresh the sub-nodes list
+                        await LoadSubNodesAsDynamic(_selectedNode);
+                        PopulateSortOptions();
+                    }
+                    catch (Exception ex)
+                    {
+                        UpdateStatus($"Error deleting sub-node '{subNode.Key}': {ex.Message}");
+                    }
+                }
             }
         }
 
@@ -893,7 +1028,7 @@ namespace tkkn2025.UI.Windows
     }
 
     // Simple dialog for adding new nodes
-    public partial class AddNodeDialog : Window
+    public class AddNodeDialog : Window
     {
         public string NodeName { get; private set; } = "";
 
@@ -947,6 +1082,99 @@ namespace tkkn2025.UI.Windows
             grid.Children.Add(buttonPanel);
 
             Content = grid;
+        }
+    }
+
+    // Simple dialog for copying nodes
+    public class CopyNodeDialog : Window
+    {
+        public string CopyName { get; private set; } = "";
+        private TextBox _copyNameTextBox;
+
+        public CopyNodeDialog(string originalNodeName)
+        {
+            InitializeDialog(originalNodeName);
+        }
+
+        private void InitializeDialog(string originalNodeName)
+        {
+            Title = "Copy Node";
+            Width = 350;
+            Height = 180;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.Margin = new Thickness(10);
+
+            var infoLabel = new TextBlock 
+            { 
+                Text = $"Copying node: '{originalNodeName}'", 
+                Margin = new Thickness(0, 0, 0, 5),
+                FontWeight = FontWeights.Bold
+            };
+            Grid.SetRow(infoLabel, 0);
+
+            var label = new TextBlock { Text = "New node name:", Margin = new Thickness(0, 5, 0, 5) };
+            Grid.SetRow(label, 1);
+
+            _copyNameTextBox = new TextBox 
+            { 
+                Text = $"{originalNodeName}_copy",
+                Margin = new Thickness(0, 0, 0, 10) 
+            };
+            Grid.SetRow(_copyNameTextBox, 2);
+
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var okButton = new Button { Content = "OK", Width = 75, Margin = new Thickness(0, 0, 5, 0) };
+            var cancelButton = new Button { Content = "Cancel", Width = 75 };
+
+            okButton.Click += (s, e) =>
+            {
+                var copyName = _copyNameTextBox.Text.Trim();
+                if (string.IsNullOrEmpty(copyName))
+                {
+                    MessageBox.Show("Please enter a valid node name.", "Invalid Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                if (copyName == originalNodeName)
+                {
+                    MessageBox.Show("The copy name cannot be the same as the original node name.", "Invalid Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                CopyName = copyName;
+                DialogResult = true;
+                Close();
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                DialogResult = false;
+                Close();
+            };
+
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            Grid.SetRow(buttonPanel, 3);
+
+            grid.Children.Add(infoLabel);
+            grid.Children.Add(label);
+            grid.Children.Add(_copyNameTextBox);
+            grid.Children.Add(buttonPanel);
+
+            Content = grid;
+            
+            // Focus on the text box and select the default text for easy editing
+            Loaded += (s, e) =>
+            {
+                _copyNameTextBox.Focus();
+                _copyNameTextBox.SelectAll();
+            };
         }
     }
 }

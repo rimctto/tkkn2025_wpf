@@ -1,0 +1,460 @@
+﻿<UserControl x:Class="tkkn2025.UI.UserControls.FirebaseEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:tkkn2025.UI.UserControls"
+             xmlns:dataAccess="clr-namespace:tkkn2025.DataAccess"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <!--  Firebase Editor specific styles  -->
+        <Style x:Key="FirebaseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="5" />
+        </Style>
+
+        <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="Gray" />
+            <Setter Property="Margin" Value="5,2" />
+        </Style>
+
+        <Style x:Key="PropertyTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+    </UserControl.Resources>
+
+    <UserControl.DataContext>
+        <dataAccess:FireBaseEditorVM />
+    </UserControl.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Header with controls  -->
+        <Border
+            Grid.Row="0"
+            Padding="5"
+            Background="#FF1E1E1E">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Foreground="White"
+                    Style="{StaticResource HeaderTextStyle}"
+                    Text="Firebase Database Editor (MVVM)" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button
+                        Command="{Binding RefreshCommand}"
+                        Content="Refresh"
+                        Style="{StaticResource FirebaseButtonStyle}"
+                        ToolTip="Refresh the database tree" />
+
+                    <Button
+                        Command="{Binding CopyNodeCommand}"
+                        Content="Copy"
+                        Style="{StaticResource FirebaseButtonStyle}"
+                        ToolTip="Copy the selected node with all its data and sub-nodes" />
+
+                    <Button
+                        Command="{Binding AddNodeCommand}"
+                        Content="Add Node"
+                        Style="{StaticResource FirebaseButtonStyle}"
+                        ToolTip="Add a new root node" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  Main content area  -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="2*" MinWidth="300" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Left panel: TreeView for root nodes  -->
+            <Border
+                Grid.Column="0"
+                BorderBrush="Gray"
+                BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock
+                        Grid.Row="0"
+                        Style="{StaticResource HeaderTextStyle}"
+                        Text="Database Nodes" />
+
+                    <TreeView
+                        Grid.Row="1"
+                        Margin="5"
+                        ItemsSource="{Binding RootNodes}"
+                        x:Name="DatabaseTreeView">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Foreground="Gray" Text=" (" />
+                                    <TextBlock Foreground="Gray" Text="{Binding ChildCount}" />
+                                    <TextBlock Foreground="Gray" Text=")" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </Border>
+
+            <!--  Splitter  -->
+            <GridSplitter
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                Background="Gray" />
+
+            <!--  Right panel: Details and sub-nodes  -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="100" />
+                    <RowDefinition Height="5" />
+                    <RowDefinition Height="2*" MinHeight="200" />
+                </Grid.RowDefinitions>
+
+                <!--  Top right: Node properties summary  -->
+                <Border
+                    Grid.Row="0"
+                    BorderBrush="Gray"
+                    BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Style="{StaticResource HeaderTextStyle}"
+                                Text="Node Properties" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button
+                                    Command="{Binding SavePropertiesCommand}"
+                                    Content="Save"
+                                    Style="{StaticResource FirebaseButtonStyle}"
+                                    ToolTip="Save changes to this node" />
+
+                                <Button
+                                    Command="{Binding DeleteNodeCommand}"
+                                    Content="Delete"
+                                    Style="{StaticResource FirebaseButtonStyle}"
+                                    ToolTip="Delete this node" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="5">
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Node Name:" FontWeight="Bold" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedNode.Name, TargetNullValue='[Select a node]'}" />
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Path:" FontWeight="Bold" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedNode.Path, TargetNullValue='[Select a node]'}" />
+                                </Grid>
+                                <Grid Margin="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Child Count:" FontWeight="Bold" />
+                                    <TextBlock Grid.Column="1" Text="{Binding SelectedNode.ChildCount, TargetNullValue='[Select a node]'}" />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Style="{StaticResource StatusTextStyle}"
+                            Text="{Binding SelectedNode.Name, StringFormat='Showing properties for: {0}', TargetNullValue='Select a node to view its properties'}" />
+                    </Grid>
+                </Border>
+
+                <!--  Splitter  -->
+                <GridSplitter
+                    Grid.Row="1"
+                    HorizontalAlignment="Stretch"
+                    Background="Gray" />
+
+                <!--  Bottom right: Sub-nodes table and details  -->
+                <Border
+                    Grid.Row="2"
+                    BorderBrush="Gray"
+                    BorderThickness="1">
+                    <Grid ShowGridLines="false">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="1*" MinHeight="150" />
+                            <RowDefinition Height="5" />
+                            <RowDefinition Height="1*" MinHeight="100" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock
+                                Grid.Column="0"
+                                Style="{StaticResource HeaderTextStyle}"
+                                Text="Sub-Nodes" />
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ComboBox
+                                    MinWidth="100"
+                                    Margin="2"
+                                    ItemsSource="{Binding SortOptions}"
+                                    SelectedIndex="{Binding SelectedSortIndex}" />
+
+                                <Button
+                                    Command="{Binding AddSubNodeCommand}"
+                                    Content="Add Sub-Node"
+                                    Style="{StaticResource FirebaseButtonStyle}"
+                                    ToolTip="Add a new sub-node" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border
+                            Grid.Row="1"
+                            Padding="5"
+                            Background="#FFF0F0F0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontWeight="Bold"
+                                    Text="Key" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    FontWeight="Bold"
+                                    Text="Properties" />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    FontWeight="Bold"
+                                    Text="Actions" />
+                            </Grid>
+                        </Border>
+
+                        <ListBox
+                            Grid.Row="2"
+                            HorizontalContentAlignment="Stretch"
+                            ItemsSource="{Binding SubNodes}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Padding="10"
+                                        BorderBrush="LightGray"
+                                        BorderThickness="0,0,0,1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="3*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Key Column -->
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                VerticalAlignment="Top"
+                                                FontWeight="Bold"
+                                                FontSize="14"
+                                                Text="{Binding Key}"
+                                                Margin="0,0,10,0" />
+
+                                            <!-- Properties Column -->
+                                            <ItemsControl
+                                                Grid.Column="1"
+                                                ItemsSource="{Binding PropertyItems}"
+                                                Margin="0,0,10,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel Orientation="Horizontal" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border
+                                                            Margin="2"
+                                                            Padding="5"
+                                                            Background="#FFF9F9F9"
+                                                            BorderBrush="#FFDDDDDD"
+                                                            BorderThickness="1"
+                                                            CornerRadius="3">
+                                                            <StackPanel MinWidth="100">
+                                                                <TextBlock
+                                                                    Text="{Binding Key}"
+                                                                    FontWeight="Bold"
+                                                                    FontSize="10"
+                                                                    Foreground="#FF666666"
+                                                                    HorizontalAlignment="Center"
+                                                                    Margin="0,0,0,2" />
+                                                                <TextBox
+                                                                    Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                                                    FontSize="11"
+                                                                    Padding="3"
+                                                                    BorderThickness="1"
+                                                                    BorderBrush="#FFCCCCCC" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Actions Column -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                                <Button
+                                                    Margin="2,0"
+                                                    Command="{Binding DataContext.SaveSubNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="Save"
+                                                    Style="{StaticResource FirebaseButtonStyle}"
+                                                    ToolTip="Save changes to this sub-node" />
+                                                <Button
+                                                    Margin="2,0"
+                                                    Command="{Binding DataContext.DeleteSubNodeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="Delete"
+                                                    Style="{StaticResource FirebaseButtonStyle}"
+                                                    ToolTip="Delete this sub-node" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!--  Splitter  -->
+                        <GridSplitter
+                            Grid.Row="3"
+                            HorizontalAlignment="Stretch"
+                            Background="Gray" />
+
+                        <!--  Selected Sub-Node Details  -->
+                        <Border
+                            Grid.Row="4"
+                            BorderBrush="Gray"
+                            BorderThickness="1,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Style="{StaticResource HeaderTextStyle}"
+                                    Text="Sub-Node Information" />
+
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Margin="10"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    FontStyle="Italic"
+                                    Foreground="Gray"
+                                    Text="{Binding SubNodes.Count, StringFormat='Total sub-nodes: {0}'}" />
+                            </Grid>
+                        </Border>
+
+                        <!--  Status info  -->
+                        <Border
+                            Grid.Row="5"
+                            Padding="10"
+                            Background="#FFF0F0F0">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontStyle="Italic"
+                                Foreground="Gray"
+                                Text="MVVM Firebase Editor - All operations are handled through data binding" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!--  Status bar  -->
+        <Border
+            Grid.Row="2"
+            Padding="5"
+            Background="#FF1E1E1E">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Foreground="Gray"
+                    Style="{StaticResource StatusTextStyle}"
+                    Text="{Binding StatusMessage}" />
+
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Foreground="Gray"
+                    Style="{StaticResource StatusTextStyle}"
+                    Text="{Binding ConnectionStatus}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

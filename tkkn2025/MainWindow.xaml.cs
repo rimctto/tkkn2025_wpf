@@ -73,6 +73,9 @@ namespace tkkn2025
         // Firebase editor window
         private FireBaseEditor? firebaseEditorWindow = null;
 
+        // MVVM Firebase editor window
+        private FirebaseEditorWindow_MVVM? firebaseEditorMVVMWindow = null;
+
         public MainWindow()
         {
 
@@ -110,6 +113,13 @@ namespace tkkn2025
                 {
                     firebaseEditorWindow.Close();
                     firebaseEditorWindow = null;
+                }
+
+                // Close MVVM firebase editor window if open
+                if (firebaseEditorMVVMWindow != null)
+                {
+                    firebaseEditorMVVMWindow.Close();
+                    firebaseEditorMVVMWindow = null;
                 }
             };
             
@@ -1256,6 +1266,43 @@ namespace tkkn2025
                 MessageBox.Show($"Failed to open Firebase Database Editor: {ex.Message}", "Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 DebugHelper.WriteLine($"Error opening Firebase Database Editor: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Open or focus the MVVM Firebase database editor window
+        /// </summary>
+        private void DatabaseMVVMButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (firebaseEditorMVVMWindow == null || !firebaseEditorMVVMWindow.IsLoaded)
+                {
+                    // Create new MVVM Firebase editor window
+                    firebaseEditorMVVMWindow = new FirebaseEditorWindow_MVVM
+                    {
+                        Owner = this
+                    };
+                    
+                    // Handle window closed event
+                    firebaseEditorMVVMWindow.Closed += (s, args) => firebaseEditorMVVMWindow = null;
+                    
+                    firebaseEditorMVVMWindow.Show();
+                    
+                    DebugHelper.WriteLine("Firebase Database Editor (MVVM) opened");
+                }
+                else
+                {
+                    // Window exists, just bring it to front
+                    firebaseEditorMVVMWindow.Activate();
+                    firebaseEditorMVVMWindow.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open Firebase Database Editor (MVVM): {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                DebugHelper.WriteLine($"Error opening Firebase Database Editor (MVVM): {ex.Message}");
             }
         }
     }

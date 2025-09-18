@@ -327,6 +327,14 @@
                             Content="🗄️"
                             ToolTip="Open Firebase Database Editor" />
                         <Button
+                            Name="DatabaseMVVMButton"
+                            Width="50"
+                            Margin="0,0,5,0"
+                            Click="DatabaseMVVMButton_Click"
+                            Content="🗄️MVVM"
+                            FontSize="8"
+                            ToolTip="Open Firebase Database Editor (MVVM)" />
+                        <Button
                             Name="LogButton"
                             Width="35"
                             Click="LogButton_Click"

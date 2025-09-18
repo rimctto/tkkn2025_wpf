@@ -76,6 +76,13 @@
                         ToolTip="Refresh the database tree" />
 
                     <Button
+                        Name="CopyNodeButton"
+                        Click="CopyNodeButton_Click"
+                        Content="Copy"
+                        Style="{StaticResource FirebaseButtonStyle}"
+                        ToolTip="Copy the selected node with all its data and sub-nodes" />
+
+                    <Button
                         Name="AddNodeButton"
                         Click="AddNodeButton_Click"
                         Content="Add Node"
@@ -291,20 +298,20 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Key Column -->
+                                            <!--  Key Column  -->
                                             <TextBlock
                                                 Grid.Column="0"
+                                                Margin="0,0,10,0"
                                                 VerticalAlignment="Top"
-                                                FontWeight="Bold"
                                                 FontSize="14"
-                                                Text="{Binding Key}"
-                                                Margin="0,0,10,0" />
+                                                FontWeight="Bold"
+                                                Text="{Binding Key}" />
 
-                                            <!-- Properties Column -->
+                                            <!--  Properties Column  -->
                                             <ItemsControl
                                                 Grid.Column="1"
-                                                ItemsSource="{Binding PropertyItems}"
-                                                Margin="0,0,10,0">
+                                                Margin="0,0,10,0"
+                                                ItemsSource="{Binding PropertyItems}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
                                                         <WrapPanel Orientation="Horizontal" />
@@ -321,28 +328,31 @@
                                                             CornerRadius="3">
                                                             <StackPanel MinWidth="100">
                                                                 <TextBlock
-                                                                    Text="{Binding Key}"
-                                                                    FontWeight="Bold"
-                                                                    FontSize="10"
-                                                                    Foreground="#FF666666"
+                                                                    Margin="0,0,0,2"
                                                                     HorizontalAlignment="Center"
-                                                                    Margin="0,0,0,2" />
+                                                                    FontSize="10"
+                                                                    FontWeight="Bold"
+                                                                    Foreground="#FF666666"
+                                                                    Text="{Binding Key}" />
                                                                 <TextBox
-                                                                    Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
-                                                                    FontSize="11"
                                                                     Padding="3"
-                                                                    BorderThickness="1"
                                                                     BorderBrush="#FFCCCCCC"
+                                                                    BorderThickness="1"
+                                                                    FontSize="11"
+                                                                    LostFocus="PropertyTextBox_LostFocus"
                                                                     Tag="{Binding}"
-                                                                    LostFocus="PropertyTextBox_LostFocus" />
+                                                                    Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
                                                             </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <!-- Actions Column -->
-                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                            <!--  Actions Column  -->
+                                            <StackPanel
+                                                Grid.Column="2"
+                                                VerticalAlignment="Top"
+                                                Orientation="Horizontal">
                                                 <Button
                                                     Margin="2,0"
                                                     Click="SaveSubNodeButton_Click"
@@ -391,8 +401,8 @@
                                     Name="SubNodeSelectionInfo"
                                     Grid.Row="1"
                                     Margin="10"
-                                    VerticalAlignment="Center"
                                     HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
                                     FontStyle="Italic"
                                     Foreground="Gray"
                                     Text="Select a sub-node above to see details" />

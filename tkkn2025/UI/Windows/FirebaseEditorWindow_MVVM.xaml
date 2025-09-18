@@ -1,0 +1,20 @@
+﻿<Window
+    x:Class="tkkn2025.UI.Windows.FirebaseEditorWindow_MVVM"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:tkkn2025.UI.Windows"
+    xmlns:userControls="clr-namespace:tkkn2025.UI.UserControls"
+    Title="Firebase Database Editor (MVVM)"
+    Height="700"
+    Width="1200"
+    MinHeight="500"
+    MinWidth="800"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Grid>
+        <!-- Host the MVVM UserControl -->
+        <userControls:FirebaseEditorView />
+    </Grid>
+</Window>
