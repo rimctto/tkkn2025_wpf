@@ -245,6 +245,16 @@ namespace tkkn2025.Settings
                 result[setting.Category].Add(setting);
             }
 
+            // Process PowerUpSettings
+            foreach (var setting in PowerUpSettings)
+            {
+                if (!result.ContainsKey(setting.Category))
+                {
+                    result[setting.Category] = new List<ISettingModel>();
+                }
+                result[setting.Category].Add(setting);
+            }
+
             return result;
         }
     }

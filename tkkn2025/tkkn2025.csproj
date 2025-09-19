@@ -10,18 +10,27 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Audio\Muffinz - Escape Artits.mp3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Assets\Icons\tkkn2025.ico" />
-    <Content Include="Audio\Particles.mp3">
+    <Content Include="Audio\Muffinz - Escape Artits.mp3">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Muffinz - Particles.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Core\Infrastructure\" />
     <Folder Include="Graphics\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FirebaseDatabase.net" Version="5.0.0" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
   </ItemGroup>
 
 </Project>

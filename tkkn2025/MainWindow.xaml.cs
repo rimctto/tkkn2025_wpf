@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -9,6 +10,7 @@ using System.Windows.Shapes;
 using tkkn2025.GameObjects;
 using tkkn2025.GameObjects.PowerUps;
 using tkkn2025.GameObjects.Ship;
+using tkkn2025.GameObjects.LevelMechanics;
 using tkkn2025.Settings;
 using tkkn2025.DataAccess;
 using tkkn2025.UI.Windows;
@@ -25,40 +27,40 @@ namespace tkkn2025
         private ShipSprite ship = null!;
         private ParticleManager particleManager = null!;
         private PowerUpManager powerUpManager = null!;
+        private LevelManager levelManager = null!;
         private Random random = null!;
-        
+
         // Game state tracking
         private bool gameRunning = false;
         private bool gameOverScreenVisible = false;
         private bool[] keysPressed = new bool[4]; // Up, Down, Left, Right
         private Point centerScreen;
         private Point shipPosition;
-        
+
         // Game loop timing
         private DateTime lastUpdate = DateTime.Now;
         private DateTime lastParticleGeneration = DateTime.Now;
         private DateTime gameStartTime;
 
         // Settings Manager for MVVM data binding
-        
-        public SettingsManager SettingsManager { get ; set ; } = new SettingsManager();
-        
+
+        public SettingsManager SettingsManager { get; set; } = new SettingsManager();
+
 
         // Active game settings - snapshot taken when game starts
         private double activeShipSpeed;
         private double activeLevelDuration;
         private double activeNewParticlesPerLevel;
-        
+
         // Power-up effects
         private double currentSpeedMultiplier = 1.0;
-        
+
         // Session management
         private Session currentSession = null!;
         private Game? currentGame = null;
-        
-        // Audio
-        AudioManager audioManager = new AudioManager();
-        
+
+        // Audio - removed old audio manager, now using MusicPlayerView
+
         // UI Update timing
         private DateTime lastUIUpdate = DateTime.Now;
         private DateTime lastFPSUpdate = DateTime.Now;
@@ -69,7 +71,7 @@ namespace tkkn2025
 
         // Debug window
         private DebugWindow? debugWindow = null;
-        
+
         // Firebase editor window
         private FireBaseEditor? firebaseEditorWindow = null;
 
@@ -87,27 +89,35 @@ namespace tkkn2025
             SubscribeToGameEvents();
 
             // Ensure window can receive keyboard input
-            this.Loaded += (s, e) => {
+            this.Loaded += (s, e) =>
+            {
                 this.Focus();
-                UpdateMusicButtonText(); // Update button text when window is loaded
-                
+
                 // Initialize player name TextBox after controls are loaded
                 PlayerNameTextBox.Text = Session.PlayerName;
                 PlayerNameTextBox.TextChanged += PlayerNameTextBox_TextChanged;
+
+                // Initialize music player with app config settings
+                if (currentSession?.AppConfig != null && MusicPlayer?.ViewModel != null)
+                {
+                    MusicPlayer.ViewModel.MusicEnabled = currentSession.AppConfig.MusicEnabled;
+                    DebugHelper.WriteLine($"Music Player initialized with setting: {currentSession.AppConfig.MusicEnabled}");
+                }
             };
-            
+
             // Save settings when window is closing
-            this.Closing += (s, e) => {
+            this.Closing += (s, e) =>
+            {
                 SaveGameSettings();
                 UnsubscribeFromGameEvents();
-                
+
                 // Close debug window if open
                 if (debugWindow != null)
                 {
                     debugWindow.Close();
                     debugWindow = null;
                 }
-                
+
                 // Close firebase editor window if open
                 if (firebaseEditorWindow != null)
                 {
@@ -121,13 +131,16 @@ namespace tkkn2025
                     firebaseEditorMVVMWindow.Close();
                     firebaseEditorMVVMWindow = null;
                 }
+
+                // Dispose level manager and mechanics
+                levelManager?.Dispose();
             };
-            
+
             InitializeGame();
         }
 
         #region GameEvents Subscription Management
-        
+
         /// <summary>
         /// Subscribe to all relevant GameEvents
         /// </summary>
@@ -136,27 +149,27 @@ namespace tkkn2025
             // Game state events
             GameEvents.CollisionDetected += OnParticleShipCollisionDetected;
             GameEvents.GameCompleted += OnGameCompleted;
-            
+
             // Power-up events
             GameEvents.PowerUpCollected += OnPowerUpCollected;
             GameEvents.PowerUpEffectStarted += OnPowerUpEffectStarted;
             GameEvents.PowerUpEffectEnded += OnPowerUpEffectEnded;
             GameEvents.PowerUpStored += OnPowerUpStored;
             GameEvents.SingularityActivated += OnSingularityActivated;
-            
+
             // UI events
             GameEvents.MessageRequested += UpdateMessage;
-            
+
             // Configuration events
             GameEvents.ConfigurationSaved += OnConfigurationSaved;
-            
+
             // Screen navigation events
             GameEvents.ShowStartScreen += ShowStartScreen;
             GameEvents.ShowGameOverScreen += async () => await ShowGameOverScreenAsync();
             GameEvents.ShowConfigScreen += ShowGameConfigScreen;
             GameEvents.HideConfigScreen += HideGameConfigScreen;
         }
-        
+
         /// <summary>
         /// Unsubscribe from all GameEvents to prevent memory leaks
         /// </summary>
@@ -165,41 +178,41 @@ namespace tkkn2025
             // Game state events
             GameEvents.CollisionDetected -= OnParticleShipCollisionDetected;
             GameEvents.GameCompleted -= OnGameCompleted;
-            
+
             // Power-up events
             GameEvents.PowerUpCollected -= OnPowerUpCollected;
             GameEvents.PowerUpEffectStarted -= OnPowerUpEffectStarted;
             GameEvents.PowerUpEffectEnded -= OnPowerUpEffectEnded;
             GameEvents.PowerUpStored -= OnPowerUpStored;
             GameEvents.SingularityActivated -= OnSingularityActivated;
-            
+
             // UI events
             GameEvents.MessageRequested -= UpdateMessage;
-            
+
             // Configuration events
             GameEvents.ConfigurationSaved -= OnConfigurationSaved;
-            
+
             // Screen navigation events
             GameEvents.ShowStartScreen -= ShowStartScreen;
             GameEvents.ShowConfigScreen -= ShowGameConfigScreen;
             GameEvents.HideConfigScreen -= HideGameConfigScreen;
         }
-        
+
         #endregion
 
         private void InitializeSession()
         {
             // Check if default config file exists before creating session (which loads/creates config)
             bool hadExistingConfig = ConfigManager.DefaultConfigFileExists();
-            
+
             currentSession = new Session();
-            
+
             // Register the session with the App for automatic config saving on exit
             App.CurrentSession = currentSession;
-            
+
             // Load the current configurations into the UI, passing whether we had existing config
             LoadGameSettings(hadExistingConfig);
-            
+
             System.Diagnostics.Debug.WriteLine("New session started and registered with App");
         }
 
@@ -223,7 +236,7 @@ namespace tkkn2025
             if (sender is TextBox textBox)
             {
                 Session.PlayerName = string.IsNullOrWhiteSpace(textBox.Text) ? "Anonymous" : textBox.Text.Trim();
-                
+
                 // Auto-save the player name when it changes
                 SaveAppConfig();
             }
@@ -239,7 +252,7 @@ namespace tkkn2025
                 if (currentSession?.GameConfig != null)
                 {
                     SettingsManager.GameSettings.LoadFromConfig(currentSession.GameConfig);
-                    
+
                     // Determine appropriate message based on whether we had an existing config
                     if (!hadExistingConfig || currentSession.GameConfig.ConfigName == "Default Configuration")
                     {
@@ -261,10 +274,10 @@ namespace tkkn2025
                     DebugHelper.WriteLine("UI fallback to default settings");
                 }
 
-                // Load music setting from app config
+                // Load music setting from app config - now handled by MusicPlayerView
                 if (currentSession?.AppConfig != null)
                 {
-                    audioManager.MusicEnabled = currentSession.AppConfig.MusicEnabled;
+                    // Music player control will be initialized when the window is loaded
                     DebugHelper.WriteLine($"Music setting loaded from app config: {currentSession.AppConfig.MusicEnabled}");
                     DebugHelper.WriteLine($"App config path: {ConfigManager.GetAppConfigFilePath()}");
                 }
@@ -283,7 +296,7 @@ namespace tkkn2025
                 DebugHelper.WriteLine($"Error loading game settings: {ex.Message}");
             }
         }
-         
+
         private void SaveGameSettings()
         {
             try
@@ -291,13 +304,13 @@ namespace tkkn2025
                 // Update the session's game config with current UI settings
                 var currentConfig = SettingsManager.ToGameConfig();
                 currentSession?.UpdateGameConfig(currentConfig, true); // Save as new default
-                
-                // Update app config with current music setting
-                if (currentSession?.AppConfig != null)
+
+                // Update app config with current music setting from music player if available
+                if (currentSession?.AppConfig != null && MusicPlayer?.ViewModel != null)
                 {
-                    currentSession.AppConfig.MusicEnabled = audioManager.MusicEnabled;
+                    currentSession.AppConfig.MusicEnabled = MusicPlayer.ViewModel.MusicEnabled;
                 }
-                
+
                 GameEvents.RaiseMessageRequested("Settings saved as new default", Brushes.LightGreen);
                 DebugHelper.WriteLine($"Game settings auto-saved as default to: {ConfigManager.GetDefaultConfigFilePath()}");
                 DebugHelper.WriteLine($"App config auto-saved to: {ConfigManager.GetAppConfigFilePath()}");
@@ -349,7 +362,7 @@ namespace tkkn2025
             {
                 ConfigStatusText.Text = message;
                 ConfigStatusText.Foreground = color;
-                
+
                 // Clear the message after 3 seconds
                 var timer = new System.Windows.Threading.DispatcherTimer();
                 timer.Interval = TimeSpan.FromSeconds(3);
@@ -364,17 +377,10 @@ namespace tkkn2025
                 timer.Start();
             }
         }
-        
+
         private void InitializeGame()
         {
-            audioManager.Initialize();
-            
-            // Set initial music state from app config after session is loaded
-            if (currentSession?.AppConfig != null)
-            {
-                audioManager.MusicEnabled = currentSession.AppConfig.MusicEnabled;
-                UpdateMusicButtonText();
-            }
+            // Music player will be initialized automatically when the control is loaded
 
             random = new Random();
             
@@ -383,6 +389,23 @@ namespace tkkn2025
             
             // Initialize power-up manager - no direct event wiring needed
             powerUpManager = new PowerUpManager(GameCanvas, random);
+             
+
+            levelManager = new LevelManager(new List<IParticleMechanics>
+            {
+                new StraightSweepMechanic(GameCanvas, random, activationLevel: 2, particleCount: 10, launchTiming: 0.3),
+                new StraightSweepMechanic(GameCanvas, random, activationLevel: 3, particleCount: 15, launchTiming: 0.2),
+                new StraightSweepMechanic(GameCanvas, random, activationLevel: 4, particleCount: 20, launchTiming: 0.1),
+                new StraightSweepMechanic(GameCanvas, random, activationLevel: 5, particleCount: 25, launchTiming: 0.25),
+
+            });
+
+            // Initialize static canvas variables for all particle mechanics
+            LevelManager.InitializeCanvasForMechanics(GameCanvas);
+
+            // Subscribe to level manager events
+            levelManager.LevelChanged += OnLevelChanged;
+            levelManager.LevelMechanicTriggered += OnLevelMechanicTriggered;
             
             // Use CompositionTarget.Rendering for smooth game loop
             CompositionTarget.Rendering += GameLoop;
@@ -391,14 +414,31 @@ namespace tkkn2025
             
             // Debug initialization info
             DebugHelper.WriteLine("Game initialization completed");
-            DebugHelper.WriteLine($"Audio Manager initialized, Music enabled: {audioManager.MusicEnabled}");
+            DebugHelper.WriteLine($"Music Player will be initialized when control loads");
             DebugHelper.WriteLine($"Player name: {Session.PlayerName}");
+            DebugHelper.WriteLine($"Level mechanics initialized: {levelManager.TotalMechanicsCount} mechanics");
+            foreach (var info in levelManager.GetMechanicInfo())
+            {
+                DebugHelper.WriteLine($"  - {info}");
+            }
         }
-        
+
+        private void OnLevelChanged(object? sender, int newLevel)
+        {
+            GameEvents.RaiseMessageRequested($"🎮 Level {newLevel}!", Brushes.Gold);
+            System.Diagnostics.Debug.WriteLine($"🎮 Level changed to: {newLevel}");
+        }
+
+        private void OnLevelMechanicTriggered(object? sender, string message)
+        {
+            GameEvents.RaiseMessageRequested(message, Brushes.Orange);
+            System.Diagnostics.Debug.WriteLine($"🌊 Level mechanic triggered: {message}");
+        }
+
         private async void OnParticleShipCollisionDetected()
         {
             StopGame();
-            
+
             await ShowGameOverScreenAsync();
         }
 
@@ -454,30 +494,34 @@ namespace tkkn2025
         {
             GameEvents.RaiseMessageRequested("Configuration saved successfully!", Brushes.LightGreen);
         }
-      
+
         private void CreateShip()
         {
             ship = new ShipSprite();
-            
+
             // Position ship in center of game area (wait for canvas to load)
-            this.Loaded += (s, e) => {
+            this.Loaded += (s, e) =>
+            {
                 centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
                 shipPosition = centerScreen;
                 Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
                 Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-                
+
                 // Update particle controller with canvas dimensions
                 ParticleManager.UpdateCanvasDimensions();
-                
+
                 // Update power-up manager with canvas dimensions
                 powerUpManager.UpdateCanvasDimensions();
-         
+
+                // Update level mechanics with canvas dimensions using static method
+                LevelManager.UpdateCanvasDimensionsForAllMechanics();
+
             };
-            
+
             GameCanvas.Children.Add(ship);
         }
-     
-        
+
+
         private void GameLoop(object? sender, EventArgs e)
         {
             if (!gameRunning) return;
@@ -485,39 +529,50 @@ namespace tkkn2025
             var now = DateTime.Now;
             var deltaTime = (now - lastUpdate).TotalSeconds;
             lastUpdate = now;
-            
+
             // Limit delta time to prevent huge jumps
             deltaTime = Math.Min(deltaTime, 1.0 / 30.0); // Max 30 FPS equivalent
-            
+
             // Update current speed multiplier from power-ups
             currentSpeedMultiplier = powerUpManager.GetSpeedMultiplier();
-            
+
             // Apply speed multiplier to delta time for time-based effects
             var effectiveDeltaTime = deltaTime * currentSpeedMultiplier;
-            
+
             UpdateFPS();
             UpdateShipPosition(effectiveDeltaTime);
-            
+
             // Update power-ups (use normal delta time for power-up timing)
             var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
             powerUpManager.Update(deltaTime, shipVector);
-            
+
             // Check power-up collisions
             powerUpManager.CheckCollisions(shipPosition);
+
+            // Update level manager (use normal delta time for level progression)
+            levelManager.Update(deltaTime);
             
+            // Check level mechanic collisions
+            if (levelManager.CheckLevelMechanicCollisions(shipPosition))
+            {
+                // Collision with level mechanic particle detected
+                OnParticleShipCollisionDetected();
+                return;
+            }
+
             // Update particles through controller (with speed multiplier and power-up manager)
             particleManager.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
-            
+
             // Check collisions through controller
             particleManager.CheckCollisions(shipPosition);
-            
+
             // Handle particle generation timing (use normal delta time for consistent spawning)
             if ((now - lastParticleGeneration).TotalSeconds >= activeLevelDuration)
             {
                 particleManager.GenerateMoreParticles(activeNewParticlesPerLevel);
                 lastParticleGeneration = now;
             }
-            
+
             // Update UI periodically (not every frame)
             if ((now - lastUIUpdate).TotalSeconds >= 0.1) // 10 times per second
             {
@@ -525,12 +580,10 @@ namespace tkkn2025
                 lastUIUpdate = now;
             }
         }
-        
+
         private void StartGame()
         {
             if (gameRunning) return;
-
-            audioManager.SetVolume(1);
 
             gameRunning = true;
             gameOverScreenVisible = false;
@@ -541,22 +594,23 @@ namespace tkkn2025
             lastFPSUpdate = DateTime.Now;
             frameCount = 0;
             currentSpeedMultiplier = 1.0;
-            
+
             // Hide both screens when game starts
             StartScreen.Visibility = Visibility.Hidden;
             GameOverScreen.Visibility = Visibility.Hidden;
-            
+
             // Update canvas dimensions for all managers at the start of each game
             ParticleManager.UpdateCanvasDimensions();
             powerUpManager.UpdateCanvasDimensions();
-            
+            LevelManager.UpdateCanvasDimensionsForAllMechanics();
+
             // Update center screen position based on current canvas size
             centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
-            
+
             // Update session's game config with current UI settings and save as default
             var currentUIConfig = SettingsManager.ToGameConfig();
             currentSession.UpdateGameConfig(currentUIConfig, true); // Save as new default
-            
+
             // Snapshot current settings as active settings for this game
             activeShipSpeed = GameSettings.ShipSpeed.Value;
             activeLevelDuration = GameSettings.LevelDuration.Value;
@@ -565,67 +619,64 @@ namespace tkkn2025
             // Initialize particle controller with game settings
             ParticleManager.InitializeGameSettings();
             
+            // Reset level manager for new game
+            levelManager.Reset();
+
             // Start a new game in the session (this creates a copy of the current config)
             currentGame = currentSession.StartNewGame();
-            
+
             // Reset all key states to prevent ship from moving automatically
             for (int i = 0; i < keysPressed.Length; i++)
             {
                 keysPressed[i] = false;
             }
-            
+
             // Reset ship position to current center and show neutral
             shipPosition = centerScreen;
             Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
             Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
             ship.ShowNeutral();
-            
+
             // Start new game through particle controller
             particleManager.StartNewGame();
-            
+
             // Start new game through power-up manager
             powerUpManager.StartNewGame();
-            
+
             // Raise game started event
             GameEvents.RaiseGameStarted();
-            
+
             // Show that settings are locked during game
             GameEvents.RaiseMessageRequested("Settings locked during game (saved as default)", Brushes.Yellow);
-            
+
             // Debug output for game start
             DebugHelper.WriteLine($"Game started with {GameSettings.StartingParticles.Value} particles, Ship Speed: {activeShipSpeed}");
+            DebugHelper.WriteLine($"Level mechanics enabled: {GameSettings.LevelMechanicsEnabled.Value}");
         }
-        
+
         private async void StopGame()
         {
             gameRunning = false;
-            
+
             // Don't show start screen immediately - will be shown after game over screen
-            
+
             // Complete the current game
             if (currentGame != null)
             {
-                currentSession.CompleteCurrentGame(particleManager.ParticleCount);
-                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles");
+                // Include level mechanic particles in the count
+                int totalParticles = particleManager.ParticleCount;
+                totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
+                
+                currentSession.CompleteCurrentGame(totalParticles);
+                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles (Level {levelManager.CurrentLevel})");
                 DebugHelper.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
                 
                 // Raise game completed event
                 GameEvents.RaiseGameCompleted(currentGame);
             }
-            
-            // Reset all key states when game stops
-            for (int i = 0; i < keysPressed.Length; i++)
-            {
-                keysPressed[i] = false;
-            }
-            
-            audioManager.SetVolume(0.5);
-            
-            // Raise game ended event
-            GameEvents.RaiseGameEnded();
-            
-            // Clear settings locked message
-            GameEvents.RaiseMessageRequested("Game ended - settings can be changed", Brushes.LightGreen);
+
+            // Stop all level mechanics
+            levelManager.StopAllMechanics();
         }
 
         /// <summary>
@@ -636,14 +687,14 @@ namespace tkkn2025
             try
             {
                 gameOverScreenVisible = true;
-                
+
                 // Hide start screen and show game over screen
                 StartScreen.Visibility = Visibility.Hidden;
                 GameOverScreen.Visibility = Visibility.Visible;
-                
+
                 // Initialize the game over screen with current data
                 await GameOverScreen.InitializeAsync(currentGame, currentSession, firebaseConnector);
-                
+
                 System.Diagnostics.Debug.WriteLine("Game over screen displayed");
             }
             catch (Exception ex)
@@ -660,11 +711,11 @@ namespace tkkn2025
         private void ShowStartScreen()
         {
             gameOverScreenVisible = false;
-            
+
             // Show start screen and hide game over screen
             StartScreen.Visibility = Visibility.Visible;
             GameOverScreen.Visibility = Visibility.Hidden;
-            
+
             System.Diagnostics.Debug.WriteLine("Start screen displayed");
         }
 
@@ -692,13 +743,14 @@ namespace tkkn2025
                         NewParticlesPerLevel = game.Settings.NewParticlesPerLevel,
                         ParticleSpeedVariance = game.Settings.ParticleSpeedVariance,
                         ParticleRandomizerPercentage = game.Settings.ParticleRandomizerPercentage,
-                        IsParticleSpawnVectorTowardsShip = game.Settings.IsParticleSpawnVectorTowardsShip
+                        IsParticleSpawnVectorTowardsShip = game.Settings.IsParticleSpawnVectorTowardsShip,
+                       
                     }
                 };
 
                 string gameKey = await firebaseConnector.WriteDataAsync("games", gameData);
                 System.Diagnostics.Debug.WriteLine($"Game data saved to Firebase with key: {gameKey}");
-                
+
                 // Show a brief success message
                 GameEvents.RaiseMessageRequested("Game saved to database", Brushes.LightGreen);
             }
@@ -714,7 +766,7 @@ namespace tkkn2025
             frameCount++;
             var now = DateTime.Now;
             var elapsed = (now - lastFPSUpdate).TotalSeconds;
-            
+
             if (elapsed >= 1.0) // Update FPS every second
             {
                 double fps = frameCount / elapsed;
@@ -728,32 +780,32 @@ namespace tkkn2025
                     >= 30 => Brushes.Orange,
                     _ => Brushes.Red
                 };
-                
+
                 frameCount = 0;
                 lastFPSUpdate = now;
             }
         }
-        
+
         private void UpdateShipPosition(double deltaTime)
         {
             double deltaX = 0, deltaY = 0;
-            
+
             // Calculate movement based on time and speed
             if (keysPressed[0]) deltaY -= activeShipSpeed * deltaTime; // Up
             if (keysPressed[1]) deltaY += activeShipSpeed * deltaTime; // Down
             if (keysPressed[2]) deltaX -= activeShipSpeed * deltaTime; // Left
             if (keysPressed[3]) deltaX += activeShipSpeed * deltaTime; // Right
-            
+
             if (deltaX != 0 || deltaY != 0)
             {
                 // Keep ship within bounds
                 double newX = Math.Max(20, Math.Min(GameCanvas.ActualWidth - 20, shipPosition.X + deltaX));
                 double newY = Math.Max(20, Math.Min(GameCanvas.ActualHeight - 20, shipPosition.Y + deltaY));
-                
+
                 shipPosition = new Point(newX, newY);
                 Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
                 Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-                
+
                 // Update ship visual based on movement direction
                 if (deltaX < 0) // Moving left
                 {
@@ -777,12 +829,23 @@ namespace tkkn2025
 
         private void UpdateUI()
         {
-            ParticleCountText.Text = $"Particles: {particleManager.ParticleCount}";
+            int totalParticles = particleManager.ParticleCount;
+            
+            // Add level mechanic particles to the count
+            totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
+            
+            ParticleCountText.Text = $"Particles: {totalParticles}";
 
             if (gameRunning)
             {
                 var elapsed = DateTime.Now - gameStartTime;
-                GameTimeText.Text = $"Time: {elapsed.TotalSeconds:F0}s";
+                string gameTimeDisplay = $"Time: {elapsed.TotalSeconds:F0}s";
+
+                // Add level information
+                gameTimeDisplay += $" | {levelManager.GetLevelStatus()}";
+
+
+                GameTimeText.Text = gameTimeDisplay;
 
                 // Show active power-up effects
                 if (powerUpManager.IsEffectActive("TimeWarp"))
@@ -823,13 +886,13 @@ namespace tkkn2025
                 }
             }
         }
-        
+
         // Canvas event handler for focus management
         private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // Make the canvas take focus when clicked
             GameCanvas.Focus();
-            
+
             if (gameRunning)
             {
                 if (e.LeftButton == MouseButtonState.Pressed)
@@ -837,7 +900,7 @@ namespace tkkn2025
                     // Left click - try to activate singularity at click position
                     var clickPosition = e.GetPosition(GameCanvas);
                     var clickVector = new Vector2((float)clickPosition.X, (float)clickPosition.Y);
-                    
+
                     bool activated = powerUpManager.TryActivateSingularity(clickVector);
                     if (!activated)
                     {
@@ -848,7 +911,7 @@ namespace tkkn2025
                 {
                     // Right click - try to activate repulsor at ship position
                     var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
-                    
+
                     bool activated = powerUpManager.TryActivateRepulsor(shipVector);
                     if (!activated)
                     {
@@ -856,7 +919,7 @@ namespace tkkn2025
                     }
                 }
             }
-            
+
             e.Handled = true;
         }
 
@@ -906,7 +969,7 @@ namespace tkkn2025
             try
             {
                 var loadedSettings = SettingsManager.LoadSettings();
-                
+
                 if (loadedSettings != null)
                 {
                     // Validate and apply the loaded settings using the new system
@@ -941,14 +1004,14 @@ namespace tkkn2025
             {
                 // Get current settings
                 var currentSettings = SettingsManager.ToGameConfig();
-                
+
                 // Initialize and show the GameConfigScreen
                 GameConfigScreen.Initialize(currentSettings);
                 GameConfigScreen.Visibility = Visibility.Visible;
-                
+
                 // Focus on the GameConfigScreen
                 GameConfigScreen.Focus();
-                
+
                 System.Diagnostics.Debug.WriteLine("GameConfigScreen shown");
             }
             catch (Exception ex)
@@ -966,10 +1029,10 @@ namespace tkkn2025
             try
             {
                 GameConfigScreen.Visibility = Visibility.Hidden;
-                
+
                 // Return focus to main window
                 this.Focus();
-                
+
                 System.Diagnostics.Debug.WriteLine("GameConfigScreen hidden");
             }
             catch (Exception ex)
@@ -1002,66 +1065,6 @@ namespace tkkn2025
             }
         }
 
-        private void MusicToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Store the currently focused element before the button click
-                var previouslyFocusedElement = FocusManager.GetFocusedElement(this);
-                
-                // Toggle the music setting in the audio manager
-                audioManager.MusicEnabled = !audioManager.MusicEnabled;
-                
-                // Update the app config
-                if (currentSession?.AppConfig != null)
-                {
-                    currentSession.AppConfig.MusicEnabled = audioManager.MusicEnabled;
-                }
-                
-                // Update button text
-                UpdateMusicButtonText();
-                
-                // Save the settings immediately
-                SaveGameSettings();
-                
-                // Raise music toggled event
-                GameEvents.RaiseMusicToggled(audioManager.MusicEnabled);
-                
-                // Restore focus to the previously focused element or the game canvas
-                if (previouslyFocusedElement is UIElement previousElement && previousElement.IsEnabled && previousElement.Focusable)
-                {
-                    previousElement.Focus();
-                }
-                else if (gameRunning)
-                {
-                    // If game is running, ensure the game canvas has focus for key input
-                    GameCanvas.Focus();
-                }
-                else
-                {
-                    // Return focus to the main window
-                    this.Focus();
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"Music toggled to: {audioManager.MusicEnabled}");
-            }
-            catch (Exception ex)
-            {
-                GameEvents.RaiseMessageRequested($"Error toggling music: {ex.Message}", Brushes.Red);
-                System.Diagnostics.Debug.WriteLine($"Error in MusicToggleButton_Click: {ex.Message}");
-            }
-        }
-
-        private void UpdateMusicButtonText()
-        {
-            if (MusicToggleButton != null)
-            {
-                bool isEnabled = audioManager.MusicEnabled;
-                MusicToggleButton.Content = isEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
-                MusicToggleButton.Background = isEnabled ? new SolidColorBrush(Colors.DarkSlateBlue) : new SolidColorBrush(Colors.DarkRed);
-            }
-        }
-
         // Key event handlers for ship movement
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
@@ -1071,7 +1074,7 @@ namespace tkkn2025
                 GameEvents.RaiseHideConfigScreen();
                 e.Handled = true;
                 return;
-            }                   
+            }
 
             // Check if a text input control has focus - if so, don't handle movement keys
             if (IsTextInputControlFocused())
@@ -1141,9 +1144,17 @@ namespace tkkn2025
                         e.Handled = true;
                     }
                     break;
+                case Key.T:
+                    // Debug key to manually trigger level 3 mechanics for testing
+                    if (gameRunning)
+                    {
+                        levelManager.TriggerMechanicsForLevel(3);
+                        e.Handled = true;
+                    }
+                    break;
             }
         }
-        
+
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
             // Check if a text input control has focus - if so, don't handle movement keys
@@ -1184,9 +1195,9 @@ namespace tkkn2025
         private bool IsTextInputControlFocused()
         {
             var focusedElement = FocusManager.GetFocusedElement(this);
-            
-            return focusedElement is TextBox || 
-                   focusedElement is PasswordBox || 
+
+            return focusedElement is TextBox ||
+                   focusedElement is PasswordBox ||
                    focusedElement is RichTextBox ||
                    focusedElement is ComboBox ||
                    (focusedElement is Control control && control.IsTabStop && control.Focusable);
@@ -1206,12 +1217,12 @@ namespace tkkn2025
                     {
                         //Owner = this
                     };
-                    
+
                     // Handle window closed event
                     debugWindow.Closed += (s, args) => debugWindow = null;
-                    
+
                     debugWindow.Show();
-                    
+
                     // Add a welcome message using our debug helper
                     DebugHelper.WriteLine("Debug window opened - all debug output will appear here");
                     DebugHelper.WriteLine($"Application started at: {DateTime.Now}");
@@ -1226,7 +1237,7 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open debug window: {ex.Message}", "Error", 
+                MessageBox.Show($"Failed to open debug window: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 DebugHelper.WriteLine($"Error opening debug window: {ex.Message}");
             }
@@ -1246,12 +1257,12 @@ namespace tkkn2025
                     {
                         Owner = this
                     };
-                    
+
                     // Handle window closed event
                     firebaseEditorWindow.Closed += (s, args) => firebaseEditorWindow = null;
-                    
+
                     firebaseEditorWindow.Show();
-                    
+
                     DebugHelper.WriteLine("Firebase Database Editor opened");
                 }
                 else
@@ -1263,7 +1274,7 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open Firebase Database Editor: {ex.Message}", "Error", 
+                MessageBox.Show($"Failed to open Firebase Database Editor: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 DebugHelper.WriteLine($"Error opening Firebase Database Editor: {ex.Message}");
             }
@@ -1283,12 +1294,12 @@ namespace tkkn2025
                     {
                         Owner = this
                     };
-                    
+
                     // Handle window closed event
                     firebaseEditorMVVMWindow.Closed += (s, args) => firebaseEditorMVVMWindow = null;
-                    
+
                     firebaseEditorMVVMWindow.Show();
-                    
+
                     DebugHelper.WriteLine("Firebase Database Editor (MVVM) opened");
                 }
                 else
@@ -1300,7 +1311,7 @@ namespace tkkn2025
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open Firebase Database Editor (MVVM): {ex.Message}", "Error", 
+                MessageBox.Show($"Failed to open Firebase Database Editor (MVVM): {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 DebugHelper.WriteLine($"Error opening Firebase Database Editor (MVVM): {ex.Message}");
             }

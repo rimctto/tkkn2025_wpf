@@ -92,7 +92,7 @@ namespace tkkn2025.GameObjects
                 // Update particle using its own Update method
                 particle.Update((float)deltaTime, shipPos);
 
-                // Apply powerp forces if any
+                // Apply powerup forces if any
                 if (powerUpManager != null)
                 {
                     var particlePos = particle.Position;
@@ -103,7 +103,8 @@ namespace tkkn2025.GameObjects
                 }
 
                 // Check bounds
-                if (particle.IsFreshlySpawned == false && (particle.X < -20 || particle.X > canvasWidth + 20 ||
+                if (particle.IsFreshlySpawned == false && 
+                    (particle.X < -20 || particle.X > canvasWidth + 20 ||
                     particle.Y < -20 || particle.Y > canvasHeight + 20))
                 {
                     // Remove and pool particle

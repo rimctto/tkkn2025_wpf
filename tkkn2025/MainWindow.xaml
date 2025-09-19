@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:settingsModels="clr-namespace:tkkn2025.Settings.Models"
     xmlns:ui="clr-namespace:tkkn2025.UI"
+    xmlns:musicPlayer="clr-namespace:tkkn2025.UI.MusicPlayer"
     Title="TKKN 2025"
     Width="1100"
     Height="700"
@@ -182,20 +183,8 @@
                                 TextWrapping="Wrap" />
                         </Grid>
 
-                        <!--  Music Control  -->
-                        <Button
-                            Name="MusicToggleButton"
-                            Width="150"
-                            Margin="0,10,0,10"
-                            Background="DarkSlateBlue"
-                            Click="MusicToggleButton_Click"
-                            Content="🎵 Music: ON"
-                            Focusable="False"
-                            Foreground="White" />
-
-
-
-
+                        <!--  Music Player Control  -->
+                        <musicPlayer:MusicPlayerView x:Name="MusicPlayer" Margin="0,10,0,10" />
 
                         <!--  Game Settings Header  -->
                         <TextBlock

@@ -78,7 +78,7 @@ namespace tkkn2025
                 PowerUpDuration_Repulsor = this.PowerUpDuration_Repulsor,
                 PowerUpForce_Repulsor = this.PowerUpForce_Repulsor,
                 PowerUpDuration_Singularity = this.PowerUpDuration_Singularity,
-                PowerUpForce_Singulaiorty = this.PowerUpForce_Singulaiorty
+                PowerUpForce_Singulaiorty = this.PowerUpForce_Singulaiorty,
             };
         }
     }
@@ -129,9 +129,6 @@ namespace tkkn2025
                 
                 // Game settings with default values from GameSettings_Basic.cs
                 ShipSpeed = GameSettings.ShipSpeed.DefaultValue,
-                LevelDuration = GameSettings.LevelDuration.DefaultValue,
-                StartingParticles = GameSettings.StartingParticles.DefaultValue,
-                NewParticlesPerLevel = GameSettings.NewParticlesPerLevel.DefaultValue,
                 
                 // Particle settings with default values from GameSettings_Particles.cs
                 ParticleSpeed = GameSettings.ParticleSpeed.DefaultValue,
