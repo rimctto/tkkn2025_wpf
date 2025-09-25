@@ -56,15 +56,19 @@
                 <Button
                     Grid.Column="0"
                     Width="30"
+                    Padding="0,-2,0,0"
                     Command="{Binding PreviousTrackCommand}"
                     Content="⏮️"
+                    FontSize="16"
                     Style="{StaticResource MusicButtonStyle}"
                     ToolTip="Previous Track" />
 
                 <Button
                     Grid.Column="1"
                     Width="30"
+                    Padding="0,-2,0,0"
                     Command="{Binding PlayPauseCommand}"
+                    FontSize="16"
                     Style="{StaticResource MusicButtonStyle}"
                     ToolTip="Play/Pause">
                     <TextBlock Text="{Binding IsPlaying, Converter={x:Static local:BoolToPlayPauseConverter.Instance}}" />
@@ -73,20 +77,14 @@
                 <Button
                     Grid.Column="2"
                     Width="30"
+                    Padding="0,-2,0,0"
                     Command="{Binding NextTrackCommand}"
                     Content="⏭️"
+                    FontSize="16"
                     Style="{StaticResource MusicButtonStyle}"
                     ToolTip="Next Track" />
 
                 <!--  Enable/Disable Toggle  -->
-                <Button
-                    Grid.Column="4"
-                    Width="35"
-                    Click="EnableButton_Click"
-                    Style="{StaticResource MusicButtonStyle}"
-                    ToolTip="Enable/Disable Music">
-                    <TextBlock Text="{Binding MusicEnabled, Converter={x:Static local:BoolToMusicIconConverter.Instance}}" />
-                </Button>
             </Grid>
 
             <!--  Track Name Display with Scrolling  -->
@@ -99,7 +97,7 @@
                 <TextBlock
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    FontSize="11"                   
+                    FontSize="11"
                     FontWeight="Bold"
                     Foreground="LightBlue"
                     Text="{Binding DisplayedTrackName}" />

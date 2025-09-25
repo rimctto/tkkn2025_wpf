@@ -1,91 +1,57 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
-using tkkn2025.GameObjects;
-using tkkn2025.GameObjects.PowerUps;
-using tkkn2025.GameObjects.Ship;
-using tkkn2025.GameObjects.LevelMechanics;
 using tkkn2025.Settings;
 using tkkn2025.DataAccess;
 using tkkn2025.UI.Windows;
 using tkkn2025.Helpers;
+using tkkn2025.Core;
 
 namespace tkkn2025
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
+    /// Main window handles UI interactions, while GameEngine handles all game logic
     /// </summary>
     public partial class MainWindow : Window
     {
-        // Game objects
-        private ShipSprite ship = null!;
-        private ParticleManager particleManager = null!;
-        private PowerUpManager powerUpManager = null!;
-        private LevelManager levelManager = null!;
-        private Random random = null!;
+        #region Private Fields
 
-        // Game state tracking
-        private bool gameRunning = false;
+        // Game engine handles all game logic
+        private GameEngine gameEngine = null!;
+
+        // UI state tracking
         private bool gameOverScreenVisible = false;
-        private bool[] keysPressed = new bool[4]; // Up, Down, Left, Right
-        private Point centerScreen;
-        private Point shipPosition;
-
-        // Game loop timing
-        private DateTime lastUpdate = DateTime.Now;
-        private DateTime lastParticleGeneration = DateTime.Now;
-        private DateTime gameStartTime;
-
-        // Settings Manager for MVVM data binding
-
-        public SettingsManager SettingsManager { get; set; } = new SettingsManager();
-
-
-        // Active game settings - snapshot taken when game starts
-        private double activeShipSpeed;
-        private double activeLevelDuration;
-        private double activeNewParticlesPerLevel;
-
-        // Power-up effects
-        private double currentSpeedMultiplier = 1.0;
 
         // Session management
         private Session currentSession = null!;
-        private Game? currentGame = null;
 
-        // Audio - removed old audio manager, now using MusicPlayerView
-
-        // UI Update timing
-        private DateTime lastUIUpdate = DateTime.Now;
-        private DateTime lastFPSUpdate = DateTime.Now;
-        private int frameCount = 0;
+        // Settings Manager for MVVM data binding
+        public SettingsManager SettingsManager { get; set; } = new SettingsManager();
 
         // Firebase connector for saving game data
         private FireBaseConnector firebaseConnector = null!;
 
-        // Debug window
+        // Debug windows
         private DebugWindow? debugWindow = null;
-
-        // Firebase editor window
         private FireBaseEditor? firebaseEditorWindow = null;
-
-        // MVVM Firebase editor window
         private FirebaseEditorWindow_MVVM? firebaseEditorMVVMWindow = null;
+        private UI.SandboxWindow? sandboxWindow = null;
+
+        #endregion
+
+        #region Constructor and Initialization
 
         public MainWindow()
         {
-
             DataContext = SettingsManager;
             InitializeComponent();
 
-            InitializeSession();
             InitializeFirebase();
+            _ = InitializeSessionAsync(); // Fire and forget async initialization
+            InitializeGameEngine();
             SubscribeToGameEvents();
 
             // Ensure window can receive keyboard input
@@ -97,11 +63,19 @@ namespace tkkn2025
                 PlayerNameTextBox.Text = Session.PlayerName;
                 PlayerNameTextBox.TextChanged += PlayerNameTextBox_TextChanged;
 
-                // Initialize music player with app config settings
-                if (currentSession?.AppConfig != null && MusicPlayer?.ViewModel != null)
+                // Initialize game mode button styles
+                UpdateGameModeButtonStyles();
+
+                // Music player control will auto-initialize when loaded
+                DebugHelper.WriteLine("Music Player will initialize automatically");
+            };
+
+            // Subscribe to GameMode changes to update button styles
+            GameSettings.GameMode.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(GameSettings.GameMode.Value))
                 {
-                    MusicPlayer.ViewModel.MusicEnabled = currentSession.AppConfig.MusicEnabled;
-                    DebugHelper.WriteLine($"Music Player initialized with setting: {currentSession.AppConfig.MusicEnabled}");
+                    UpdateGameModeButtonStyles();
                 }
             };
 
@@ -110,102 +84,28 @@ namespace tkkn2025
             {
                 SaveGameSettings();
                 UnsubscribeFromGameEvents();
+                gameEngine?.Dispose();
 
-                // Close debug window if open
-                if (debugWindow != null)
-                {
-                    debugWindow.Close();
-                    debugWindow = null;
-                }
-
-                // Close firebase editor window if open
-                if (firebaseEditorWindow != null)
-                {
-                    firebaseEditorWindow.Close();
-                    firebaseEditorWindow = null;
-                }
-
-                // Close MVVM firebase editor window if open
-                if (firebaseEditorMVVMWindow != null)
-                {
-                    firebaseEditorMVVMWindow.Close();
-                    firebaseEditorMVVMWindow = null;
-                }
-
-                // Dispose level manager and mechanics
-                levelManager?.Dispose();
+                // Close debug windows if open
+                debugWindow?.Close();
+                firebaseEditorWindow?.Close();
+                firebaseEditorMVVMWindow?.Close();
+                sandboxWindow?.Close();
             };
-
-            InitializeGame();
         }
 
-        #region GameEvents Subscription Management
-
-        /// <summary>
-        /// Subscribe to all relevant GameEvents
-        /// </summary>
-        private void SubscribeToGameEvents()
-        {
-            // Game state events
-            GameEvents.CollisionDetected += OnParticleShipCollisionDetected;
-            GameEvents.GameCompleted += OnGameCompleted;
-
-            // Power-up events
-            GameEvents.PowerUpCollected += OnPowerUpCollected;
-            GameEvents.PowerUpEffectStarted += OnPowerUpEffectStarted;
-            GameEvents.PowerUpEffectEnded += OnPowerUpEffectEnded;
-            GameEvents.PowerUpStored += OnPowerUpStored;
-            GameEvents.SingularityActivated += OnSingularityActivated;
-
-            // UI events
-            GameEvents.MessageRequested += UpdateMessage;
-
-            // Configuration events
-            GameEvents.ConfigurationSaved += OnConfigurationSaved;
-
-            // Screen navigation events
-            GameEvents.ShowStartScreen += ShowStartScreen;
-            GameEvents.ShowGameOverScreen += async () => await ShowGameOverScreenAsync();
-            GameEvents.ShowConfigScreen += ShowGameConfigScreen;
-            GameEvents.HideConfigScreen += HideGameConfigScreen;
-        }
-
-        /// <summary>
-        /// Unsubscribe from all GameEvents to prevent memory leaks
-        /// </summary>
-        private void UnsubscribeFromGameEvents()
-        {
-            // Game state events
-            GameEvents.CollisionDetected -= OnParticleShipCollisionDetected;
-            GameEvents.GameCompleted -= OnGameCompleted;
-
-            // Power-up events
-            GameEvents.PowerUpCollected -= OnPowerUpCollected;
-            GameEvents.PowerUpEffectStarted -= OnPowerUpEffectStarted;
-            GameEvents.PowerUpEffectEnded -= OnPowerUpEffectEnded;
-            GameEvents.PowerUpStored -= OnPowerUpStored;
-            GameEvents.SingularityActivated -= OnSingularityActivated;
-
-            // UI events
-            GameEvents.MessageRequested -= UpdateMessage;
-
-            // Configuration events
-            GameEvents.ConfigurationSaved -= OnConfigurationSaved;
-
-            // Screen navigation events
-            GameEvents.ShowStartScreen -= ShowStartScreen;
-            GameEvents.ShowConfigScreen -= ShowGameConfigScreen;
-            GameEvents.HideConfigScreen -= HideGameConfigScreen;
-        }
-
-        #endregion
-
-        private void InitializeSession()
+        private async Task InitializeSessionAsync()
         {
             // Check if default config file exists before creating session (which loads/creates config)
             bool hadExistingConfig = ConfigManager.DefaultConfigFileExists();
 
             currentSession = new Session();
+
+            // Initialize Firebase leaderboards
+            if (firebaseConnector != null)
+            {
+                await currentSession.InitializeFirebaseAsync(firebaseConnector);
+            }
 
             // Register the session with the App for automatic config saving on exit
             App.CurrentSession = currentSession;
@@ -230,6 +130,287 @@ namespace tkkn2025
             }
         }
 
+        private void InitializeGameEngine()
+        {
+            gameEngine = new GameEngine();
+            gameEngine.Initialize(GameCanvas, currentSession, firebaseConnector);
+
+            // Subscribe to game engine events
+            gameEngine.UIUpdateRequested += OnGameEngineUIUpdateRequested;
+            gameEngine.FPSUpdateRequested += OnGameEngineFPSUpdateRequested;
+            gameEngine.GameStopped += OnGameEngineStopped;
+
+            // Use CompositionTarget.Rendering for smooth game loop
+            CompositionTarget.Rendering += (s, e) => gameEngine.Update();
+
+            DebugHelper.WriteLine("Game Engine initialization completed");
+            DebugHelper.WriteLine($"Player name: {Session.PlayerName}");
+        }
+
+        #endregion
+
+        #region Game Control
+
+        private void StartGame()
+        {
+            if (gameEngine.IsGameRunning) return;
+
+            // Hide both screens when game starts
+            StartScreen.Visibility = Visibility.Hidden;
+            GameOverScreen.Visibility = Visibility.Hidden;
+            gameOverScreenVisible = false;
+
+            // Update session's game config with current UI settings and save as default
+            var currentUIConfig = SettingsManager.ToGameConfig();
+            currentSession.UpdateGameConfig(currentUIConfig, true); // Save as new default
+
+            // Start the game through the engine
+            gameEngine.StartGame();
+
+            // Show that settings are locked during game
+            GameEvents.RaiseMessageRequested("Settings locked during game (saved as default)", Brushes.Yellow);
+        }
+
+        #endregion
+
+        #region Game Engine Event Handlers
+
+        private void OnGameEngineUIUpdateRequested(GameUIData uiData)
+        {
+            // Update particle count
+            ParticleCountText.Text = $"Particles: {uiData.ParticleCount}";
+
+            if (gameEngine.IsGameRunning)
+            {
+                // Update game time display
+                string gameTimeDisplay = $"Time: {uiData.GameTime.TotalSeconds:F0}s";
+                gameTimeDisplay += $" | {uiData.LevelStatus}";
+
+                GameTimeText.Text = gameTimeDisplay;
+
+                // Show active power-up effects
+                if (uiData.TimeWarpRemaining.HasValue)
+                {
+                    GameTimeText.Text += $" | TimeWarp: {uiData.TimeWarpRemaining.Value:F1}s";
+                }
+
+                // Show super boost status
+                if (uiData.IsSuperBoostActive)
+                {
+                    GameTimeText.Text += " | SUPER BOOST!";
+                }
+
+                // Show stored power-ups
+                if (uiData.SingularityCount > 0 || uiData.RepulsorCount > 0)
+                {
+                    GameTimeText.Text += " |";
+                    if (uiData.SingularityCount > 0)
+                    {
+                        GameTimeText.Text += $" Singularity: {uiData.SingularityCount}";
+                    }
+                    if (uiData.RepulsorCount > 0)
+                    {
+                        GameTimeText.Text += $" Repulsor: {uiData.RepulsorCount}";
+                    }
+                }
+
+                // Update session stats
+                if (SessionStatsText != null)
+                {
+                    SessionStatsText.Text = uiData.SessionStats;
+                }
+            }
+        }
+
+        private void OnGameEngineFPSUpdateRequested(double fps)
+        {
+            FpsText.Text = $"FPS: {fps:F0}";
+
+            // Change color based on FPS performance
+            FpsText.Foreground = fps switch
+            {
+                >= 55 => Brushes.LimeGreen,
+                >= 45 => Brushes.Yellow,
+                >= 30 => Brushes.Orange,
+                _ => Brushes.Red
+            };
+        }
+
+        private async void OnGameEngineStopped()
+        {
+            await ShowGameOverScreenAsync();
+        }
+
+        #endregion
+
+        #region Game Events
+
+        /// <summary>
+        /// Subscribe to all relevant GameEvents
+        /// </summary>
+        private void SubscribeToGameEvents()
+        {
+            // UI events
+            GameEvents.MessageRequested += UpdateMessage;
+
+            // Configuration events
+            GameEvents.ConfigurationSaved += OnConfigurationSaved;
+
+            // Screen navigation events
+            GameEvents.ShowStartScreen += ShowStartScreen;
+            GameEvents.ShowGameOverScreen += async () => await ShowGameOverScreenAsync();
+            GameEvents.ShowConfigScreen += ShowGameConfigScreen;
+            GameEvents.HideConfigScreen += HideGameConfigScreen;
+        }
+
+        /// <summary>
+        /// Unsubscribe from all GameEvents to prevent memory leaks
+        /// </summary>
+        private void UnsubscribeFromGameEvents()
+        {
+            // UI events
+            GameEvents.MessageRequested -= UpdateMessage;
+
+            // Configuration events
+            GameEvents.ConfigurationSaved -= OnConfigurationSaved;
+
+            // Screen navigation events
+            GameEvents.ShowStartScreen -= ShowStartScreen;
+            GameEvents.ShowConfigScreen -= ShowGameConfigScreen;
+            GameEvents.HideConfigScreen -= HideGameConfigScreen;
+        }
+
+        private void OnConfigurationSaved()
+        {
+            GameEvents.RaiseMessageRequested("Configuration saved successfully!", Brushes.LightGreen);
+        }
+
+        #endregion
+
+        #region Input Handling
+
+        // Key event handlers for ship movement
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Handle escape key for leaderboard overlay
+            if (e.Key == Key.Escape && LeaderboardOverlay.Visibility == Visibility.Visible)
+            {
+                LeaderboardOverlay.Visibility = Visibility.Collapsed;
+                SurvivalLeaderboard.Visibility = Visibility.Collapsed;
+                MazeLeaderboard.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+                return;
+            }
+
+            // Handle escape key for GameConfigScreen
+            if (e.Key == Key.Escape && GameConfigScreen.Visibility == Visibility.Visible)
+            {
+                GameEvents.RaiseHideConfigScreen();
+                e.Handled = true;
+                return;
+            }
+
+            // Check if a text input control has focus - if so, don't handle movement keys
+            if (IsTextInputControlFocused())
+            {
+                // Only handle non-text keys like Space and Escape
+                switch (e.Key)
+                {
+                    case Key.Space:
+                        if (gameOverScreenVisible)
+                        {
+                            // Transition from game over screen to start screen
+                            GameEvents.RaiseShowStartScreen();
+                        }
+                        else if (!gameEngine.IsGameRunning)
+                        {
+                            StartGame();
+                        }
+                        e.Handled = true;
+                        break;
+                }
+                return; // Don't handle movement keys when text input has focus
+            }
+
+            switch (e.Key)
+            {
+                case Key.Space:
+                    if (gameOverScreenVisible)
+                    {
+                        // Transition from game over screen to start screen
+                        GameEvents.RaiseShowStartScreen();
+                    }
+                    else if (!gameEngine.IsGameRunning)
+                    {
+                        StartGame();
+                    }
+                    else if (gameEngine.IsGameRunning)
+                    {
+                        // Let the game engine handle the key
+                        if (gameEngine.HandleKeyDown(e.Key))
+                            e.Handled = true;
+                    }
+                    break;
+                default:
+                    // For all other keys, let the game engine handle them if game is running
+                    if (gameEngine.IsGameRunning && gameEngine.HandleKeyDown(e.Key))
+                    {
+                        e.Handled = true;
+                    }
+                    break;
+            }
+        }
+
+        private void Window_KeyUp(object sender, KeyEventArgs e)
+        {
+            // Check if a text input control has focus - if so, don't handle movement keys
+            if (IsTextInputControlFocused())
+            {
+                return; // Don't handle movement keys when text input has focus
+            }
+
+            // Let the game engine handle key up events
+            if (gameEngine.HandleKeyUp(e.Key))
+            {
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Check if a text input control currently has focus
+        /// </summary>
+        /// <returns>True if a text input control has focus</returns>
+        private bool IsTextInputControlFocused()
+        {
+            var focusedElement = FocusManager.GetFocusedElement(this);
+
+            return focusedElement is TextBox ||
+                   focusedElement is PasswordBox ||
+                   focusedElement is RichTextBox ||
+                   focusedElement is ComboBox ||
+                   (focusedElement is Control control && control.IsTabStop && control.Focusable);
+        }
+
+        #endregion
+
+        #region Canvas Events
+
+        // Canvas event handler for focus management and power-up activation
+        private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Make the canvas take focus when clicked
+            GameCanvas.Focus();
+
+            // Let the game engine handle the mouse click
+            gameEngine.HandleCanvasMouseClick(e);
+
+            e.Handled = true;
+        }
+
+        #endregion
+
+        #region Settings Management
+
         private void PlayerNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             // Update the static player name when the TextBox changes
@@ -241,7 +422,6 @@ namespace tkkn2025
                 SaveAppConfig();
             }
         }
-
 
         //App start and close
         private void LoadGameSettings(bool hadExistingConfig = true)
@@ -274,11 +454,10 @@ namespace tkkn2025
                     DebugHelper.WriteLine("UI fallback to default settings");
                 }
 
-                // Load music setting from app config - now handled by MusicPlayerView
+                // App config is now loaded by the Session class automatically
                 if (currentSession?.AppConfig != null)
                 {
-                    // Music player control will be initialized when the window is loaded
-                    DebugHelper.WriteLine($"Music setting loaded from app config: {currentSession.AppConfig.MusicEnabled}");
+                    DebugHelper.WriteLine($"App config loaded automatically by Session");
                     DebugHelper.WriteLine($"App config path: {ConfigManager.GetAppConfigFilePath()}");
                 }
 
@@ -305,10 +484,10 @@ namespace tkkn2025
                 var currentConfig = SettingsManager.ToGameConfig();
                 currentSession?.UpdateGameConfig(currentConfig, true); // Save as new default
 
-                // Update app config with current music setting from music player if available
+                // Update app config with current music player state if available
                 if (currentSession?.AppConfig != null && MusicPlayer?.ViewModel != null)
                 {
-                    currentSession.AppConfig.MusicEnabled = MusicPlayer.ViewModel.MusicEnabled;
+                    MusicPlayer.ViewModel.UpdateAppConfig(currentSession.AppConfig);
                 }
 
                 GameEvents.RaiseMessageRequested("Settings saved as new default", Brushes.LightGreen);
@@ -319,23 +498,6 @@ namespace tkkn2025
             {
                 GameEvents.RaiseMessageRequested($"Error saving settings: {ex.Message}", Brushes.LightCoral);
                 DebugHelper.WriteLine($"Error saving settings: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Load application configuration including player name
-        /// This is now handled by the Session class, but kept for compatibility
-        /// </summary>
-        private void LoadAppConfig()
-        {
-            try
-            {
-                // Session handles this automatically now
-                System.Diagnostics.Debug.WriteLine($"App config loaded via session. Player name: {Session.PlayerName}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in LoadAppConfig: {ex.Message}");
             }
         }
 
@@ -376,551 +538,6 @@ namespace tkkn2025
                 };
                 timer.Start();
             }
-        }
-
-        private void InitializeGame()
-        {
-            // Music player will be initialized automatically when the control is loaded
-
-            random = new Random();
-            
-            // Initialize particle controller - no direct event wiring needed
-            particleManager = new ParticleManager(GameCanvas);
-            
-            // Initialize power-up manager - no direct event wiring needed
-            powerUpManager = new PowerUpManager(GameCanvas, random);
-             
-
-            levelManager = new LevelManager(new List<IParticleMechanics>
-            {
-                new StraightSweepMechanic(GameCanvas, random, activationLevel: 2, particleCount: 10, launchTiming: 0.3),
-                new StraightSweepMechanic(GameCanvas, random, activationLevel: 3, particleCount: 15, launchTiming: 0.2),
-                new StraightSweepMechanic(GameCanvas, random, activationLevel: 4, particleCount: 20, launchTiming: 0.1),
-                new StraightSweepMechanic(GameCanvas, random, activationLevel: 5, particleCount: 25, launchTiming: 0.25),
-
-            });
-
-            // Initialize static canvas variables for all particle mechanics
-            LevelManager.InitializeCanvasForMechanics(GameCanvas);
-
-            // Subscribe to level manager events
-            levelManager.LevelChanged += OnLevelChanged;
-            levelManager.LevelMechanicTriggered += OnLevelMechanicTriggered;
-            
-            // Use CompositionTarget.Rendering for smooth game loop
-            CompositionTarget.Rendering += GameLoop;
-
-            CreateShip();
-            
-            // Debug initialization info
-            DebugHelper.WriteLine("Game initialization completed");
-            DebugHelper.WriteLine($"Music Player will be initialized when control loads");
-            DebugHelper.WriteLine($"Player name: {Session.PlayerName}");
-            DebugHelper.WriteLine($"Level mechanics initialized: {levelManager.TotalMechanicsCount} mechanics");
-            foreach (var info in levelManager.GetMechanicInfo())
-            {
-                DebugHelper.WriteLine($"  - {info}");
-            }
-        }
-
-        private void OnLevelChanged(object? sender, int newLevel)
-        {
-            GameEvents.RaiseMessageRequested($"🎮 Level {newLevel}!", Brushes.Gold);
-            System.Diagnostics.Debug.WriteLine($"🎮 Level changed to: {newLevel}");
-        }
-
-        private void OnLevelMechanicTriggered(object? sender, string message)
-        {
-            GameEvents.RaiseMessageRequested(message, Brushes.Orange);
-            System.Diagnostics.Debug.WriteLine($"🌊 Level mechanic triggered: {message}");
-        }
-
-        private async void OnParticleShipCollisionDetected()
-        {
-            StopGame();
-
-            await ShowGameOverScreenAsync();
-        }
-
-        private void OnPowerUpCollected(string powerUpType)
-        {
-            System.Diagnostics.Debug.WriteLine($"Power-up collected: {powerUpType}");
-            if (powerUpType == "Singularity")
-            {
-                GameEvents.RaiseMessageRequested($"Singularity stored! Click to activate ({powerUpManager.GetStoredPowerUpCount("Singularity")})", Brushes.Purple);
-            }
-            else if (powerUpType == "Repulsor")
-            {
-                GameEvents.RaiseMessageRequested($"Repulsor stored! Right-click to activate ({powerUpManager.GetStoredPowerUpCount("Repulsor")})", Brushes.Green);
-            }
-            else
-            {
-                GameEvents.RaiseMessageRequested($"Collected {powerUpType}!", Brushes.Gold);
-            }
-        }
-
-        private void OnPowerUpEffectStarted(string effectType, double duration)
-        {
-            System.Diagnostics.Debug.WriteLine($"Power-up effect started: {effectType} for {duration} seconds");
-            GameEvents.RaiseMessageRequested($"{effectType} activated for {duration:F1}s!", Brushes.CornflowerBlue);
-        }
-
-        private void OnPowerUpEffectEnded(string effectType)
-        {
-            System.Diagnostics.Debug.WriteLine($"Power-up effect ended: {effectType}");
-            GameEvents.RaiseMessageRequested($"{effectType} effect ended", Brushes.LightGray);
-        }
-
-        private void OnPowerUpStored(string powerUpType)
-        {
-            System.Diagnostics.Debug.WriteLine($"Power-up stored: {powerUpType}");
-            int count = powerUpManager.GetStoredPowerUpCount(powerUpType);
-            GameEvents.RaiseMessageRequested($"{powerUpType} stored! Total: {count}", Brushes.MediumPurple);
-        }
-
-        private void OnSingularityActivated(Vector2 position)
-        {
-            System.Diagnostics.Debug.WriteLine($"Singularity activated at {position}");
-            GameEvents.RaiseMessageRequested("Singularity created! Gravity well active for 5 seconds", Brushes.DarkViolet);
-        }
-
-        private void OnGameCompleted(Game game)
-        {
-            // Save game data to Firebase
-            _ = SaveGameToFirebase(game);
-        }
-
-        private void OnConfigurationSaved()
-        {
-            GameEvents.RaiseMessageRequested("Configuration saved successfully!", Brushes.LightGreen);
-        }
-
-        private void CreateShip()
-        {
-            ship = new ShipSprite();
-
-            // Position ship in center of game area (wait for canvas to load)
-            this.Loaded += (s, e) =>
-            {
-                centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
-                shipPosition = centerScreen;
-                Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
-                Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-
-                // Update particle controller with canvas dimensions
-                ParticleManager.UpdateCanvasDimensions();
-
-                // Update power-up manager with canvas dimensions
-                powerUpManager.UpdateCanvasDimensions();
-
-                // Update level mechanics with canvas dimensions using static method
-                LevelManager.UpdateCanvasDimensionsForAllMechanics();
-
-            };
-
-            GameCanvas.Children.Add(ship);
-        }
-
-
-        private void GameLoop(object? sender, EventArgs e)
-        {
-            if (!gameRunning) return;
-
-            var now = DateTime.Now;
-            var deltaTime = (now - lastUpdate).TotalSeconds;
-            lastUpdate = now;
-
-            // Limit delta time to prevent huge jumps
-            deltaTime = Math.Min(deltaTime, 1.0 / 30.0); // Max 30 FPS equivalent
-
-            // Update current speed multiplier from power-ups
-            currentSpeedMultiplier = powerUpManager.GetSpeedMultiplier();
-
-            // Apply speed multiplier to delta time for time-based effects
-            var effectiveDeltaTime = deltaTime * currentSpeedMultiplier;
-
-            UpdateFPS();
-            UpdateShipPosition(effectiveDeltaTime);
-
-            // Update power-ups (use normal delta time for power-up timing)
-            var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
-            powerUpManager.Update(deltaTime, shipVector);
-
-            // Check power-up collisions
-            powerUpManager.CheckCollisions(shipPosition);
-
-            // Update level manager (use normal delta time for level progression)
-            levelManager.Update(deltaTime);
-            
-            // Check level mechanic collisions
-            if (levelManager.CheckLevelMechanicCollisions(shipPosition))
-            {
-                // Collision with level mechanic particle detected
-                OnParticleShipCollisionDetected();
-                return;
-            }
-
-            // Update particles through controller (with speed multiplier and power-up manager)
-            particleManager.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
-
-            // Check collisions through controller
-            particleManager.CheckCollisions(shipPosition);
-
-            // Handle particle generation timing (use normal delta time for consistent spawning)
-            if ((now - lastParticleGeneration).TotalSeconds >= activeLevelDuration)
-            {
-                particleManager.GenerateMoreParticles(activeNewParticlesPerLevel);
-                lastParticleGeneration = now;
-            }
-
-            // Update UI periodically (not every frame)
-            if ((now - lastUIUpdate).TotalSeconds >= 0.1) // 10 times per second
-            {
-                UpdateUI();
-                lastUIUpdate = now;
-            }
-        }
-
-        private void StartGame()
-        {
-            if (gameRunning) return;
-
-            gameRunning = true;
-            gameOverScreenVisible = false;
-            gameStartTime = DateTime.Now;
-            lastUpdate = DateTime.Now;
-            lastParticleGeneration = DateTime.Now;
-            lastUIUpdate = DateTime.Now;
-            lastFPSUpdate = DateTime.Now;
-            frameCount = 0;
-            currentSpeedMultiplier = 1.0;
-
-            // Hide both screens when game starts
-            StartScreen.Visibility = Visibility.Hidden;
-            GameOverScreen.Visibility = Visibility.Hidden;
-
-            // Update canvas dimensions for all managers at the start of each game
-            ParticleManager.UpdateCanvasDimensions();
-            powerUpManager.UpdateCanvasDimensions();
-            LevelManager.UpdateCanvasDimensionsForAllMechanics();
-
-            // Update center screen position based on current canvas size
-            centerScreen = new Point(GameCanvas.ActualWidth / 2, GameCanvas.ActualHeight / 2);
-
-            // Update session's game config with current UI settings and save as default
-            var currentUIConfig = SettingsManager.ToGameConfig();
-            currentSession.UpdateGameConfig(currentUIConfig, true); // Save as new default
-
-            // Snapshot current settings as active settings for this game
-            activeShipSpeed = GameSettings.ShipSpeed.Value;
-            activeLevelDuration = GameSettings.LevelDuration.Value;
-            activeNewParticlesPerLevel = GameSettings.NewParticlesPerLevel.Value;
-
-            // Initialize particle controller with game settings
-            ParticleManager.InitializeGameSettings();
-            
-            // Reset level manager for new game
-            levelManager.Reset();
-
-            // Start a new game in the session (this creates a copy of the current config)
-            currentGame = currentSession.StartNewGame();
-
-            // Reset all key states to prevent ship from moving automatically
-            for (int i = 0; i < keysPressed.Length; i++)
-            {
-                keysPressed[i] = false;
-            }
-
-            // Reset ship position to current center and show neutral
-            shipPosition = centerScreen;
-            Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
-            Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-            ship.ShowNeutral();
-
-            // Start new game through particle controller
-            particleManager.StartNewGame();
-
-            // Start new game through power-up manager
-            powerUpManager.StartNewGame();
-
-            // Raise game started event
-            GameEvents.RaiseGameStarted();
-
-            // Show that settings are locked during game
-            GameEvents.RaiseMessageRequested("Settings locked during game (saved as default)", Brushes.Yellow);
-
-            // Debug output for game start
-            DebugHelper.WriteLine($"Game started with {GameSettings.StartingParticles.Value} particles, Ship Speed: {activeShipSpeed}");
-            DebugHelper.WriteLine($"Level mechanics enabled: {GameSettings.LevelMechanicsEnabled.Value}");
-        }
-
-        private async void StopGame()
-        {
-            gameRunning = false;
-
-            // Don't show start screen immediately - will be shown after game over screen
-
-            // Complete the current game
-            if (currentGame != null)
-            {
-                // Include level mechanic particles in the count
-                int totalParticles = particleManager.ParticleCount;
-                totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
-                
-                currentSession.CompleteCurrentGame(totalParticles);
-                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles (Level {levelManager.CurrentLevel})");
-                DebugHelper.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
-                
-                // Raise game completed event
-                GameEvents.RaiseGameCompleted(currentGame);
-            }
-
-            // Stop all level mechanics
-            levelManager.StopAllMechanics();
-        }
-
-        /// <summary>
-        /// Show the game over screen with current game and session data
-        /// </summary>
-        private async Task ShowGameOverScreenAsync()
-        {
-            try
-            {
-                gameOverScreenVisible = true;
-
-                // Hide start screen and show game over screen
-                StartScreen.Visibility = Visibility.Hidden;
-                GameOverScreen.Visibility = Visibility.Visible;
-
-                // Initialize the game over screen with current data
-                await GameOverScreen.InitializeAsync(currentGame, currentSession, firebaseConnector);
-
-                System.Diagnostics.Debug.WriteLine("Game over screen displayed");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error showing game over screen: {ex.Message}");
-                // Fallback to showing start screen
-                ShowStartScreen();
-            }
-        }
-
-        /// <summary>
-        /// Show the start screen and hide other screens
-        /// </summary>
-        private void ShowStartScreen()
-        {
-            gameOverScreenVisible = false;
-
-            // Show start screen and hide game over screen
-            StartScreen.Visibility = Visibility.Visible;
-            GameOverScreen.Visibility = Visibility.Hidden;
-
-            System.Diagnostics.Debug.WriteLine("Start screen displayed");
-        }
-
-        private async Task SaveGameToFirebase(Game game)
-        {
-            if (firebaseConnector == null) return;
-
-            try
-            {
-                // Create a data object to save to Firebase
-                var gameData = new
-                {
-                    PlayerName = game.PlayerName,
-                    StartTime = game.StartTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                    EndTime = game.EndTime?.ToString("yyyy-MM-dd HH:mm:ss"),
-                    DurationSeconds = game.DurationSeconds,
-                    FinalParticleCount = game.FinalParticleCount,
-                    Settings = new
-                    {
-                        ShipSpeed = game.Settings.ShipSpeed,
-                        ParticleSpeed = game.Settings.ParticleSpeed,
-                        ParticleTurnSpeed = game.Settings.ParticleTurnSpeed,
-                        StartingParticles = game.Settings.StartingParticles,
-                        LevelDuration = game.Settings.LevelDuration,
-                        NewParticlesPerLevel = game.Settings.NewParticlesPerLevel,
-                        ParticleSpeedVariance = game.Settings.ParticleSpeedVariance,
-                        ParticleRandomizerPercentage = game.Settings.ParticleRandomizerPercentage,
-                        IsParticleSpawnVectorTowardsShip = game.Settings.IsParticleSpawnVectorTowardsShip,
-                       
-                    }
-                };
-
-                string gameKey = await firebaseConnector.WriteDataAsync("games", gameData);
-                System.Diagnostics.Debug.WriteLine($"Game data saved to Firebase with key: {gameKey}");
-
-                // Show a brief success message
-                GameEvents.RaiseMessageRequested("Game saved to database", Brushes.LightGreen);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to save game data to Firebase: {ex.Message}");
-                GameEvents.RaiseMessageRequested("Failed to save game data", Brushes.LightCoral);
-            }
-        }
-
-        private void UpdateFPS()
-        {
-            frameCount++;
-            var now = DateTime.Now;
-            var elapsed = (now - lastFPSUpdate).TotalSeconds;
-
-            if (elapsed >= 1.0) // Update FPS every second
-            {
-                double fps = frameCount / elapsed;
-                FpsText.Text = $"FPS: {fps:F0}";
-
-                // Change color based on FPS performance
-                FpsText.Foreground = fps switch
-                {
-                    >= 55 => Brushes.LimeGreen,
-                    >= 45 => Brushes.Yellow,
-                    >= 30 => Brushes.Orange,
-                    _ => Brushes.Red
-                };
-
-                frameCount = 0;
-                lastFPSUpdate = now;
-            }
-        }
-
-        private void UpdateShipPosition(double deltaTime)
-        {
-            double deltaX = 0, deltaY = 0;
-
-            // Calculate movement based on time and speed
-            if (keysPressed[0]) deltaY -= activeShipSpeed * deltaTime; // Up
-            if (keysPressed[1]) deltaY += activeShipSpeed * deltaTime; // Down
-            if (keysPressed[2]) deltaX -= activeShipSpeed * deltaTime; // Left
-            if (keysPressed[3]) deltaX += activeShipSpeed * deltaTime; // Right
-
-            if (deltaX != 0 || deltaY != 0)
-            {
-                // Keep ship within bounds
-                double newX = Math.Max(20, Math.Min(GameCanvas.ActualWidth - 20, shipPosition.X + deltaX));
-                double newY = Math.Max(20, Math.Min(GameCanvas.ActualHeight - 20, shipPosition.Y + deltaY));
-
-                shipPosition = new Point(newX, newY);
-                Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
-                Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-
-                // Update ship visual based on movement direction
-                if (deltaX < 0) // Moving left
-                {
-                    ship.ShowLeftTilt();
-                }
-                else if (deltaX > 0) // Moving right
-                {
-                    ship.ShowRightTilt();
-                }
-                else // No horizontal movement
-                {
-                    ship.ShowNeutral();
-                }
-            }
-            else
-            {
-                // No movement - show neutral position
-                ship.ShowNeutral();
-            }
-        }
-
-        private void UpdateUI()
-        {
-            int totalParticles = particleManager.ParticleCount;
-            
-            // Add level mechanic particles to the count
-            totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
-            
-            ParticleCountText.Text = $"Particles: {totalParticles}";
-
-            if (gameRunning)
-            {
-                var elapsed = DateTime.Now - gameStartTime;
-                string gameTimeDisplay = $"Time: {elapsed.TotalSeconds:F0}s";
-
-                // Add level information
-                gameTimeDisplay += $" | {levelManager.GetLevelStatus()}";
-
-
-                GameTimeText.Text = gameTimeDisplay;
-
-                // Show active power-up effects
-                if (powerUpManager.IsEffectActive("TimeWarp"))
-                {
-                    var remaining = powerUpManager.GetEffectRemainingTime("TimeWarp");
-                    GameTimeText.Text += $" | TimeWarp: {remaining:F1}s";
-                }
-
-                // Show stored power-ups
-                var singularityCount = powerUpManager.GetStoredPowerUpCount("Singularity");
-                var repulsorCount = powerUpManager.GetStoredPowerUpCount("Repulsor");
-                if (singularityCount > 0 || repulsorCount > 0)
-                {
-                    GameTimeText.Text += " |";
-                    if (singularityCount > 0)
-                    {
-                        GameTimeText.Text += $" Singularity: {singularityCount}";
-                    }
-                    if (repulsorCount > 0)
-                    {
-                        GameTimeText.Text += $" Repulsor: {repulsorCount}";
-                    }
-                }
-
-                // Update session stats
-                if (currentSession != null && SessionStatsText != null)
-                {
-                    if (currentSession.GamesPlayed == 0)
-                    {
-                        SessionStatsText.Text = "No games completed yet";
-                    }
-                    else
-                    {
-                        SessionStatsText.Text = $"Games: {currentSession.GamesPlayed} | " +
-                                              $"Best: {currentSession.LongestGame?.DurationSeconds:F1}s | " +
-                                              $"Avg: {currentSession.AverageGameTime:F1}s";
-                    }
-                }
-            }
-        }
-
-        // Canvas event handler for focus management
-        private void GameCanvas_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // Make the canvas take focus when clicked
-            GameCanvas.Focus();
-
-            if (gameRunning)
-            {
-                if (e.LeftButton == MouseButtonState.Pressed)
-                {
-                    // Left click - try to activate singularity at click position
-                    var clickPosition = e.GetPosition(GameCanvas);
-                    var clickVector = new Vector2((float)clickPosition.X, (float)clickPosition.Y);
-
-                    bool activated = powerUpManager.TryActivateSingularity(clickVector);
-                    if (!activated)
-                    {
-                        GameEvents.RaiseMessageRequested("No Singularity power-up available!", Brushes.Red);
-                    }
-                }
-                else if (e.RightButton == MouseButtonState.Pressed)
-                {
-                    // Right click - try to activate repulsor at ship position
-                    var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
-
-                    bool activated = powerUpManager.TryActivateRepulsor(shipVector);
-                    if (!activated)
-                    {
-                        GameEvents.RaiseMessageRequested("No Repulsor power-up available!", Brushes.Red);
-                    }
-                }
-            }
-
-            e.Handled = true;
         }
 
         // Settings Management Button Event Handlers
@@ -995,6 +612,50 @@ namespace tkkn2025
             }
         }
 
+        #endregion
+
+        #region Screen Management
+
+        /// <summary>
+        /// Show the game over screen with current game and session data
+        /// </summary>
+        private async Task ShowGameOverScreenAsync()
+        {
+            try
+            {
+                gameOverScreenVisible = true;
+
+                // Hide start screen and show game over screen
+                StartScreen.Visibility = Visibility.Hidden;
+                GameOverScreen.Visibility = Visibility.Visible;
+
+                // Initialize the game over screen with current data
+                await GameOverScreen.InitializeAsync(gameEngine.CurrentGame, gameEngine.CurrentSession, firebaseConnector);
+
+                System.Diagnostics.Debug.WriteLine("Game over screen displayed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing game over screen: {ex.Message}");
+                // Fallback to showing start screen
+                ShowStartScreen();
+            }
+        }
+
+        /// <summary>
+        /// Show the start screen and hide other screens
+        /// </summary>
+        private void ShowStartScreen()
+        {
+            gameOverScreenVisible = false;
+
+            // Show start screen and hide game over screen
+            StartScreen.Visibility = Visibility.Visible;
+            GameOverScreen.Visibility = Visibility.Hidden;
+
+            System.Diagnostics.Debug.WriteLine("Start screen displayed");
+        }
+
         /// <summary>
         /// Show the GameConfigScreen overlay
         /// </summary>
@@ -1065,143 +726,9 @@ namespace tkkn2025
             }
         }
 
-        // Key event handlers for ship movement
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            // Handle escape key for GameConfigScreen
-            if (e.Key == Key.Escape && GameConfigScreen.Visibility == Visibility.Visible)
-            {
-                GameEvents.RaiseHideConfigScreen();
-                e.Handled = true;
-                return;
-            }
+        #endregion
 
-            // Check if a text input control has focus - if so, don't handle movement keys
-            if (IsTextInputControlFocused())
-            {
-                // Only handle non-text keys like Space and Escape
-                switch (e.Key)
-                {
-                    case Key.Space:
-                        if (gameOverScreenVisible)
-                        {
-                            // Transition from game over screen to start screen
-                            GameEvents.RaiseShowStartScreen();
-                        }
-                        else if (!gameRunning)
-                        {
-                            StartGame();
-                        }
-                        e.Handled = true;
-                        break;
-                }
-                return; // Don't handle movement keys when text input has focus
-            }
-
-            switch (e.Key)
-            {
-                case Key.Space:
-                    if (gameOverScreenVisible)
-                    {
-                        // Transition from game over screen to start screen
-                        GameEvents.RaiseShowStartScreen();
-                    }
-                    else if (!gameRunning)
-                    {
-                        StartGame();
-                    }
-                    e.Handled = true;
-                    break;
-                case Key.Up:
-                case Key.W:
-                    if (gameRunning)
-                    {
-                        keysPressed[0] = true;
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Down:
-                case Key.S:
-                    if (gameRunning)
-                    {
-                        keysPressed[1] = true;
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Left:
-                case Key.A:
-                    if (gameRunning)
-                    {
-                        keysPressed[2] = true;
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Right:
-                case Key.D:
-                    if (gameRunning)
-                    {
-                        keysPressed[3] = true;
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.T:
-                    // Debug key to manually trigger level 3 mechanics for testing
-                    if (gameRunning)
-                    {
-                        levelManager.TriggerMechanicsForLevel(3);
-                        e.Handled = true;
-                    }
-                    break;
-            }
-        }
-
-        private void Window_KeyUp(object sender, KeyEventArgs e)
-        {
-            // Check if a text input control has focus - if so, don't handle movement keys
-            if (IsTextInputControlFocused())
-            {
-                return; // Don't handle movement keys when text input has focus
-            }
-
-            switch (e.Key)
-            {
-                case Key.Up:
-                case Key.W:
-                    keysPressed[0] = false;
-                    e.Handled = true;
-                    break;
-                case Key.Down:
-                case Key.S:
-                    keysPressed[1] = false;
-                    e.Handled = true;
-                    break;
-                case Key.Left:
-                case Key.A:
-                    keysPressed[2] = false;
-                    e.Handled = true;
-                    break;
-                case Key.Right:
-                case Key.D:
-                    keysPressed[3] = false;
-                    e.Handled = true;
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Check if a text input control currently has focus
-        /// </summary>
-        /// <returns>True if a text input control has focus</returns>
-        private bool IsTextInputControlFocused()
-        {
-            var focusedElement = FocusManager.GetFocusedElement(this);
-
-            return focusedElement is TextBox ||
-                   focusedElement is PasswordBox ||
-                   focusedElement is RichTextBox ||
-                   focusedElement is ComboBox ||
-                   (focusedElement is Control control && control.IsTabStop && control.Focusable);
-        }
+        #region Debug and Utility Windows
 
         /// <summary>
         /// Open or focus the debug log window
@@ -1213,10 +740,7 @@ namespace tkkn2025
                 if (debugWindow == null || !debugWindow.IsLoaded)
                 {
                     // Create new debug window
-                    debugWindow = new DebugWindow
-                    {
-                        //Owner = this
-                    };
+                    debugWindow = new DebugWindow();
 
                     // Handle window closed event
                     debugWindow.Closed += (s, args) => debugWindow = null;
@@ -1316,5 +840,204 @@ namespace tkkn2025
                 DebugHelper.WriteLine($"Error opening Firebase Database Editor (MVVM): {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Open or focus the Sandbox window
+        /// </summary>
+        private void SandboxButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sandboxWindow == null || !sandboxWindow.IsLoaded)
+                {
+                    // Create new Sandbox window
+                    sandboxWindow = new UI.SandboxWindow
+                    {
+                        Owner = this
+                    };
+
+                    // Handle window closed event
+                    sandboxWindow.Closed += (s, args) => sandboxWindow = null;
+
+                    sandboxWindow.Show();
+
+                    DebugHelper.WriteLine("Sandbox window opened");
+                }
+                else
+                {
+                    // Window exists, just bring it to front
+                    sandboxWindow.Activate();
+                    sandboxWindow.Focus();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open Sandbox window: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                DebugHelper.WriteLine($"Error opening Sandbox window: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Leaderboard Management
+
+        /// <summary>
+        /// Show the Survival Mode leaderboard
+        /// </summary>
+        private void SurvivalLeaderboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (currentSession?.LeaderboardsLoaded == true)
+                {
+                    // Initialize the Survival leaderboard
+                    SurvivalLeaderboard.Initialize(currentSession.SurvivalLeaderboard);
+                    
+                    // Show the leaderboard overlay with only Survival visible
+                    MazeLeaderboard.Visibility = Visibility.Collapsed;
+                    SurvivalLeaderboard.Visibility = Visibility.Visible;
+                    LeaderboardOverlay.Visibility = Visibility.Visible;
+                    
+                    DebugHelper.WriteLine("Survival leaderboard displayed");
+                }
+                else
+                {
+                    GameEvents.RaiseMessageRequested("Leaderboards not loaded yet", Brushes.Orange);
+                    DebugHelper.WriteLine("Attempted to show Survival leaderboard but leaderboards not loaded");
+                }
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error showing Survival leaderboard: {ex.Message}", Brushes.Red);
+                DebugHelper.WriteLine($"Error in SurvivalLeaderboardButton_Click: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Show the Maze Mode leaderboard
+        /// </summary>
+        private void MazeLeaderboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (currentSession?.LeaderboardsLoaded == true)
+                {
+                    // Initialize the Maze leaderboard
+                    MazeLeaderboard.Initialize(currentSession.MazeLeaderboard);
+                    
+                    // Show the leaderboard overlay with only Maze visible
+                    SurvivalLeaderboard.Visibility = Visibility.Collapsed;
+                    MazeLeaderboard.Visibility = Visibility.Visible;
+                    LeaderboardOverlay.Visibility = Visibility.Visible;
+                    
+                    DebugHelper.WriteLine("Maze leaderboard displayed");
+                }
+                else
+                {
+                    GameEvents.RaiseMessageRequested("Leaderboards not loaded yet", Brushes.Orange);
+                    DebugHelper.WriteLine("Attempted to show Maze leaderboard but leaderboards not loaded");
+                }
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error showing Maze leaderboard: {ex.Message}", Brushes.Red);
+                DebugHelper.WriteLine($"Error in MazeLeaderboardButton_Click: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Hide the leaderboard overlay when clicking outside the leaderboard
+        /// </summary>
+        private void LeaderboardOverlay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Only hide if clicking directly on the overlay (not on child elements)
+            if (e.Source == LeaderboardOverlay)
+            {
+                LeaderboardOverlay.Visibility = Visibility.Collapsed;
+                SurvivalLeaderboard.Visibility = Visibility.Collapsed;
+                MazeLeaderboard.Visibility = Visibility.Collapsed;
+                
+                DebugHelper.WriteLine("Leaderboard overlay hidden");
+            }
+        }
+
+        #endregion
+        
+        #region Game Mode Selection
+
+        private void SurvivalModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Set the game mode to Survival
+                GameSettings.GameMode.Value = Settings.Models.GameMode.Survival;
+                SettingsManager.FromGameConfig(ConfigManager.CreateConfigForGameMode(Settings.Models.GameMode.Survival));
+
+                // Show feedback message
+                GameEvents.RaiseMessageRequested("Survival Mode activated - Level mechanics disabled", Brushes.Orange);
+                DebugHelper.WriteLine("User selected Survival game mode");
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error setting Survival mode: {ex.Message}", Brushes.Red);
+                DebugHelper.WriteLine($"Error in SurvivalModeButton_Click: {ex.Message}");
+            }
+        }
+
+        private void MazeModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Set the game mode to Maze
+                GameSettings.GameMode.Value = Settings.Models.GameMode.Maze;
+
+                SettingsManager.FromGameConfig(ConfigManager.CreateConfigForGameMode(Settings.Models.GameMode.Maze));
+
+                // Show feedback message
+                GameEvents.RaiseMessageRequested("Maze Mode activated - No particles, no power-ups", Brushes.Orange);
+                DebugHelper.WriteLine("User selected Maze game mode");
+            }
+            catch (Exception ex)
+            {
+                GameEvents.RaiseMessageRequested($"Error setting Maze mode: {ex.Message}", Brushes.Red);
+                DebugHelper.WriteLine($"Error in MazeModeButton_Click: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Update the visual style of game mode buttons based on current selection
+        /// </summary>
+        private void UpdateGameModeButtonStyles()
+        {
+            try
+            {
+                var currentGameMode = GameSettings.GameMode.Value;
+
+                // Reset all buttons to default style
+                var defaultColor = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30)); // Default dark gray
+                SurvivalModeButton.Background = defaultColor;
+                MazeModeButton.Background = defaultColor;
+
+                // Set active button to purple
+                switch (currentGameMode)
+                {
+                    case Settings.Models.GameMode.Survival:
+                        SurvivalModeButton.Background = Brushes.MediumPurple;
+                        break;
+                    case Settings.Models.GameMode.Maze:
+                        MazeModeButton.Background = Brushes.MediumPurple;
+                        break;
+                }
+
+                DebugHelper.WriteLine($"Updated game mode button styles for: {currentGameMode}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Error updating game mode button styles: {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }

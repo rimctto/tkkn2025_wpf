@@ -62,7 +62,7 @@ namespace tkkn2025.UI
                 currentConfig.Version = "2.0";
 
                 // Use ConfigManager to save to GameSettings directory
-                bool success = ConfigManager.SaveGameConfigToSettings(currentConfig);
+                bool success = ConfigManager.SaveGameConfig(currentConfig);
                 
                 if (success)
                 {

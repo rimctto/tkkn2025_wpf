@@ -1,0 +1,13 @@
+ Create a new class called GameModeBase that will serve as a base class for all game modes. This class should define common properties and methods that all game modes will share. This class should include methods for initializing the mode, starting a game, ending a game, and handling player actions including it's own game loop. This class will include properties for the mode name, description. It will also include a property called Settings of type GameModeSettingsConfigBase that will hold the settings specific to that game mode.
+
+
+GameModeSettingsConfigBase is a new baseclass for game mode settings. It has base methods for saving and loading settings from config files when settings are changed. It also has a method for applying settings to the game mode. It should be inherited by specific game mode settings classes for saving and loading settings specific to that game mode. It will iterate over all of the properties in the derived class of type #SettingModelBase and save/load them to/from a config file. 
+
+
+
+Let's create a new mode called SandBox 
+
+
+modify #Spiralconfig as follows: change the properties into #SettingsModelBase implementations and create a simple UI for the settings.
+
+

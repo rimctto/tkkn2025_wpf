@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <Folder Include="Core\Infrastructure\" />
-    <Folder Include="Graphics\" />
+    <Folder Include="GameObjects\LevelMechanics\Settings\" />
   </ItemGroup>
 
   <ItemGroup>

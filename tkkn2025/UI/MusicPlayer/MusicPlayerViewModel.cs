@@ -27,7 +27,6 @@ namespace tkkn2025.UI.MusicPlayer
         private DispatcherTimer _positionTimer = new DispatcherTimer();
         
         private bool _isPlaying = false;
-        private bool _musicEnabled = true;
         private bool _repeatTrack = false;
         private string _currentTrackName = "No track";
         private int _currentTrackIndex = 0;
@@ -47,36 +46,10 @@ namespace tkkn2025.UI.MusicPlayer
             set => SetProperty(ref _isPlaying, value);
         }
 
-        public bool MusicEnabled
-        {
-            get => _musicEnabled;
-            set
-            {
-                if (SetProperty(ref _musicEnabled, value))
-                {
-                    if (value && _tracks.Any())
-                    {
-                        Play();
-                    }
-                    else
-                    {
-                        Pause();
-                    }
-                    SaveSettings();
-                }
-            }
-        }
-
         public bool RepeatTrack
         {
             get => _repeatTrack;
-            set
-            {
-                if (SetProperty(ref _repeatTrack, value))
-                {
-                    SaveSettings();
-                }
-            }
+            set => SetProperty(ref _repeatTrack, value);
         }
 
         public string CurrentTrackName
@@ -94,13 +67,7 @@ namespace tkkn2025.UI.MusicPlayer
         public string DefaultTrack
         {
             get => _defaultTrack;
-            set
-            {
-                if (SetProperty(ref _defaultTrack, value))
-                {
-                    SaveSettings();
-                }
-            }
+            set => SetProperty(ref _defaultTrack, value);
         }
 
         public ObservableCollection<AudioTrack> Tracks
@@ -128,9 +95,10 @@ namespace tkkn2025.UI.MusicPlayer
         {
             InitializeCommands();
             InitializeTimers();
-            LoadSettings();
             ScanAudioFolder();
             InitializeMediaPlayer();
+            LoadFromAppConfig();
+
         }
 
         #endregion
@@ -163,7 +131,7 @@ namespace tkkn2025.UI.MusicPlayer
             _mediaPlayer.MediaEnded += MediaPlayer_MediaEnded;
             _mediaPlayer.Volume = 0.5;
 
-            // Load default track if specified
+            // Load default track (should be "Particles" if not set)
             LoadDefaultTrack();
         }
 
@@ -229,7 +197,7 @@ namespace tkkn2025.UI.MusicPlayer
 
         private void TogglePlayPause()
         {
-            if (!MusicEnabled || !_tracks.Any()) return;
+            if (!_tracks.Any()) return;
 
             if (IsPlaying)
             {
@@ -243,7 +211,7 @@ namespace tkkn2025.UI.MusicPlayer
 
         private void Play()
         {
-            if (!MusicEnabled || !_tracks.Any()) return;
+            if (!_tracks.Any()) return;
 
             try
             {
@@ -301,7 +269,7 @@ namespace tkkn2025.UI.MusicPlayer
             _currentTrackIndex = (_currentTrackIndex + 1) % _tracks.Count;
             UpdateCurrentTrack();
             
-            if (MusicEnabled && IsPlaying)
+            if (IsPlaying)
             {
                 Play();
             }
@@ -314,7 +282,7 @@ namespace tkkn2025.UI.MusicPlayer
             _currentTrackIndex = (_currentTrackIndex - 1 + _tracks.Count) % _tracks.Count;
             UpdateCurrentTrack();
             
-            if (MusicEnabled && IsPlaying)
+            if (IsPlaying)
             {
                 Play();
             }
@@ -408,10 +376,7 @@ namespace tkkn2025.UI.MusicPlayer
             {
                 // Restart the same track
                 _mediaPlayer.Position = TimeSpan.Zero;
-                if (MusicEnabled)
-                {
-                    _mediaPlayer.Play();
-                }
+                _mediaPlayer.Play();
             }
             else
             {
@@ -431,21 +396,39 @@ namespace tkkn2025.UI.MusicPlayer
 
         private void LoadDefaultTrack()
         {
-            if (string.IsNullOrEmpty(DefaultTrack) || !_tracks.Any()) return;
-
-            var defaultTrackIndex = _tracks.ToList().FindIndex(t => t.Name == DefaultTrack);
-            if (defaultTrackIndex >= 0)
+            // First, try to find "Particles" track as the preferred startup track
+            string preferredStartupTrack = "Muffinz - Particles";
+            
+            if (_tracks.Any())
             {
-                _currentTrackIndex = defaultTrackIndex;
-                UpdateCurrentTrack();
-                System.Diagnostics.Debug.WriteLine($"Loaded default track: {DefaultTrack}");
+                var particlesTrackIndex = _tracks.ToList().FindIndex(t => 
+                    t.Name.Equals(preferredStartupTrack, StringComparison.OrdinalIgnoreCase) ||
+                    t.Name.Contains("Particles", StringComparison.OrdinalIgnoreCase));
                 
-                // Auto-play if music is enabled
-                if (MusicEnabled)
+                if (particlesTrackIndex >= 0)
                 {
-                    Play();
+                    _currentTrackIndex = particlesTrackIndex;
+                    System.Diagnostics.Debug.WriteLine($"Set startup track to: {_tracks[particlesTrackIndex].Name}");
+                    
+                    // Set as default if no default is currently set
+                    if (string.IsNullOrEmpty(DefaultTrack))
+                    {
+                        DefaultTrack = _tracks[particlesTrackIndex].Name;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(DefaultTrack))
+                {
+                    // Fall back to the saved default track
+                    var defaultTrackIndex = _tracks.ToList().FindIndex(t => t.Name == DefaultTrack);
+                    if (defaultTrackIndex >= 0)
+                    {
+                        _currentTrackIndex = defaultTrackIndex;
+                        System.Diagnostics.Debug.WriteLine($"Loaded saved default track: {DefaultTrack}");
+                    }
                 }
             }
+            
+            UpdateCurrentTrack();
         }
 
         public void SetCurrentAsDefault()
@@ -459,24 +442,23 @@ namespace tkkn2025.UI.MusicPlayer
 
         #endregion
 
-        #region Settings Persistence
+        #region AppConfig Integration
 
-        private void LoadSettings()
+        private void LoadFromAppConfig()
         {
             try
             {
-                // Load from AppConfig
                 var appConfig = ConfigManager.LoadAppConfig();
-                MusicEnabled = appConfig.MusicEnabled;
                 
-                // Check if AppConfig has extended music settings
-                if (appConfig is ExtendedAppConfig extendedConfig)
+                RepeatTrack = appConfig.RepeatTrack;
+                DefaultTrack = appConfig.DefaultTrack;
+                IsPlaying = appConfig.IsPlaying;
+                
+                if (IsPlaying)
                 {
-                    RepeatTrack = extendedConfig.RepeatTrack;
-                    DefaultTrack = extendedConfig.DefaultTrack ?? "";
+                    Play();
                 }
-                
-                System.Diagnostics.Debug.WriteLine($"Music settings loaded - Enabled: {MusicEnabled}, Repeat: {RepeatTrack}, Default: {DefaultTrack}");
+                System.Diagnostics.Debug.WriteLine($"Music settings loaded - Repeat: {RepeatTrack}, Default: {DefaultTrack}, Was Playing: {IsPlaying}");
             }
             catch (Exception ex)
             {
@@ -484,25 +466,15 @@ namespace tkkn2025.UI.MusicPlayer
             }
         }
 
-        private void SaveSettings()
+        /// <summary>
+        /// Updates the AppConfig with current music player state
+        /// This should be called by the external application when it wants to save state
+        /// </summary>
+        public void UpdateAppConfig(AppConfig appConfig)
         {
-            try
-            {
-                var appConfig = new ExtendedAppConfig
-                {
-                    PlayerName = Session.PlayerName,
-                    MusicEnabled = MusicEnabled,
-                    RepeatTrack = RepeatTrack,
-                    DefaultTrack = DefaultTrack
-                };
-                
-                ConfigManager.SaveAppConfig(appConfig);
-                System.Diagnostics.Debug.WriteLine($"Music settings saved - Enabled: {MusicEnabled}, Repeat: {RepeatTrack}, Default: {DefaultTrack}");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving music settings: {ex.Message}");
-            }
+            appConfig.RepeatTrack = RepeatTrack;
+            appConfig.DefaultTrack = DefaultTrack;
+            appConfig.IsPlaying = IsPlaying;
         }
 
         #endregion
@@ -544,29 +516,6 @@ namespace tkkn2025.UI.MusicPlayer
 
         #endregion
 
-        #region Cleanup
-
-        public void Dispose()
-        {
-            try
-            {
-                _trackScrollTimer?.Stop();
-                _positionTimer?.Stop();
-                
-                _mediaPlayer?.Stop();
-                _mediaPlayer?.Close();
-                
-                SaveSettings();
-                
-                System.Diagnostics.Debug.WriteLine("Music player disposed");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error disposing music player: {ex.Message}");
-            }
-        }
-
-        #endregion
     }
 
     #region Helper Classes
@@ -579,15 +528,6 @@ namespace tkkn2025.UI.MusicPlayer
         public string Name { get; set; } = "";
         public string FilePath { get; set; } = "";
         public TimeSpan Duration { get; set; }
-    }
-
-    /// <summary>
-    /// Extended AppConfig to include music player settings
-    /// </summary>
-    public class ExtendedAppConfig : AppConfig
-    {
-        public bool RepeatTrack { get; set; } = false;
-        public string? DefaultTrack { get; set; }
     }
 
     /// <summary>

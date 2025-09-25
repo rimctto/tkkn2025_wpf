@@ -1,0 +1,54 @@
+<UserControl x:Class="tkkn2025.UI.Leaderboard_Maze"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="#333" 
+            BorderBrush="#666" 
+            BorderThickness="2" 
+            CornerRadius="5"
+            Padding="15">
+        
+        <StackPanel>
+            <!-- Header -->
+            <TextBlock Text="Maze Mode Leaderboard" 
+                       FontSize="18" 
+                       FontWeight="Bold" 
+                       Foreground="MediumPurple" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,15"/>
+
+            <!-- Loading indicator -->
+            <TextBlock x:Name="LoadingText" 
+                       Text="Loading..." 
+                       Foreground="Yellow" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,10"/>
+
+            <!-- Column headers -->
+            <Grid x:Name="HeaderGrid" 
+                  Margin="0,0,0,10"
+                  Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="80"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="#" FontWeight="Bold" Foreground="LightGray" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Player" FontWeight="Bold" Foreground="LightGray" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="Time" FontWeight="Bold" Foreground="LightGray" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Level" FontWeight="Bold" Foreground="LightGray" HorizontalAlignment="Center"/>
+            </Grid>
+
+            <!-- Leaderboard entries -->
+            <StackPanel x:Name="LeaderboardPanel" />
+
+            <!-- Error display -->
+            <TextBlock x:Name="ErrorText" 
+                       Foreground="Red" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,10,0,0"
+                       Visibility="Collapsed"/>
+        </StackPanel>
+    </Border>
+</UserControl>

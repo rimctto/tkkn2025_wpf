@@ -23,7 +23,6 @@ namespace tkkn2025.GameObjects.LevelMechanics
 
         public CircularSpawnMechanic(System.Windows.Controls.Canvas canvas, Random randomGenerator, 
             int activationLevel = 5, int particleCount = 20, double speed = 150.0, double radius = 200.0)
-            : base(canvas, randomGenerator)
         {
             ActivationLevel = activationLevel;
             ParticleCount = Math.Max(1, particleCount);
@@ -86,13 +85,12 @@ namespace tkkn2025.GameObjects.LevelMechanics
                 float spawnY = (float)(centerScreen.Y + Math.Sin(angle) * spawnRadius);
                 var spawnPosition = new Vector2(spawnX, spawnY);
                 
-                // Calculate velocity toward center
+                // Calculate direction toward center
                 Vector2 direction = new Vector2((float)centerScreen.X, (float)centerScreen.Y) - spawnPosition;
                 direction = Vector2.Normalize(direction);
-                var velocity = direction * (float)particleSpeed;
                 
-                // Create particle using base class method
-                CreateParticle(spawnPosition, velocity, particleColor, 10.0);
+                // Create particle using the new level speed method
+                CreateParticleWithLevelSpeed(spawnPosition, direction, particleColor, 10.0);
             }
         }
         

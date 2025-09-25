@@ -1,5 +1,6 @@
 using System.Text.Json;
 using tkkn2025.Settings;
+using tkkn2025.Settings.Models;
 using static tkkn2025.Helpers.DebugHelper;
 
 namespace tkkn2025
@@ -17,8 +18,13 @@ namespace tkkn2025
         public DateTime LastModified { get; set; } = DateTime.Now;
         public string Version { get; set; } = "2.0";
 
+        // Game mode setting
+        public GameMode GameMode { get; set; }
+
         // Game settings (removed MusicEnabled - now in AppConfig)
         public double ShipSpeed { get; set; }
+        public double ShipBoost { get; set; }
+        public double ShipSuperBoost { get; set; }
         public double ParticleSpeed { get; set; }
         public double ParticleTurnSpeed { get; set; }
         public int StartingParticles { get; set; }
@@ -40,6 +46,13 @@ namespace tkkn2025
         public double PowerUpDuration_Singularity { get; set; }
         public double PowerUpForce_Singulaiorty { get; set; }
 
+        // Level Mechanics settings
+        public bool LevelMechanicsEnabled { get; set; }
+        public double InitialLevelSpeed { get; set; }
+        public double SpeedIncreasePerLevel { get; set; }
+        
+       
+
         /// <summary>
         /// Creates a deep copy of this GameConfig for game instances
         /// </summary>
@@ -55,8 +68,13 @@ namespace tkkn2025
                 LastModified = this.LastModified,
                 Version = this.Version,
 
+                // Game mode
+                GameMode = this.GameMode,
+
                 // Basic Settings
                 ShipSpeed = this.ShipSpeed,
+                ShipBoost = this.ShipBoost,
+                ShipSuperBoost = this.ShipSuperBoost,
                 ParticleSpeed = this.ParticleSpeed,
                 ParticleTurnSpeed = this.ParticleTurnSpeed,
                 StartingParticles = this.StartingParticles,
@@ -79,23 +97,33 @@ namespace tkkn2025
                 PowerUpForce_Repulsor = this.PowerUpForce_Repulsor,
                 PowerUpDuration_Singularity = this.PowerUpDuration_Singularity,
                 PowerUpForce_Singulaiorty = this.PowerUpForce_Singulaiorty,
+
+                // Level Mechanics Settings
+                LevelMechanicsEnabled = this.LevelMechanicsEnabled,
+                InitialLevelSpeed = this.InitialLevelSpeed,
+                SpeedIncreasePerLevel = this.SpeedIncreasePerLevel,
+                
+              
             };
         }
     }
 
     /// <summary>
-    /// Application configuration class for storing application-level settings like player name and music preference
+    /// Application configuration class for storing application-level settings like player name and music preferences
     /// </summary>
     public class AppConfig
     {
         public string PlayerName { get; set; } = "Anonymous";
-        public bool MusicEnabled { get; set; } = true;
-        public DateTime LastSaved { get; set; } = DateTime.Now;
         public string Version { get; set; } = "1.0";
+        
+        // Music player properties
+        public bool RepeatTrack { get; set; } = false;
+        public string DefaultTrack { get; set; } = "";
+        public bool IsPlaying { get; set; } = false;
     }
-
+    
     /// <summary>
-    /// Handles saving and loading all configuration types from JSON files with versioning and migration support
+    /// Static class for managing configuration files and settings
     /// </summary>
     public static class ConfigManager
     {
@@ -126,10 +154,18 @@ namespace tkkn2025
                 DateCreated = DateTime.Now,
                 LastModified = DateTime.Now,
                 Version = "2.0",
-                
+
+                // Game mode
+                GameMode = GameSettings.GameMode.DefaultValue,
+
                 // Game settings with default values from GameSettings_Basic.cs
                 ShipSpeed = GameSettings.ShipSpeed.DefaultValue,
-                
+                ShipBoost = GameSettings.ShipBoost.DefaultValue,
+                ShipSuperBoost = GameSettings.ShipSuperBoost.DefaultValue,
+                StartingParticles = GameSettings.StartingParticles.DefaultValue,
+                LevelDuration = GameSettings.LevelDuration.DefaultValue,
+                NewParticlesPerLevel = GameSettings.NewParticlesPerLevel.DefaultValue,
+
                 // Particle settings with default values from GameSettings_Particles.cs
                 ParticleSpeed = GameSettings.ParticleSpeed.DefaultValue,
                 ParticleTurnSpeed = GameSettings.ParticleTurnSpeed.DefaultValue,
@@ -137,7 +173,7 @@ namespace tkkn2025
                 ParticleRandomizerPercentage = GameSettings.ParticleRandomizerPercentage.DefaultValue,
                 IsParticleSpawnVectorTowardsShip = GameSettings.IsParticleSpawnVectorTowardsShip.DefaultValue,
                 IsParticleChaseShip = GameSettings.IsParticleChaseShip.DefaultValue,
-                
+
                 // PowerUp settings with default values from GameSettings_PowerUps.cs
                 PowerUpSpawnRate = GameSettings.PowerUpSpawnRate.DefaultValue,
                 IsPowerUpEnabled_TimeWarp = GameSettings.IsPowerUpEnabled_TimeWarp.DefaultValue,
@@ -147,23 +183,82 @@ namespace tkkn2025
                 PowerUpDuration_Repulsor = GameSettings.PowerUpDuration_Repulsor.DefaultValue,
                 PowerUpForce_Repulsor = GameSettings.PowerUpForce_Repulsor.DefaultValue,
                 PowerUpDuration_Singularity = GameSettings.PowerUpDuration_Singularity.DefaultValue,
-                PowerUpForce_Singulaiorty = GameSettings.PowerUpForce_Singularity.DefaultValue
+                PowerUpForce_Singulaiorty = GameSettings.PowerUpForce_Singularity.DefaultValue,
+
+                // Level Mechanics settings
+                LevelMechanicsEnabled = GameSettings.LevelMechanicsEnabled.DefaultValue,
+                InitialLevelSpeed = GameSettings.InitialLevelSpeed.DefaultValue,
+                SpeedIncreasePerLevel = GameSettings.SpeedIncreasePerLevel.DefaultValue,
+
+
             };
             
                
             return defaultConfig;
         }
 
+        /// <summary>
+        /// Creates a game configuration for Survival mode
+        /// Uses all default settings except LevelMechanicsEnabled = false
+        /// </summary>
+        public static GameConfig CreateSurvivalModeConfig()
+        {
+            var survivalConfig = CreateDefaultGameConfig();
+            
+            survivalConfig.ConfigName = "Survival Mode";
+            survivalConfig.Description = "Survival mode with level mechanics disabled";
+            survivalConfig.GameMode = Settings.Models.GameMode.Survival;
+            
+            // Survival mode specific settings
+            survivalConfig.LevelMechanicsEnabled = false;
+            
+            return survivalConfig;
+        }
+
+        /// <summary>
+        /// Creates a game configuration for Maze mode
+        /// NewParticlesPerLevel = 0, StartingParticles = 0, all power-ups disabled
+        /// </summary>
+        public static GameConfig CreateMazeModeConfig()
+        {
+            var mazeConfig = CreateDefaultGameConfig();
+            
+            mazeConfig.ConfigName = "Maze Mode";
+            mazeConfig.Description = "Maze mode with no particles and no power-ups";
+            mazeConfig.GameMode = Settings.Models.GameMode.Maze;
+            
+            // Maze mode specific settings
+            mazeConfig.NewParticlesPerLevel = 0;
+            mazeConfig.StartingParticles = 0;
+            mazeConfig.IsPowerUpEnabled_TimeWarp = false;
+            mazeConfig.IsPowerUpEnabled_Repulsor = false;
+            mazeConfig.IsPowerUpEnabled_Singularity = false;
+            mazeConfig.LevelMechanicsEnabled = true;
+            
+            return mazeConfig;
+        }
+
+        /// <summary>
+        /// Creates a game configuration based on the specified game mode
+        /// </summary>
+        /// <param name="gameMode">The game mode to create configuration for</param>
+        /// <returns>GameConfig configured for the specified mode</returns>
+        public static GameConfig CreateConfigForGameMode(Settings.Models.GameMode gameMode)
+        {
+            return gameMode switch
+            {
+                Settings.Models.GameMode.Standard => CreateDefaultGameConfig(),
+                Settings.Models.GameMode.Survival => CreateSurvivalModeConfig(),
+                Settings.Models.GameMode.Maze => CreateMazeModeConfig(),
+                _ => CreateDefaultGameConfig()
+            };
+        }
+
         #endregion
 
         #region Default Configuration Management (Auto-persist current settings)
 
-        /// <summary>
-        /// Saves the current default game configuration that auto-loads on app start
-        /// This is the working configuration that persists between sessions
-        /// </summary>
-        /// <param name="config">The configuration to save as default</param>
-        /// <returns>True if save was successful, false otherwise</returns>
+       
         public static bool SaveDefaultConfig(GameConfig config)
         {
             try
@@ -270,7 +365,7 @@ namespace tkkn2025
         /// <param name="config">The configuration to save</param>
         /// <param name="fileName">Optional custom filename (without extension)</param>
         /// <returns>True if save was successful, false otherwise</returns>
-        public static bool SaveGameConfigToSettings(GameConfig config, string? fileName = null)
+        public static bool SaveGameConfig(GameConfig config, string? fileName = null)
         {
             try
             {
@@ -314,7 +409,7 @@ namespace tkkn2025
         /// </summary>
         /// <param name="filePath">Full path to the configuration file</param>
         /// <returns>Loaded configuration or null if failed</returns>
-        public static GameConfig? LoadGameConfigFromSettings(string filePath)
+        public static GameConfig? LoadGameConfig(string filePath)
         {
             try
             {
@@ -388,7 +483,6 @@ namespace tkkn2025
                     WriteLine($"Created AppData directory: {AppDataDirectory}");
                 }
                 
-                config.LastSaved = DateTime.Now;
                 config.Version = "1.0";
                 
                 var options = new JsonSerializerOptions
@@ -401,7 +495,6 @@ namespace tkkn2025
                 System.IO.File.WriteAllText(AppConfigFilePath, jsonString);
                 
                 WriteLine($"App config saved to: {AppConfigFilePath}");
-                WriteLine($"Player name: '{config.PlayerName}', Music enabled: {config.MusicEnabled}");
                 return true;
             }
             catch (Exception ex)
@@ -435,7 +528,7 @@ namespace tkkn2025
                 var result = config ?? new AppConfig();
                 
                 WriteLine($"App config loaded from: {AppConfigFilePath}");
-                WriteLine($"Player name: '{result.PlayerName}', Music enabled: {result.MusicEnabled}");
+                WriteLine($"Player name: '{result.PlayerName}', Repeat: {result.RepeatTrack}, Default track: '{result.DefaultTrack}', Is playing: {result.IsPlaying}");
                 return result;
             }
             catch (Exception ex)

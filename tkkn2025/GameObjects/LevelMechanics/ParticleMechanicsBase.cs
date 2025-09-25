@@ -15,23 +15,11 @@ namespace tkkn2025.GameObjects.LevelMechanics
     public abstract class ParticleMechanicsBase : IParticleMechanics, IDisposable
     {
         #region Static Canvas Variables (initialized once per game)
-        
-        /// <summary>
-        /// Static canvas reference - shared across all mechanics
-        /// </summary>
+  
         protected static Canvas? gameCanvas;
-        
-        /// <summary>
-        /// Static canvas dimensions - updated once when game starts
-        /// </summary>
         protected static double canvasWidth;
         protected static double canvasHeight;
         protected static Point centerScreen;
-        
-        /// <summary>
-        /// Flag to track if static variables have been initialized
-        /// </summary>
-        private static bool staticVariablesInitialized = false;
         
         #endregion
 
@@ -45,12 +33,24 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// <summary>
         /// List of particles created by this mechanic
         /// </summary>
-        protected readonly List<Patricle> mechanicParticles = new List<Patricle>();
+        protected readonly List<Particle> mechanicParticles = new List<Particle>();
         
         /// <summary>
         /// Whether this mechanic is currently active
         /// </summary>
         protected bool isActive;
+        
+        #endregion
+
+        #region Constructor
+        
+        /// <summary>
+        /// Constructor that initializes the random number generator
+        /// </summary>
+        protected ParticleMechanicsBase()
+        {
+            random = new Random();
+        }
         
         #endregion
 
@@ -73,89 +73,31 @@ namespace tkkn2025.GameObjects.LevelMechanics
         
         #endregion
 
-        #region Constructor
-        
-        /// <summary>
-        /// Initialize the base particle mechanic
-        /// </summary>
-        /// <param name="canvas">Game canvas reference</param>
-        /// <param name="randomGenerator">Random number generator</param>
-        protected ParticleMechanicsBase(Canvas canvas, Random randomGenerator)
-        {
-            random = randomGenerator ?? throw new ArgumentNullException(nameof(randomGenerator));
-            
-            // Initialize static variables if not already done
-            InitializeStaticVariables(canvas);
-            
-            System.Diagnostics.Debug.WriteLine($"?? ParticleMechanicsBase initialized for {GetType().Name}");
-        }
-        
-        #endregion
 
-        #region Static Initialization
+        #region IParticleMechanics Implementation
         
-        /// <summary>
-        /// Initialize static canvas variables once per game session
-        /// This avoids repeated initialization across multiple mechanics
-        /// </summary>
-        /// <param name="canvas">Game canvas reference</param>
-        public static void InitializeStaticVariables(Canvas canvas)
+        public static void Reset(Canvas gameCanvas)
         {
-            if (staticVariablesInitialized && gameCanvas == canvas)
+            if (gameCanvas == null)
             {
-                return; // Already initialized with the same canvas
+                System.Diagnostics.Debug.WriteLine("ERROR: Attempting to reset ParticleMechanicsBase with null canvas");
+                throw new ArgumentNullException(nameof(gameCanvas), "Game canvas cannot be null");
             }
             
-            gameCanvas = canvas ?? throw new ArgumentNullException(nameof(canvas));
-            UpdateCanvasDimensions();
-            staticVariablesInitialized = true;
-            
-            System.Diagnostics.Debug.WriteLine($"?? Static canvas variables initialized: {canvasWidth}x{canvasHeight}");
-        }
-        
-        /// <summary>
-        /// Update canvas dimensions - called when window is resized or game starts
-        /// </summary>
-        public static void UpdateCanvasDimensions()
-        {
-            if (gameCanvas == null) return;
-            
+            ParticleMechanicsBase.gameCanvas = gameCanvas;
             canvasWidth = gameCanvas.ActualWidth > 0 ? gameCanvas.ActualWidth : 800;
             canvasHeight = gameCanvas.ActualHeight > 0 ? gameCanvas.ActualHeight : 600;
             centerScreen = new Point(canvasWidth / 2, canvasHeight / 2);
             
-            System.Diagnostics.Debug.WriteLine($"?? Canvas dimensions updated: {canvasWidth}x{canvasHeight}");
+            System.Diagnostics.Debug.WriteLine($"ParticleMechanicsBase reset with canvas: {canvasWidth}x{canvasHeight}");
         }
-        
-        /// <summary>
-        /// Reset static variables for a new game session
-        /// </summary>
-        public static void ResetStaticVariables()
-        {
-            staticVariablesInitialized = false;
-            gameCanvas = null;
-            canvasWidth = 0;
-            canvasHeight = 0;
-            centerScreen = new Point(0, 0);
-            
-            System.Diagnostics.Debug.WriteLine("?? Static variables reset for new game session");
-        }
-        
-        #endregion
 
-        #region IParticleMechanics Implementation
-        
         /// <summary>
         /// Activate the particle mechanic
         /// </summary>
         public virtual void Activate()
         {
-            if (gameCanvas == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"?? Cannot activate {GetType().Name}: gameCanvas is null");
-                return;
-            }
-            
+           
             if (isActive)
             {
                 Stop(); // Stop any current activity
@@ -197,7 +139,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// <returns>True if collision detected</returns>
         public virtual bool CheckCollisions(Point shipPosition)
         {
-            const double collisionDistance = 15.0;
+            const double collisionDistance = 12.0;
             
             foreach (var particle in mechanicParticles)
             {
@@ -253,7 +195,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
         protected virtual void OnUpdate(double deltaTime)
         {
             // Default implementation: update all particles and remove out-of-bounds ones
-            var particlesToRemove = new List<Patricle>();
+            var particlesToRemove = new List<Particle>();
             
             foreach (var particle in mechanicParticles)
             {
@@ -293,17 +235,78 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// <param name="color">Particle color</param>
         /// <param name="size">Particle size (diameter)</param>
         /// <returns>Created particle</returns>
-        protected virtual Patricle CreateParticle(Vector2 position, Vector2 velocity, Brush? color = null, double size = 8.0)
+        protected virtual Particle CreateParticle(Vector2 position, Vector2 velocity, Brush? color = null, double size = 8.0)
         {
+            // Check if canvas is available
             if (gameCanvas == null)
             {
-                throw new InvalidOperationException("Cannot create particle: gameCanvas is null");
+                System.Diagnostics.Debug.WriteLine($"ERROR: gameCanvas is null in {GetType().Name}.CreateParticle() - Reset() may not have been called");
+                throw new InvalidOperationException($"Game canvas not initialized. Call ParticleMechanicsBase.Reset() before creating particles.");
             }
-            
-            var particle = new Patricle(position)
+          
+            var particle = new Particle(position)
             {
                 Velocity = velocity,
                 Speed = velocity.Length(),
+                ShouldChaseShip = false,
+                IsSpawnVectorTowardsShip = false,
+                IsFreshlySpawned = true,
+                IsActive = true
+            };
+            
+            // Create visual element
+            var visual = new Ellipse
+            {
+                Width = size,
+                Height = size,
+                Fill = color ?? Brushes.White
+            };
+            
+            particle.Visual = visual;
+            particle.Color = color ?? Brushes.White;
+            
+            // Position the visual element
+            Canvas.SetLeft(visual, position.X);
+            Canvas.SetTop(visual, position.Y);
+            
+            // Add to canvas and tracking list
+            gameCanvas.Children.Add(visual);
+            mechanicParticles.Add(particle);
+            
+            return particle;
+        }
+
+        /// <summary>
+        /// Create a particle with current level speed - convenience method for mechanics
+        /// </summary>
+        /// <param name="position">Starting position</param>
+        /// <param name="direction">Direction vector (will be normalized)</param>
+        /// <param name="color">Particle color</param>
+        /// <param name="size">Particle size (diameter)</param>
+        /// <returns>Created particle</returns>
+        protected virtual Particle CreateParticleWithLevelSpeed(Vector2 position, Vector2 direction, Brush? color = null, double size = 8.0)
+        {
+            // Check if canvas is available
+            if (gameCanvas == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"ERROR: gameCanvas is null in {GetType().Name}.CreateParticleWithLevelSpeed() - Reset() may not have been called");
+                throw new InvalidOperationException($"Game canvas not initialized. Call ParticleMechanicsBase.Reset() before creating particles.");
+            }
+            
+            // Use the current level speed from LevelManager
+            double currentSpeed = LevelManager.CurrentLevelSpeed;
+            
+            // Normalize direction and apply current speed
+            if (direction.Length() > 0.01f)
+            {
+                direction = Vector2.Normalize(direction);
+            }
+            var velocity = direction * (float)currentSpeed;
+            
+            var particle = new Particle(position)
+            {
+                Velocity = velocity,
+                Speed = currentSpeed,
                 ShouldChaseShip = false,
                 IsSpawnVectorTowardsShip = false,
                 IsFreshlySpawned = true,
@@ -336,22 +339,28 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// Remove a particle from the game
         /// </summary>
         /// <param name="particle">Particle to remove</param>
-        protected virtual void RemoveParticle(Patricle particle)
+        protected virtual void RemoveParticle(Particle particle)
         {
             try
             {
+                if (particle == null) return;
+                
                 mechanicParticles.Remove(particle);
                 
                 if (particle.Visual != null && gameCanvas != null)
                 {
                     gameCanvas.Children.Remove(particle.Visual);
                 }
+                else if (particle.Visual != null && gameCanvas == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"WARNING: Cannot remove particle visual - gameCanvas is null in {GetType().Name}");
+                }
                 
                 particle.IsActive = false;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error removing particle: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error removing particle in {GetType().Name}: {ex.Message}");
             }
         }
         
@@ -376,7 +385,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// </summary>
         /// <param name="particle">Particle to check</param>
         /// <returns>True if particle is out of bounds</returns>
-        protected virtual bool IsParticleOutOfBounds(Patricle particle)
+        protected virtual bool IsParticleOutOfBounds(Particle particle)
         {
             const double margin = 50; // Allow particles to go slightly off-screen before removal
             return particle.Position.X < -margin || 
@@ -451,5 +460,36 @@ namespace tkkn2025.GameObjects.LevelMechanics
         }
         
         #endregion
+
+        /// <summary>
+        /// Update the speed of all active particles from this mechanic
+        /// This is called when the game level increases to ensure all particles move at the current level speed
+        /// </summary>
+        /// <param name="newSpeed">New speed for all particles</param>
+        public virtual void UpdateParticleSpeed(double newSpeed)
+        {
+            foreach (var particle in mechanicParticles)
+            {
+                if (particle.IsActive)
+                {
+                    // Update the particle's speed property
+                    particle.Speed = newSpeed;
+                    
+                    // Update the velocity magnitude while preserving direction
+                    if (particle.Velocity.Length() > 0)
+                    {
+                        var direction = Vector2.Normalize(particle.Velocity);
+                        particle.Velocity = direction * (float)newSpeed;
+                    }
+                    else
+                    {
+                        // Default to downward movement if no velocity
+                        particle.Velocity = new Vector2(0, (float)newSpeed);
+                    }
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"?? {GetType().Name}: Updated {mechanicParticles.Count} particles to speed {newSpeed}");
+        }
     }
 }

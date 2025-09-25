@@ -22,9 +22,21 @@ namespace tkkn2025.Settings
        
         public GameSettings GameSettings { get; set; } = new GameSettings();
 
+       // public SandboxSettings SandboxSettings { get; set; } = new SandboxSettings();
+
         public void ResetToDefaults()
         {
             GameSettings.ResetToDefaults();
+            OnPropertyChanged();
+        }
+
+        /// <summary>
+        /// Apply a specific game mode preset configuration
+        /// </summary>
+        /// <param name="gameMode">The game mode to apply</param>
+        public void ApplyGameModePreset(Settings.Models.GameMode gameMode)
+        {
+            GameSettings.ApplyGameModePreset(gameMode);
             OnPropertyChanged();
         }
 
@@ -71,7 +83,7 @@ namespace tkkn2025.Settings
                     var fileName = System.IO.Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
                     DebugHelper.WriteLine($"User selected save file: {saveFileDialog.FileName}");
                     
-                    bool result = ConfigManager.SaveGameConfigToSettings(settings, fileName);
+                    bool result = ConfigManager.SaveGameConfig(settings, fileName);
                     if (result)
                     {
                         DebugHelper.WriteLine($"Settings save completed successfully for config: '{settings.ConfigName}'");
@@ -145,7 +157,7 @@ namespace tkkn2025.Settings
                 if (openFileDialog.ShowDialog() == true)
                 {
                     DebugHelper.WriteLine($"User selected load file: {openFileDialog.FileName}");
-                    var config = ConfigManager.LoadGameConfigFromSettings(openFileDialog.FileName);
+                    var config = ConfigManager.LoadGameConfig(openFileDialog.FileName);
                     
                     if (config != null)
                     {
@@ -190,6 +202,7 @@ namespace tkkn2025.Settings
             
             // Validate basic settings
             validated.ShipSpeed = Math.Max(50, Math.Min(300, validated.ShipSpeed));
+            validated.ShipBoost = Math.Max(0, Math.Min(10, validated.ShipBoost));
             validated.ParticleSpeed = Math.Max(25, Math.Min(300, validated.ParticleSpeed));
             validated.ParticleTurnSpeed = Math.Max(0.1, Math.Min(10, validated.ParticleTurnSpeed));
             validated.StartingParticles = Math.Max(1, Math.Min(100, validated.StartingParticles));

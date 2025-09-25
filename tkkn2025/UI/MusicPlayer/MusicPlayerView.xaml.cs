@@ -25,28 +25,7 @@ namespace tkkn2025.UI.MusicPlayer
             
             // Prevent control from taking focus during game
             Focusable = false;
-            
-            // Handle unloaded event for cleanup
-            Unloaded += MusicPlayerView_Unloaded;
-        }
-
-        private void EnableButton_Click(object sender, RoutedEventArgs e)
-        {
-            ViewModel.MusicEnabled = !ViewModel.MusicEnabled;
-            
-            // Store the currently focused element
-            var focusedElement = FocusManager.GetFocusedElement(Application.Current.MainWindow);
-            
-            // Ensure focus doesn't get stuck on the button
-            if (focusedElement is UIElement element && element.IsEnabled && element.Focusable)
-            {
-                element.Focus();
-            }
-            else
-            {
-                // Return focus to main window or game canvas
-                Application.Current.MainWindow?.Focus();
-            }
+        
         }
 
         private void DefaultTrackCheckBox_Click(object sender, RoutedEventArgs e)
@@ -68,10 +47,6 @@ namespace tkkn2025.UI.MusicPlayer
             }
         }
 
-        private void MusicPlayerView_Unloaded(object sender, RoutedEventArgs e)
-        {
-            ViewModel?.Dispose();
-        }
     }
 
     /// <summary>

@@ -16,6 +16,7 @@ namespace tkkn2025.Settings
         public List<ISettingModel> BasicSettings { get; }
         public List<ISettingModel> ParticleSettings { get; }
         public List<ISettingModel> PowerUpSettings { get; }
+        public List<ISettingModel> LevelMechanicsSettings { get; }
 
         public List<ISettingModel> AllSettings { get; }
 
@@ -38,7 +39,10 @@ namespace tkkn2025.Settings
             // Create the settings list (removed MusicEnabled)
             BasicSettings = new List<ISettingModel>
             {
+                GameMode,
                 ShipSpeed,
+                ShipBoost,
+                ShipSuperBoost,
                 StartingParticles,
                 LevelDuration,
                 NewParticlesPerLevel,
@@ -71,16 +75,97 @@ namespace tkkn2025.Settings
                 PowerUpForce_Repulsor,
             };
 
+            LevelMechanicsSettings = new List<ISettingModel>
+            {
+                LevelMechanicsEnabled,
+                InitialLevelSpeed,
+                SpeedIncreasePerLevel
+            };
+
             AllSettings = new List<ISettingModel>();
             AllSettings.AddRange(BasicSettings);
             AllSettings.AddRange(ParticleSettings);
             AllSettings.AddRange(PowerUpSettings);
+            AllSettings.AddRange(LevelMechanicsSettings);
 
             // Subscribe to changes in settings that affect difficulty calculation
             SubscribeToSettingChanges();
 
+            // Subscribe to GameMode changes to apply preset configurations
+            GameMode.PropertyChanged += OnGameModeChanged;
+
             // Calculate initial difficulty
             CalculateDifficuly();
+        }
+
+        /// <summary>
+        /// Handle game mode changes and apply preset configurations
+        /// </summary>
+        private void OnGameModeChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ISettingModel.Value))
+            {
+                ApplyGameModePreset(GameMode.Value);
+            }
+        }
+
+        /// <summary>
+        /// Apply preset configuration based on selected game mode
+        /// </summary>
+        /// <param name="gameMode">The game mode to apply</param>
+        public void ApplyGameModePreset(Settings.Models.GameMode gameMode)
+        {
+            // Temporarily unsubscribe to avoid multiple calculations during bulk updates
+            UnsubscribeFromSettingChanges();
+
+            try
+            {
+                DebugHelper.WriteLine($"Applying game mode preset: {gameMode}");
+
+                switch (gameMode)
+                {
+                    case Settings.Models.GameMode.Standard:
+                        // Reset all settings to defaults
+                        foreach (var setting in AllSettings.Where(s => s != GameMode))
+                        {
+                            setting.Value = setting.DefaultValue;
+                        }
+                        DebugHelper.WriteLine("Applied Standard mode: All default settings");
+                        break;
+
+                    case Settings.Models.GameMode.Survival:
+                        // Reset to defaults first, then apply survival-specific changes
+                        foreach (var setting in AllSettings.Where(s => s != GameMode))
+                        {
+                            setting.Value = setting.DefaultValue;
+                        }
+                        // Survival mode: Disable level mechanics
+                        LevelMechanicsEnabled.Value = false;
+                        DebugHelper.WriteLine("Applied Survival mode: LevelMechanicsEnabled = false");
+                        break;
+
+                    case Settings.Models.GameMode.Maze:
+                        // Reset to defaults first, then apply maze-specific changes
+                        foreach (var setting in AllSettings.Where(s => s != GameMode))
+                        {
+                            setting.Value = setting.DefaultValue;
+                        }
+                        // Maze mode: No particles, no power-ups
+                        NewParticlesPerLevel.Value = 0;
+                        StartingParticles.Value = 0;
+                        IsPowerUpEnabled_TimeWarp.Value = false;
+                        IsPowerUpEnabled_Repulsor.Value = false;
+                        IsPowerUpEnabled_Singularity.Value = false;
+                        DebugHelper.WriteLine("Applied Maze mode: No particles, no power-ups");
+                        break;
+                }
+            }
+            finally
+            {
+                // Re-subscribe and calculate difficulty once
+                SubscribeToSettingChanges();
+                CalculateDifficuly();
+            }
         }
 
         private void SubscribeToSettingChanges()
@@ -92,6 +177,9 @@ namespace tkkn2025.Settings
             StartingParticles.PropertyChanged += OnDifficultyRelevantSettingChanged;
             NewParticlesPerLevel.PropertyChanged += OnDifficultyRelevantSettingChanged;
             LevelDuration.PropertyChanged += OnDifficultyRelevantSettingChanged;
+            
+            // Subscribe to game mode changes
+            GameMode.PropertyChanged += OnGameModeChanged;
         }
 
         private void OnDifficultyRelevantSettingChanged(object? sender, PropertyChangedEventArgs e)
@@ -125,8 +213,13 @@ namespace tkkn2025.Settings
                 LastModified = DateTime.Now,
                 Version = "2.0",
 
+                // Game mode
+                GameMode = GameMode,
+
                 // Game settings from UI controls (removed MusicEnabled)
                 ShipSpeed = ShipSpeed,
+                ShipBoost = ShipBoost,
+                ShipSuperBoost = ShipSuperBoost,
                 LevelDuration = LevelDuration,
                 StartingParticles = StartingParticles,
                 NewParticlesPerLevel = NewParticlesPerLevel,
@@ -148,6 +241,10 @@ namespace tkkn2025.Settings
                 PowerUpForce_Repulsor = PowerUpForce_Repulsor,
                 PowerUpDuration_Singularity = PowerUpDuration_Singularity,
                 PowerUpForce_Singulaiorty = PowerUpForce_Singularity,
+
+                LevelMechanicsEnabled = LevelMechanicsEnabled,
+                InitialLevelSpeed = InitialLevelSpeed,
+                SpeedIncreasePerLevel = SpeedIncreasePerLevel
             };
         }
 
@@ -157,11 +254,15 @@ namespace tkkn2025.Settings
             UnsubscribeFromSettingChanges();
 
             DebugHelper.WriteLine($"Loading config values into GameSettings:");
+            DebugHelper.WriteLine($"  GameMode: {config.GameMode}");
             DebugHelper.WriteLine($"  IsPowerUpTimeWarpEnabled: {config.IsPowerUpEnabled_TimeWarp}");
             DebugHelper.WriteLine($"  IsPowerUpSingularityEnabled: {config.IsPowerUpEnabled_Singularity}");
             DebugHelper.WriteLine($"  IsPowerUpRepulsorEnabled: {config.IsPowerUpEnabled_Repulsor}");
 
+            GameMode.Value = config.GameMode;
             ShipSpeed.Value = config.ShipSpeed;
+            ShipBoost.Value = config.ShipBoost;
+            ShipSuperBoost.Value = config.ShipSuperBoost;
             ParticleSpeed.Value = config.ParticleSpeed;
             ParticleTurnSpeed.Value = config.ParticleTurnSpeed;
             StartingParticles.Value = config.StartingParticles;
@@ -184,6 +285,11 @@ namespace tkkn2025.Settings
             PowerUpDuration_Singularity.Value = config.PowerUpDuration_Singularity;
             PowerUpForce_Singularity.Value = config.PowerUpForce_Singulaiorty;
 
+            LevelMechanicsEnabled.Value = config.LevelMechanicsEnabled;
+            InitialLevelSpeed.Value = config.InitialLevelSpeed;
+            SpeedIncreasePerLevel.Value = config.SpeedIncreasePerLevel;
+
+            DebugHelper.WriteLine($"After loading - GameMode: {GameMode.Value}");
             DebugHelper.WriteLine($"After loading - PowerUp enabled states:");
             DebugHelper.WriteLine($"  IsPowerUpTimeWarpEnabled: {IsPowerUpEnabled_TimeWarp.Value}");
             DebugHelper.WriteLine($"  IsPowerUpSingularityEnabled: {IsPowerUpEnabled_Singularity.Value}");
@@ -203,6 +309,9 @@ namespace tkkn2025.Settings
             StartingParticles.PropertyChanged -= OnDifficultyRelevantSettingChanged;
             NewParticlesPerLevel.PropertyChanged -= OnDifficultyRelevantSettingChanged;
             LevelDuration.PropertyChanged -= OnDifficultyRelevantSettingChanged;
+            
+            // Unsubscribe from game mode changes
+            GameMode.PropertyChanged -= OnGameModeChanged;
         }
 
         public void ResetToDefaults()
@@ -247,6 +356,16 @@ namespace tkkn2025.Settings
 
             // Process PowerUpSettings
             foreach (var setting in PowerUpSettings)
+            {
+                if (!result.ContainsKey(setting.Category))
+                {
+                    result[setting.Category] = new List<ISettingModel>();
+                }
+                result[setting.Category].Add(setting);
+            }
+
+            // Process LevelMechanicsSettings
+            foreach (var setting in LevelMechanicsSettings)
             {
                 if (!result.ContainsKey(setting.Category))
                 {

@@ -25,6 +25,14 @@ namespace tkkn2025.GameObjects.Ship
             InitializeComponent();
         }
 
+        public void Reset(Point shipPosition)
+        {
+            Canvas.SetLeft(this, shipPosition.X - this.Width / 2);
+            Canvas.SetTop(this, shipPosition.Y - this.Height / 2);
+            ShowNeutral();
+        }
+
+
         /// <summary>
         /// Show the left tilted ship appearance
         /// </summary>

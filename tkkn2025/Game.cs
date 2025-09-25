@@ -1,4 +1,5 @@
 using System;
+using tkkn2025.Settings.Models;
 
 namespace tkkn2025
 {
@@ -14,6 +15,11 @@ namespace tkkn2025
         public int FinalParticleCount { get; set; }
         
         /// <summary>
+        /// The game mode that was played for this game instance
+        /// </summary>
+        public GameMode GameMode { get; set; }
+        
+        /// <summary>
         /// The game configuration used for this specific game instance
         /// This is a copy taken when the game starts to preserve the settings used
         /// </summary>
@@ -21,6 +27,12 @@ namespace tkkn2025
         
         public bool IsCompleted => EndTime.HasValue;
         public string PlayerName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Firebase key for this game (if saved to Firebase)
+        /// Used for leaderboard management and deletion
+        /// </summary>
+        public string? FirebaseKey { get; set; }
         
         /// <summary>
         /// Gets the duration in seconds for easier comparison and display
@@ -35,6 +47,7 @@ namespace tkkn2025
             StartTime = DateTime.Now;
             PlayerName = Session.PlayerName;
             Settings = ConfigManager.CreateDefaultGameConfig();
+            GameMode = Settings.GameMode;
         }
 
         /// <summary>
@@ -49,6 +62,7 @@ namespace tkkn2025
             
             // Create a copy of the configuration for this game
             Settings = config.CreateCopy();
+            GameMode = Settings.GameMode;
         }
 
         /// <summary>
@@ -68,6 +82,7 @@ namespace tkkn2025
         {
             var summary = $"Game: {DurationSeconds:F1}s, {FinalParticleCount} particles\n";
             summary += $"Player: {PlayerName}\n";
+            summary += $"Mode: {GameMode}\n";
             summary += $"Config: {Settings.ConfigName}\n";
             summary += $"Started: {StartTime:yyyy-MM-dd HH:mm:ss}";
             
@@ -93,7 +108,7 @@ namespace tkkn2025
 
         public override string ToString()
         {
-            return $"Game: {DurationSeconds:F1}s, {FinalParticleCount} particles ({Settings.ConfigName})";
+            return $"Game: {DurationSeconds:F1}s, {FinalParticleCount} particles ({Settings.ConfigName}, {GameMode})";
         }
     }
 }

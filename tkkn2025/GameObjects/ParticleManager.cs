@@ -19,8 +19,8 @@ namespace tkkn2025.GameObjects
     public class ParticleManager
     {
         // Particle management
-        private static List<Patricle> particles = new List<Patricle>();
-        private readonly Queue<Patricle> particlePool = new Queue<Patricle>();
+        private static List<Particle> particles = new List<Particle>();
+        private readonly Queue<Particle> particlePool = new Queue<Particle>();
         private static Random random = new Random();
         private static Canvas gameCanvas;
 
@@ -168,7 +168,7 @@ namespace tkkn2025.GameObjects
         {
             // Increase particle count by the specified percentage
             currentParticleCount = (int)(currentParticleCount * (1 + newParticlesPerLevel / 100.0));
-            CreateParticles(Math.Max(1, currentParticleCount / 10)); // Add some particles
+            CreateParticles(Math.Max(0, currentParticleCount / 10)); // Add some particles
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace tkkn2025.GameObjects
         /// Get a particle from the pool or create a new one
         /// </summary>
         /// <returns>Pooled or new particle</returns>
-        private Patricle GetPooledParticle()
+        private Particle GetPooledParticle()
         {
             if (particlePool.Count > 0)
             {
@@ -214,7 +214,7 @@ namespace tkkn2025.GameObjects
                 return pooled;
             }
 
-            return new Patricle
+            return new Particle
             {
                 Visual = new Ellipse
                 {
@@ -304,7 +304,7 @@ namespace tkkn2025.GameObjects
         /// </summary>
         /// <param name="particle">Particle to update</param>
         /// <param name="shipPosition">Current ship position</param>
-        public void SetParticleTargetToShip(Patricle particle, Point shipPosition)
+        public void SetParticleTargetToShip(Particle particle, Point shipPosition)
         {
             if (particle.IsSpawnVectorTowardsShip)
             {

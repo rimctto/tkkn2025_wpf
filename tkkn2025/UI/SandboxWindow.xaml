@@ -1,0 +1,434 @@
+<Window
+    x:Class="tkkn2025.UI.SandboxWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:tkkn2025.UI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:settingsModels="clr-namespace:tkkn2025.Settings.Models"
+    Title="TKKN 2025 - Sandbox"
+    Width="1100"
+    Height="700"
+    Focusable="True"
+    KeyDown="Window_KeyDown"
+    KeyUp="Window_KeyUp"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <!--  Default Button Style  -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="Foreground" Value="white" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+
+        <!--  Default TextBlock Style  -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+
+        <!--  Default TextBox Style  -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#FF2D2D30" />
+            <Setter Property="BorderBrush" Value="Gray" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="Black">
+        <!--  Main Content Grid  -->
+        <Grid Name="MainContentGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="275" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Drawing Area  -->
+            <Border
+                Grid.Column="0"
+                Background="#FF111111"
+                BorderBrush="Gray"
+                BorderThickness="1">
+                <Canvas
+                    Name="SandboxCanvas"
+                    Background="Transparent"
+                    Focusable="True"
+                    MouseDown="SandboxCanvas_MouseDown"
+                    MouseMove="SandboxCanvas_MouseMove"
+                    MouseUp="SandboxCanvas_MouseUp" />
+            </Border>
+
+            <!--  Settings Panel  -->
+            <Border
+                Grid.Column="1"
+                Padding="0"
+                Background="#FF151515">
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="25" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="10">
+                        <!--  Sandbox Title  -->
+                        <TextBlock
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Foreground="Orange"
+                            Text="SANDBOX MODE" />
+
+                        <!--  Canvas Info  -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="5" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="5" />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+
+                            <!--  Canvas Size Row  -->
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Canvas" />
+                            <TextBlock
+                                Name="CanvasSizeText"
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Text="0 x 0"
+                                TextAlignment="Center" />
+
+                            <!--  Mouse Position Row  -->
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Mouse" />
+                            <TextBlock
+                                Name="MousePositionText"
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                Text="(0, 0)"
+                                TextAlignment="Center" />
+
+                            <!--  Objects Count Row  -->
+                            <TextBlock
+                                Grid.Row="4"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Objects" />
+                            <TextBlock
+                                Name="ObjectCountText"
+                                Grid.Row="4"
+                                Grid.Column="2"
+                                Text="0"
+                                TextAlignment="Center" />
+                        </Grid>
+
+                        <!--  Drawing Tools Header  -->
+                        <TextBlock
+                            Margin="0,10,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Drawing Tools" />
+
+                        <!--  Drawing Tool Buttons  -->
+                        <UniformGrid
+                            Margin="0,5,0,10"
+                            Columns="2"
+                            Rows="2">
+                            <Button
+                                Name="DrawSpiralButton"
+                                Margin="2"
+                                Click="DrawSpiralButton_Click"
+                                Content="Spiral" />
+                            <Button
+                                Name="DrawCircleButton"
+                                Margin="2"
+                                Click="DrawCircleButton_Click"
+                                Content="Circle" />
+                            <Button
+                                Name="DrawLineButton"
+                                Margin="2"
+                                Click="DrawLineButton_Click"
+                                Content="Line" />
+                            <Button
+                                Name="ClearCanvasButton"
+                                Margin="2"
+                                Click="ClearCanvasButton_Click"
+                                Content="Clear" />
+                        </UniformGrid>
+
+                        <!--  Current Tool Display  -->
+                        <TextBlock
+                            Name="CurrentToolText"
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            FontStyle="Italic"
+                            Foreground="Yellow"
+                            Text="Tool: None Selected" />
+
+                        <!--  Status Display  -->
+                        <TextBlock
+                            Name="StatusText"
+                            Margin="0,0,0,10"
+                            HorizontalAlignment="Center"
+                            FontSize="10"
+                            Foreground="LightGray"
+                            Text="Ready"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <!--  Spiral Configuration Settings  -->
+                    <ScrollViewer
+                        Grid.Row="1"
+                        Margin="10"
+                        VerticalScrollBarVisibility="Auto">
+                        <StackPanel DataContext="{Binding SpiralConfig}">
+                            <!--  Spiral Settings  -->
+                            <Expander Foreground="White" IsExpanded="True">
+                                <Expander.Header>
+                                    <TextBlock
+                                        FontSize="14"
+                                        Foreground="DarkCyan"
+                                        Text="Spiral Configuration" />
+                                </Expander.Header>
+                                <StackPanel Margin="0,10,0,0">
+                                    <!--  Radius Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Radius" />
+                                        <Slider
+                                            Name="RadiusSlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="200"
+                                            Minimum="10"
+                                            Value="{Binding Radius, Mode=TwoWay}"
+                                            ValueChanged="RadiusSlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding Radius, StringFormat=F0}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Particle Count Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Count" />
+                                        <Slider
+                                            Name="ParticleCountSlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="100"
+                                            Minimum="5"
+                                            Value="{Binding ParticleCount, Mode=TwoWay}"
+                                            ValueChanged="ParticleCountSlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding ParticleCount}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Speed Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Speed" />
+                                        <Slider
+                                            Name="SpeedSlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="0.1"
+                                            Minimum="0.001"
+                                            Value="{Binding Speed, Mode=TwoWay}"
+                                            ValueChanged="SpeedSlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding Speed, StringFormat=F3}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Amplitude Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Amplitude" />
+                                        <Slider
+                                            Name="AmplitudeSlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="100"
+                                            Minimum="5"
+                                            Value="{Binding Amplitude, Mode=TwoWay}"
+                                            ValueChanged="AmplitudeSlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding Amplitude, StringFormat=F0}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Frequency Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Frequency" />
+                                        <Slider
+                                            Name="FrequencySlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="0.05"
+                                            Minimum="0.001"
+                                            Value="{Binding Frequency, Mode=TwoWay}"
+                                            ValueChanged="FrequencySlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding Frequency, StringFormat=F3}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Particle Size Setting  -->
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="50" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="Size" />
+                                        <Slider
+                                            Name="ParticleSizeSlider"
+                                            Grid.Column="1"
+                                            Margin="5,0"
+                                            Maximum="10"
+                                            Minimum="1"
+                                            Value="{Binding Width, Mode=TwoWay}"
+                                            ValueChanged="ParticleSizeSlider_ValueChanged" />
+                                        <TextBox
+                                            Grid.Column="2"
+                                            Text="{Binding Width}"
+                                            TextAlignment="Center" />
+                                    </Grid>
+
+                                    <!--  Configuration Buttons  -->
+                                    <UniformGrid
+                                        Margin="0,10,0,0"
+                                        Columns="2"
+                                        Rows="1">
+                                        <Button
+                                            Name="SaveConfigButton"
+                                            Margin="2"
+                                            Click="SaveConfigButton_Click"
+                                            Content="Save Config" />
+                                        <Button
+                                            Name="LoadConfigButton"
+                                            Margin="2"
+                                            Click="LoadConfigButton_Click"
+                                            Content="Load Config" />
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Expander>
+
+                            <!--  Animation Control  -->
+                            <Expander
+                                Margin="0,10,0,0"
+                                Foreground="White"
+                                IsExpanded="False">
+                                <Expander.Header>
+                                    <TextBlock
+                                        FontSize="14"
+                                        Foreground="DarkCyan"
+                                        Text="Animation Control" />
+                                </Expander.Header>
+                                <StackPanel Margin="0,10,0,0">
+                                    <Button
+                                        Name="StartAnimationButton"
+                                        Margin="0,5"
+                                        Click="StartAnimationButton_Click"
+                                        Content="Start Animation" />
+                                    <Button
+                                        Name="StopAnimationButton"
+                                        Margin="0,5"
+                                        Click="StopAnimationButton_Click"
+                                        Content="Stop Animation" />
+                                    <Button
+                                        Name="ResetAnimationButton"
+                                        Margin="0,5"
+                                        Click="ResetAnimationButton_Click"
+                                        Content="Reset Animation" />
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!--  Bottom Button Panel  -->
+                    <StackPanel
+                        Grid.Row="2"
+                        Margin="5,0"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                        <Button
+                            Name="CloseButton"
+                            Width="50"
+                            Click="CloseButton_Click"
+                            Content="Close"
+                            ToolTip="Close Sandbox Window" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

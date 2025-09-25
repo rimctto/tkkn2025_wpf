@@ -13,7 +13,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
     /// Level mechanic that launches particles from the top of the screen straight down
     /// Particles are evenly spaced across the width and launched at timed intervals
     /// </summary>
-    public class StraightSweepMechanic : ParticleMechanicsBase
+    public class SweepMechanic : ParticleMechanicsBase
     {
         private DispatcherTimer launchTimer;
         
@@ -21,28 +21,31 @@ namespace tkkn2025.GameObjects.LevelMechanics
         public override int ActivationLevel { get; }
         public override int ParticleCount { get; }
         private readonly double launchInterval; // seconds between particle launches
+        private readonly bool reverse; // whether to launch particles from right to left
         
         // Sweep state
         private int particlesLaunched;
         private List<Vector2> launchPositions;
         
         // Particle properties
-        private readonly double sweepParticleSpeed = 200.0; // Fixed speed for sweep particles
-        private readonly Brush sweepParticleColor = Brushes.Yellow; // Distinct color for sweep particles
+        private readonly double particleSpeed; // Configurable speed for sweep particles
+        private readonly Brush particleColor = Brushes.Yellow; // Distinct color for sweep particles
 
-        public StraightSweepMechanic(Canvas canvas, Random randomGenerator, int activationLevel = 3, int particleCount = 30, double launchTiming = 0.5)
-            : base(canvas, randomGenerator)
+        public SweepMechanic(int activationLevel = 3, int particleCount = 30, double launchTiming = 0.5, bool reverse = false, double particleSpeed = 200.0)
+           
         {
             ActivationLevel = activationLevel;
             ParticleCount = Math.Max(1, particleCount);
             launchInterval = Math.Max(0.1, launchTiming);
+            this.reverse = reverse;
+            this.particleSpeed = Math.Max(50.0, particleSpeed); // Ensure minimum speed
             
             launchTimer = new DispatcherTimer();
             launchTimer.Tick += LaunchTimer_Tick;
             
             launchPositions = new List<Vector2>();
-            
-            System.Diagnostics.Debug.WriteLine($"?? StraightSweep mechanic created: Level {ActivationLevel}, {ParticleCount} particles, {launchInterval}s intervals");
+
+            System.Diagnostics.Debug.WriteLine($"?? StraightSweep mechanic created: Level {ActivationLevel}, {ParticleCount} particles, {launchInterval}s intervals, {this.particleSpeed} speed, reverse: {reverse}");
         }
 
         /// <summary>
@@ -60,7 +63,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
             launchTimer.Interval = TimeSpan.FromSeconds(launchInterval);
             launchTimer.Start();
             
-            System.Diagnostics.Debug.WriteLine($"?? StraightSweep activated: {ParticleCount} particles, {launchInterval}s intervals, {sweepParticleSpeed} speed");
+            System.Diagnostics.Debug.WriteLine($"?? StraightSweep activated: {ParticleCount} particles, {launchInterval}s intervals, {particleSpeed} speed");
         }
 
         /// <summary>
@@ -86,7 +89,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
         {
             if (mechanicParticles.Count == 0) return;
 
-            var particlesToRemove = new List<Patricle>();
+            var particlesToRemove = new List<Particle>();
 
             foreach (var particle in mechanicParticles)
             {
@@ -119,7 +122,15 @@ namespace tkkn2025.GameObjects.LevelMechanics
         /// </summary>
         private void CalculateLaunchPositions()
         {
-            launchPositions = GetEvenlySpacedTopPositions(ParticleCount);
+            var positions = GetEvenlySpacedTopPositions(ParticleCount);
+            
+            // If reverse is true, reverse the order of positions
+            if (reverse)
+            {
+                positions.Reverse();
+            }
+            
+            launchPositions = positions;
         }
 
         /// <summary>
@@ -148,19 +159,19 @@ namespace tkkn2025.GameObjects.LevelMechanics
         {
             try
             {
-                // Set velocity to move straight down
-                var velocity = new Vector2(0, (float)sweepParticleSpeed);
+                // Use current level speed instead of stored particleSpeed
+                // Set direction to move straight down
+                var direction = new Vector2(0, 1);
 
-                // Create particle using base class method
-                var particle = CreateParticle(position, velocity, sweepParticleColor, 8.0);
+                // Create particle using the new level speed method
+                var particle = CreateParticleWithLevelSpeed(position, direction, particleColor, 8.0);
 
                 // Set additional properties
-                particle.Speed = sweepParticleSpeed;
                 particle.ShouldChaseShip = false; // Straight line movement
                 particle.IsSpawnVectorTowardsShip = false;
                 particle.IsFreshlySpawned = true;
 
-                System.Diagnostics.Debug.WriteLine($"?? Sweep particle launched at ({position.X:F0}, {position.Y:F0}) - {particlesLaunched + 1}/{ParticleCount}");
+                System.Diagnostics.Debug.WriteLine($"?? Sweep particle launched at ({position.X:F0}, {position.Y:F0}) with speed {particle.Speed} - {particlesLaunched + 1}/{ParticleCount}");
             }
             catch (Exception ex)
             {

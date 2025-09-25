@@ -10,7 +10,7 @@ namespace tkkn2025
     /// <summary>
     /// Represents a particle in the game with position, velocity, and visual properties
     /// </summary>
-    public class Patricle : GameObject
+    public class Particle : GameObject
     {
         public bool IsFreshlySpawned { get; set; } = true;
         public Ellipse Visual { get; set; } = null!;
@@ -35,14 +35,14 @@ namespace tkkn2025
         /// Initialize particle with starting position
         /// </summary>
         /// <param name="startPosition">Starting position as Vector2</param>
-        public Patricle(Vector2 startPosition) : base(startPosition)
+        public Particle(Vector2 startPosition) : base(startPosition)
         {
         }
 
         /// <summary>
         /// Default constructor for backward compatibility
         /// </summary>
-        public Patricle() : base()
+        public Particle() : base()
         {
         }
 
@@ -198,7 +198,7 @@ namespace tkkn2025
             else if (Speed < defaultSpeed)
             {
                 // Slower than default - Blue
-                selectedColor = Brushes.Blue; 
+                selectedColor = Brushes.DodgerBlue; 
                  
                 if (TurnSpeed > 0.7)
                 {
@@ -208,7 +208,7 @@ namespace tkkn2025
                 else if (TurnSpeed > 0.3)
                 {
                     // High turn speed - Green
-                   selectedColor = Brushes.DarkBlue;
+                   selectedColor = Brushes.Blue;
                 }
             }
 
