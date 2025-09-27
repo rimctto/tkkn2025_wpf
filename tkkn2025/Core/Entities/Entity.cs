@@ -20,6 +20,9 @@ namespace tkkn2025
         public float Rotation { get; set; }
 
 
+        // Rotation matrix variables for transformations
+        private double ix, iy, jx, jy;
+
         public double X 
         { 
             get => Position.X; 
@@ -41,12 +44,14 @@ namespace tkkn2025
         {
             Position = startPosition;
             Velocity = new Vector2(1, 0); // initial velocity pointing right
+            UpdateRotationMatrix();
         }
 
         protected Entity()
         {
             Position = Vector2.Zero;
             Velocity = new Vector2(1, 0);
+            UpdateRotationMatrix();
         }
 
         public void Update(float deltaTime)
@@ -57,6 +62,31 @@ namespace tkkn2025
             }
         }
 
-        
+        /// <summary>
+        /// Update rotation matrix based on current frame or rotation angle
+        /// </summary>
+        /// <param name="angle">Rotation angle in radians. If null, uses entity's Rotation property</param>
+        public void UpdateRotationMatrix(double? angle = null)
+        {
+            double rotationAngle = angle ?? Rotation;
+            ix = Math.Cos(rotationAngle);
+            iy = Math.Sin(rotationAngle) * -1;
+            jx = Math.Sin(rotationAngle);
+            jy = Math.Cos(rotationAngle);
+        }
+
+        /// <summary>
+        /// Apply rotation matrix transformation to a 2D point
+        /// </summary>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <returns>Rotated coordinates as a Vector2</returns>
+        public Vector2 ApplyRotation(double x, double y)
+        {
+            var rotatedX = x * ix + y * iy;
+            var rotatedY = x * jx + y * jy;
+            return new Vector2((float)rotatedX, (float)rotatedY);
+        }
+
     }
 }

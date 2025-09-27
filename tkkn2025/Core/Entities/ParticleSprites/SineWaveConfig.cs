@@ -7,11 +7,11 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
 {
     public class SineWaveConfig
     {
-        public double ParticleSpacing { get; set; } = 1;
+        public double ParticleSpacing { get; set; } = 5;
         public int Size { get; set; } = 5;
-        public int ParticleCount { get; set; } = 25;
-        public double Frequency { get; set; } = 0.1;
-        public double Amplitude { get; set; } = 25;
+        public int ParticleCount { get; set; } = 15;
+        public double Frequency { get; set; } = 0.5;
+        public double Amplitude { get; set; } = 35;
         public double RotationSpeed { get; set; } = 0.003;
 
         private static readonly string ConfigFilePath = Path.Combine(

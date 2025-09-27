@@ -197,7 +197,7 @@ namespace tkkn2025.Core
             {
                 mazeGame = new Maze(MazeGenerator.GenerateMaze_Medium(ship, gameCanvas.ActualWidth, gameCanvas.ActualHeight), gameCanvas, ship);
                 UpdateCanvasDimensions();
-                mazeGame.Start();
+                //mazeGame.Start();
             }
 
             // Raise game started event

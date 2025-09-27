@@ -27,10 +27,6 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
         private readonly int activationLevel;
         private readonly int totalParticleCount;
 
-        // Animation variables
-        private double ix, iy, jx, jy;
-
-     
         #endregion
 
         #region Constructor
@@ -122,18 +118,6 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
         }
 
         /// <summary>
-        /// Update rotation matrix for animation
-        /// </summary>
-        private void UpdateRotationMatrix()
-        {
-            double angle = currentFrame * config.RotationSpeed;
-            ix = Math.Cos(angle);
-            iy = Math.Sin(angle);
-            jx = -Math.Sin(angle);
-            jy = Math.Cos(angle);
-        }
-
-        /// <summary>
         /// Update positions of sine wave particles
         /// </summary>
         private void UpdateSineWaveParticles()
@@ -148,19 +132,19 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
                 var particle = sineWaveParticles[i];
                 if (!particle.IsActive || particle.Visual == null) continue;
 
-                
-                var amplitude = Math.Min(config.Amplitude - config.Amplitude / (i * 0.2 + 1), config.Amplitude);
+                var damping = 1 / (i * 0.075 + 1);
+
+                var amplitude = Math.Min(config.Amplitude - (config.Amplitude * damping), config.Amplitude);
 
                 var x = i * config.ParticleSpacing;
-                var y = config.Amplitude * -Math.Sin(i * config.Frequency  + currentFrame * 0.05);
+                var y = amplitude * -Math.Sin(i * config.Frequency  + currentFrame * 0.05);
 
-                // Apply rotation matrix
-                var rotatedX = x * ix + y * iy;
-                var rotatedY = x * jx + y * jy;
+                // Apply rotation using base Entity class method
+                var rotatedPos = ApplyRotation(x, y);
 
                 // Update particle position relative to sine wave center
-                var newX = centerX + rotatedX;
-                var newY = centerY + rotatedY;
+                var newX = centerX + rotatedPos.X;
+                var newY = centerY + rotatedPos.Y;
 
                 particle.Position = new Vector2((float)newX, (float)newY);
 
@@ -277,13 +261,19 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
             lastUpdateTime += deltaTime;
             currentFrame = lastUpdateTime * 120; // Convert to frame-based animation (assuming 60 FPS equivalent)
 
-            UpdateRotationMatrix();
-            UpdateSineWaveParticles();
-            RemoveOutOfBoundsParticles();
+            // Update rotation matrix with current frame and rotation speed
+            double angle = currentFrame * config.RotationSpeed;
+
             foreach (var behavior in Behaviors)
             {
                 behavior.ApplyUpdate(deltaTime);
             }
+
+            UpdateRotationMatrix(Rotation);
+            
+            UpdateSineWaveParticles();
+            RemoveOutOfBoundsParticles();
+            
         }
 
 
