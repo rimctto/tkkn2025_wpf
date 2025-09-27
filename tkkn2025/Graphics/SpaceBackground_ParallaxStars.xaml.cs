@@ -89,12 +89,12 @@ namespace tkkn2025.Graphics
             double x = _rand.NextDouble() * this.ActualWidth;
             double y = randomY ? _rand.NextDouble() * this.ActualHeight : -10; // Start above screen or random for initial
             
-            // Random size (radius between 1 and 4)
-            double radius = _rand.NextDouble() * 2 + 1; // 1 to 4
+            // Random size
+            double radius = 1 + 2 * _rand.NextDouble(); // 1 to 3
             
             // Random speed based on size for parallax effect (smaller = farther = slower)
             double baseSpeed = 50; // pixels per second
-            double speedMultiplier = radius / 4.0; // Normalize to 0.25 - 1.0
+            double speedMultiplier = radius / 3.0; // Normalize to 0.25 - 1.0
             speedMultiplier = 0.3 + (speedMultiplier * 0.7); // Range: 0.3 - 1.0
             double speed = baseSpeed * speedMultiplier;
             

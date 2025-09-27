@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using tkkn2025.GameObjects;
+using tkkn2025.Core.GameModes.MazeMode;
 
 namespace tkkn2025.GameObjects.LevelMechanics
 {
@@ -34,7 +34,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
         // Event for triggering next line
         public event EventHandler<CustomLineMechanic>? NextLineActivated;
         
-        public CustomLineMechanic(int activationLevel = 0, int particleCount = 20, double particleSpeed = 200.0,
+        public CustomLineMechanic(int activationLevel = 0, int particleCount = 20, float particleSpeed = 200.0f,
                                  double x1Percent = 0.2, double y1Percent = 0.1, 
                                  double x2Percent = 0.5, double y2Percent = 0.6,
                                  Brush? color = null, bool firstLine = false, 
@@ -94,7 +94,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
             lastParticle = mechanicParticles[mechanicParticles.Count - 1];
 
             var particlesToRemove = new List<Particle>();
-            var movementVector = new Vector2(0, (float)(LevelManager.CurrentLevelSpeed * deltaTime));
+            var movementVector = new Vector2(0, (float)(Maze.CurrentLevelSpeed * deltaTime));
 
             foreach (var particle in mechanicParticles)
             {

@@ -3,7 +3,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
     /// <summary>
     /// Interface for particle-based level mechanics
     /// </summary>
-    public interface IParticleMechanics
+    public interface IParticleMechanic
     {
         /// <summary>
         /// The level at which this mechanic should be activated

@@ -5,20 +5,21 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using tkkn2025.Core.GameModes.MazeMode;
 using tkkn2025.GameObjects.LevelMechanics;
 using tkkn2025.GameObjects.LevelMechanics.ParticleSprites;
 
-namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
+namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
 {
     /// <summary>
     /// Spiral particle mechanic that creates rotating spiral patterns
     /// Inherits from ParticleMechanicsBase and GameObject to support positioning and particle mechanics
     /// </summary>
-    public class SpiralMechanic : ParticleMechanicsBase
+    public class SpiralAndSine : ParticleMechanicsBase
     {
         #region Private Fields
 
-        private readonly SpiralConfig config;
+        private readonly SpiralAndSineConfig config;
         private readonly List<Particle> spiralParticles = new List<Particle>();
         private readonly List<Particle> sineWaveParticles = new List<Particle>();
         private double currentFrame;
@@ -40,21 +41,21 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
 
         /// <summary>
         /// Creates a new Spiral mechanic at the specified position
-        /// </summary>
+        /// /// </summary>
         /// <param name="position">Center position of the spiral</param>
         /// <param name="activationLevel">Level at which this mechanic activates</param>
         /// <param name="particleCount">Number of particles in the spiral</param>
         /// <param name="config">Optional spiral configuration, uses default if null</param>
-        public SpiralMechanic(Vector2 position, int activationLevel = 1, int particleCount = 25, SpiralConfig? config = null) 
+        public SpiralAndSine(Vector2 position, int activationLevel = 1, int particleCount = 25, SpiralAndSineConfig? config = null)
             : base()
         {
             Position = position;
-            this.config = config ?? SpiralConfig.LoadConfig();
+            this.config = config ?? SpiralAndSineConfig.LoadConfig();
             this.activationLevel = activationLevel;
             this.totalParticleCount = particleCount * 2; // Spiral + Sine wave particles
             this.currentFrame = 0;
             this.lastUpdateTime = 0;
-            
+
             System.Diagnostics.Debug.WriteLine($"SpiralMechanic created at {position} with {totalParticleCount} total particles");
         }
 
@@ -82,7 +83,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         protected override void OnUpdate(double deltaTime)
         {
             lastUpdateTime += deltaTime;
-            currentFrame = lastUpdateTime * 60.0; // Convert to frame-based animation (assuming 60 FPS equivalent)
+            currentFrame = lastUpdateTime * 120; // Convert to frame-based animation (assuming 60 FPS equivalent)
 
             UpdateRotationMatrix();
             UpdateSpiralParticles();
@@ -173,7 +174,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         {
             var particle = new Particle(Position)
             {
-                Speed = LevelManager.CurrentLevelSpeed,
+                Speed = Maze.CurrentLevelSpeed,
                 IsActive = true,
                 Color = color,
                 ShouldChaseShip = false,
@@ -184,8 +185,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
             // Create visual element
             var visual = new Ellipse
             {
-                Width = config.Width,
-                Height = config.Width,
+                Width = config.Size,
+                Height = config.Size,
                 Stroke = color,
                 Fill = color,
                 StrokeThickness = 1
@@ -193,6 +194,9 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
 
             particle.Visual = visual;
             gameCanvas.Children.Add(visual);
+
+            // Add to base class mechanic particles list for proper tracking
+            mechanicParticles.Add(particle);
 
             return particle;
         }
@@ -204,7 +208,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         {
             var particle = new Particle(Position)
             {
-                Speed = LevelManager.CurrentLevelSpeed,
+                Speed = Maze.CurrentLevelSpeed,
                 IsActive = true,
                 Color = color,
                 ShouldChaseShip = false,
@@ -215,8 +219,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
             // Create visual element
             var visual = new Ellipse
             {
-                Width = config.Width,
-                Height = config.Height,
+                Width = config.Size,
+                Height = config.Size,
                 Stroke = color,
                 Fill = Brushes.MediumPurple,
                 StrokeThickness = 1
@@ -224,6 +228,9 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
 
             particle.Visual = visual;
             gameCanvas.Children.Add(visual);
+
+            // Add to base class mechanic particles list for proper tracking
+            mechanicParticles.Add(particle);
 
             return particle;
         }
@@ -247,8 +254,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         {
             if (gameCanvas == null) return;
 
-            var centerX = Position.X;
-            var centerY = Position.Y;
+            var centerX = Position.X * canvasWidth;
+            var centerY = Position.Y * canvasHeight;
 
             for (int i = 0; i < spiralParticles.Count; i++)
             {
@@ -256,7 +263,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
                 if (!particle.IsActive || particle.Visual == null) continue;
 
                 var calculatedRadius = i * config.Radius * 0.01; // Scale down the radius
-                
+
                 var x = Math.Sin(Math.PI * config.ParticleSpacing * 10 * i) * calculatedRadius;
                 var y = Math.Cos(Math.PI * config.ParticleSpacing * 10 * i) * calculatedRadius;
 
@@ -271,8 +278,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
                 particle.Position = new Vector2((float)newX, (float)newY);
 
                 // Update visual position
-                Canvas.SetLeft(particle.Visual, newX - config.Width / 2);
-                Canvas.SetTop(particle.Visual, newY - config.Height / 2);
+                Canvas.SetLeft(particle.Visual, newX - config.Size / 2);
+                Canvas.SetTop(particle.Visual, newY - config.Size / 2);
             }
         }
 
@@ -283,8 +290,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         {
             if (gameCanvas == null) return;
 
-            var centerX = Position.X;
-            var centerY = Position.Y;
+            var centerX = Position.X * canvasWidth;
+            var centerY = Position.Y * canvasHeight;
 
             for (int i = 0; i < sineWaveParticles.Count; i++)
             {
@@ -305,8 +312,8 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
                 particle.Position = new Vector2((float)newX, (float)newY);
 
                 // Update visual position
-                Canvas.SetLeft(particle.Visual, newX - config.Width / 2);
-                Canvas.SetTop(particle.Visual, newY - config.Height / 2);
+                Canvas.SetLeft(particle.Visual, newX - config.Size / 2);
+                Canvas.SetTop(particle.Visual, newY - config.Size / 2);
             }
         }
 
@@ -374,9 +381,12 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
                 {
                     gameCanvas.Children.Remove(particle.Visual);
                 }
-                
+
                 particleList.Remove(particle);
-                
+
+                // Also remove from base class mechanicParticles list for proper tracking
+                mechanicParticles.Remove(particle);
+
                 if (particle != null)
                 {
                     particle.IsActive = false;
@@ -393,31 +403,12 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         /// </summary>
         private void ClearCustomParticles()
         {
-            if (gameCanvas != null)
-            {
-                // Clear spiral particles
-                foreach (var particle in spiralParticles)
-                {
-                    if (particle.Visual != null)
-                    {
-                        gameCanvas.Children.Remove(particle.Visual);
-                    }
-                    particle.IsActive = false;
-                }
-
-                // Clear sine wave particles
-                foreach (var particle in sineWaveParticles)
-                {
-                    if (particle.Visual != null)
-                    {
-                        gameCanvas.Children.Remove(particle.Visual);
-                    }
-                    particle.IsActive = false;
-                }
-            }
-
+            // Clear local lists
             spiralParticles.Clear();
             sineWaveParticles.Clear();
+
+            // Use base class method to properly clear all particles from canvas and mechanicParticles list
+            ClearAllParticles();
         }
 
         #endregion
@@ -436,7 +427,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParicleSprites
         /// <summary>
         /// Get the current configuration
         /// </summary>
-        public SpiralConfig GetConfig()
+        public SpiralAndSineConfig GetConfig()
         {
             return config;
         }

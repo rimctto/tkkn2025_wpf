@@ -12,7 +12,7 @@ namespace tkkn2025.GameObjects.PowerUps
     /// <summary>
     /// Represents a power-up in the game that can be collected by the player
     /// </summary>
-    public class PowerUp : GameObject
+    public class PowerUp : Entity
     {
         /// <summary>
         /// Visual representation of the power-up on the canvas

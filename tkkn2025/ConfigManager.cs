@@ -6,6 +6,26 @@ using static tkkn2025.Helpers.DebugHelper;
 namespace tkkn2025
 {
     /// <summary>
+    /// Application configuration class for storing application-level settings like player name and music preferences
+    /// </summary>
+    public class AppConfig
+    {
+        public string PlayerName { get; set; } = "Anonymous";
+        public string Version { get; set; } = "1.0";
+
+        // Music player properties
+        public bool RepeatTrack { get; set; } = false;
+        public string DefaultTrack { get; set; } = "";
+        public bool IsPlaying { get; set; } = false;
+
+
+        // Cheat Codes
+        public bool IsInvincible { get; set; } = false;
+
+
+    }
+
+    /// <summary>
     /// Configuration class for storing and managing game settings with metadata
     /// </summary>
     public class GameConfig
@@ -108,19 +128,7 @@ namespace tkkn2025
         }
     }
 
-    /// <summary>
-    /// Application configuration class for storing application-level settings like player name and music preferences
-    /// </summary>
-    public class AppConfig
-    {
-        public string PlayerName { get; set; } = "Anonymous";
-        public string Version { get; set; } = "1.0";
-        
-        // Music player properties
-        public bool RepeatTrack { get; set; } = false;
-        public string DefaultTrack { get; set; } = "";
-        public bool IsPlaying { get; set; } = false;
-    }
+    
     
     /// <summary>
     /// Static class for managing configuration files and settings
@@ -186,9 +194,9 @@ namespace tkkn2025
                 PowerUpForce_Singulaiorty = GameSettings.PowerUpForce_Singularity.DefaultValue,
 
                 // Level Mechanics settings
-                LevelMechanicsEnabled = GameSettings.LevelMechanicsEnabled.DefaultValue,
-                InitialLevelSpeed = GameSettings.InitialLevelSpeed.DefaultValue,
-                SpeedIncreasePerLevel = GameSettings.SpeedIncreasePerLevel.DefaultValue,
+                LevelMechanicsEnabled = GameSettings.AreMazeWallsEnabled.DefaultValue,
+                InitialLevelSpeed = GameSettings.MazeMode_InitialParticleSpeed.DefaultValue,
+                SpeedIncreasePerLevel = GameSettings.MazeMode_SpeedIncreasePerLevel.DefaultValue,
 
 
             };
@@ -224,7 +232,7 @@ namespace tkkn2025
             var mazeConfig = CreateDefaultGameConfig();
             
             mazeConfig.ConfigName = "Maze Mode";
-            mazeConfig.Description = "Maze mode with no particles and no power-ups";
+            mazeConfig.Description = "Maze mode with no random particles and no power-ups";
             mazeConfig.GameMode = Settings.Models.GameMode.Maze;
             
             // Maze mode specific settings
@@ -247,7 +255,6 @@ namespace tkkn2025
         {
             return gameMode switch
             {
-                Settings.Models.GameMode.Standard => CreateDefaultGameConfig(),
                 Settings.Models.GameMode.Survival => CreateSurvivalModeConfig(),
                 Settings.Models.GameMode.Maze => CreateMazeModeConfig(),
                 _ => CreateDefaultGameConfig()

@@ -10,38 +10,24 @@ namespace tkkn2025
     /// <summary>
     /// Represents a particle in the game with position, velocity, and visual properties
     /// </summary>
-    public class Particle : GameObject
+    public class Particle : Entity
     {
         public bool IsFreshlySpawned { get; set; } = true;
+
         public Ellipse Visual { get; set; } = null!;
-        
-        /// <summary>
-        /// Indicates whether this particle's spawn vector was directed towards the ship
-        /// This value is set when the particle is created based on the game setting
-        /// </summary>
+        public Brush Color { get; set; } = Brushes.White; // default color
+        public int Size { get; set; } = 5;
+
         public bool IsSpawnVectorTowardsShip { get; set; }
-        
-        /// <summary>
-        /// Turn speed for steering behavior (radians per second)
-        /// </summary>
+           
         public float TurnSpeed { get; set; }
-        
-        /// <summary>
-        /// Whether this particle should chase the ship or move in straight line
-        /// </summary>
         public bool ShouldChaseShip { get; set; } = false;
 
-        /// <summary>
-        /// Initialize particle with starting position
-        /// </summary>
-        /// <param name="startPosition">Starting position as Vector2</param>
+
         public Particle(Vector2 startPosition) : base(startPosition)
         {
         }
 
-        /// <summary>
-        /// Default constructor for backward compatibility
-        /// </summary>
         public Particle() : base()
         {
         }
@@ -65,6 +51,16 @@ namespace tkkn2025
             // Update visual position
             UpdateVisualPosition();
         }
+
+        /// <summary>
+        /// Update particle with straight-line movement
+        /// </summary>
+        /// <param name="deltaTime">Time elapsed since last update</param>
+        private void UpdateStraightLine(float deltaTime)
+        {
+            Position += Velocity * deltaTime;
+        }
+
 
         /// <summary>
         /// Update particle with steering behavior to chase the ship
@@ -106,14 +102,7 @@ namespace tkkn2025
             Position += Velocity * deltaTime;
         }
 
-        /// <summary>
-        /// Update particle with straight-line movement
-        /// </summary>
-        /// <param name="deltaTime">Time elapsed since last update</param>
-        private void UpdateStraightLine(float deltaTime)
-        {
-            Position += Velocity * deltaTime;
-        }
+       
 
         /// <summary>
         /// Clamp a value between min and max

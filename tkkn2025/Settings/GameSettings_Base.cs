@@ -77,9 +77,9 @@ namespace tkkn2025.Settings
 
             LevelMechanicsSettings = new List<ISettingModel>
             {
-                LevelMechanicsEnabled,
-                InitialLevelSpeed,
-                SpeedIncreasePerLevel
+                AreMazeWallsEnabled,
+                MazeMode_InitialParticleSpeed,
+                MazeMode_SpeedIncreasePerLevel
             };
 
             AllSettings = new List<ISettingModel>();
@@ -124,15 +124,7 @@ namespace tkkn2025.Settings
 
                 switch (gameMode)
                 {
-                    case Settings.Models.GameMode.Standard:
-                        // Reset all settings to defaults
-                        foreach (var setting in AllSettings.Where(s => s != GameMode))
-                        {
-                            setting.Value = setting.DefaultValue;
-                        }
-                        DebugHelper.WriteLine("Applied Standard mode: All default settings");
-                        break;
-
+                   
                     case Settings.Models.GameMode.Survival:
                         // Reset to defaults first, then apply survival-specific changes
                         foreach (var setting in AllSettings.Where(s => s != GameMode))
@@ -140,7 +132,7 @@ namespace tkkn2025.Settings
                             setting.Value = setting.DefaultValue;
                         }
                         // Survival mode: Disable level mechanics
-                        LevelMechanicsEnabled.Value = false;
+                        AreMazeWallsEnabled.Value = false;
                         DebugHelper.WriteLine("Applied Survival mode: LevelMechanicsEnabled = false");
                         break;
 
@@ -242,9 +234,9 @@ namespace tkkn2025.Settings
                 PowerUpDuration_Singularity = PowerUpDuration_Singularity,
                 PowerUpForce_Singulaiorty = PowerUpForce_Singularity,
 
-                LevelMechanicsEnabled = LevelMechanicsEnabled,
-                InitialLevelSpeed = InitialLevelSpeed,
-                SpeedIncreasePerLevel = SpeedIncreasePerLevel
+                LevelMechanicsEnabled = AreMazeWallsEnabled,
+                InitialLevelSpeed = MazeMode_InitialParticleSpeed,
+                SpeedIncreasePerLevel = MazeMode_SpeedIncreasePerLevel
             };
         }
 
@@ -285,9 +277,9 @@ namespace tkkn2025.Settings
             PowerUpDuration_Singularity.Value = config.PowerUpDuration_Singularity;
             PowerUpForce_Singularity.Value = config.PowerUpForce_Singulaiorty;
 
-            LevelMechanicsEnabled.Value = config.LevelMechanicsEnabled;
-            InitialLevelSpeed.Value = config.InitialLevelSpeed;
-            SpeedIncreasePerLevel.Value = config.SpeedIncreasePerLevel;
+            AreMazeWallsEnabled.Value = config.LevelMechanicsEnabled;
+            MazeMode_InitialParticleSpeed.Value = config.InitialLevelSpeed;
+            MazeMode_SpeedIncreasePerLevel.Value = config.SpeedIncreasePerLevel;
 
             DebugHelper.WriteLine($"After loading - GameMode: {GameMode.Value}");
             DebugHelper.WriteLine($"After loading - PowerUp enabled states:");

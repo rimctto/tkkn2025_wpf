@@ -1,0 +1,483 @@
+﻿<UserControl
+    x:Class="tkkn2025.UI.UserControls.SketchPad"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:tkkn2025.UI.UserControls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <Grid>
+        <!--  Main Canvas for the cartoony text  -->
+        <Canvas>
+            <!--  PARTICLE (First Row)  -->
+
+            <!--  P - Letter 1  -->
+            <Path
+                Canvas.Left="20"
+                Canvas.Top="50"
+                Fill="#FF6B35"
+                Stroke="#D63031"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,35,12" />
+                        <RectangleGeometry Rect="0,24,30,8" />
+                        <RectangleGeometry Rect="27,0,8,32" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  A - Letter 2  -->
+            <Path
+                Canvas.Left="80"
+                Canvas.Top="50"
+                Fill="#00B894"
+                Stroke="#00A085"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="20,0">
+                            <LineSegment Point="40,60" />
+                            <LineSegment Point="30,60" />
+                            <LineSegment Point="26,45" />
+                            <LineSegment Point="14,45" />
+                            <LineSegment Point="10,60" />
+                            <LineSegment Point="0,60" />
+                            <LineSegment Point="20,0" />
+                        </PathFigure>
+                        <PathFigure StartPoint="12,30">
+                            <LineSegment Point="28,30" />
+                            <LineSegment Point="26,36" />
+                            <LineSegment Point="14,36" />
+                            <LineSegment Point="12,30" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  R - Letter 3  -->
+            <Path
+                Canvas.Left="140"
+                Canvas.Top="50"
+                Fill="#E17055"
+                Stroke="#D63031"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,30,12" />
+                        <RectangleGeometry Rect="0,24,25,8" />
+                        <RectangleGeometry Rect="22,0,8,32" />
+                        <PathGeometry>
+                            <PathFigure StartPoint="25,30">
+                                <LineSegment Point="35,60" />
+                                <LineSegment Point="25,60" />
+                                <LineSegment Point="15,30" />
+                            </PathFigure>
+                        </PathGeometry>
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  T - Letter 4  -->
+            <Path
+                Canvas.Left="200"
+                Canvas.Top="50"
+                Fill="#A29BFE"
+                Stroke="#6C5CE7"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,40,12" />
+                        <RectangleGeometry Rect="16,0,8,60" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  I - Letter 5  -->
+            <Path
+                Canvas.Left="260"
+                Canvas.Top="50"
+                Fill="#FDCB6E"
+                Stroke="#E17055"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,25,12" />
+                        <RectangleGeometry Rect="8,0,8,60" />
+                        <RectangleGeometry Rect="0,48,25,12" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  C - Letter 6  -->
+            <Path
+                Canvas.Left="310"
+                Canvas.Top="50"
+                Fill="#FF7675"
+                Stroke="#D63031"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="35,15">
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="5,15"
+                                Size="15,15"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="5,45" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="35,45"
+                                Size="15,15"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="35,35" />
+                            <LineSegment Point="15,35" />
+                            <LineSegment Point="15,25" />
+                            <LineSegment Point="35,25" />
+                            <LineSegment Point="35,15" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  L - Letter 7  -->
+            <Path
+                Canvas.Left="370"
+                Canvas.Top="50"
+                Fill="#74B9FF"
+                Stroke="#0984E3"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,48,30,12" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  E - Letter 8  -->
+            <Path
+                Canvas.Left="420"
+                Canvas.Top="50"
+                Fill="#55A3FF"
+                Stroke="#2D3436"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,35,12" />
+                        <RectangleGeometry Rect="0,24,25,8" />
+                        <RectangleGeometry Rect="0,48,35,12" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  ADVENTURES (Second Row)  -->
+
+            <!--  A - Letter 1  -->
+            <Path
+                Canvas.Left="20"
+                Canvas.Top="150"
+                Fill="#FD79A8"
+                Stroke="#E84393"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="20,0">
+                            <LineSegment Point="40,60" />
+                            <LineSegment Point="30,60" />
+                            <LineSegment Point="26,45" />
+                            <LineSegment Point="14,45" />
+                            <LineSegment Point="10,60" />
+                            <LineSegment Point="0,60" />
+                            <LineSegment Point="20,0" />
+                        </PathFigure>
+                        <PathFigure StartPoint="12,30">
+                            <LineSegment Point="28,30" />
+                            <LineSegment Point="26,36" />
+                            <LineSegment Point="14,36" />
+                            <LineSegment Point="12,30" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  D - Letter 2  -->
+            <Path
+                Canvas.Left="80"
+                Canvas.Top="150"
+                Fill="#FDCB6E"
+                Stroke="#E17055"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="0,0">
+                            <LineSegment Point="25,0" />
+                            <ArcSegment
+                                Point="20,60"
+                                Size="2,3"
+                                SweepDirection="Clockwise" />
+                            <LineSegment Point="0,60" />
+                            <LineSegment Point="0,48" />
+                            <LineSegment Point="20,48" />
+                            <LineSegment Point="20,12" />
+                            <LineSegment Point="0,12" />
+                            <LineSegment Point="0,0" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  V - Letter 3  -->
+            <Path
+                Canvas.Left="140"
+                Canvas.Top="150"
+                Fill="#81ECEC"
+                Stroke="#00CEC9"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="0,0">
+                            <LineSegment Point="10,0" />
+                            <LineSegment Point="20,50" />
+                            <LineSegment Point="30,0" />
+                            <LineSegment Point="40,0" />
+                            <LineSegment Point="25,60" />
+                            <LineSegment Point="15,60" />
+                            <LineSegment Point="0,0" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  E - Letter 4  -->
+            <Path
+                Canvas.Left="200"
+                Canvas.Top="150"
+                Fill="#A29BFE"
+                Stroke="#6C5CE7"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,35,12" />
+                        <RectangleGeometry Rect="0,24,25,8" />
+                        <RectangleGeometry Rect="0,48,35,12" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  N - Letter 5  -->
+            <Path
+                Canvas.Left="260"
+                Canvas.Top="150"
+                Fill="#00B894"
+                Stroke="#00A085"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="27,0,8,60" />
+                        <PathGeometry>
+                            <PathFigure StartPoint="8,15">
+                                <LineSegment Point="27,45" />
+                                <LineSegment Point="27,35" />
+                                <LineSegment Point="15,15" />
+                                <LineSegment Point="20,10" />
+                                <LineSegment Point="35,35" />
+                                <LineSegment Point="35,60" />
+                                <LineSegment Point="27,60" />
+                                <LineSegment Point="8,25" />
+                                <LineSegment Point="8,15" />
+                            </PathFigure>
+                        </PathGeometry>
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  T - Letter 6  -->
+            <Path
+                Canvas.Left="320"
+                Canvas.Top="150"
+                Fill="#FF7675"
+                Stroke="#D63031"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,40,12" />
+                        <RectangleGeometry Rect="16,0,8,60" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  U - Letter 7  -->
+            <Path
+                Canvas.Left="380"
+                Canvas.Top="150"
+                Fill="#E17055"
+                Stroke="#D63031"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="0,0">
+                            <LineSegment Point="8,0" />
+                            <LineSegment Point="8,45" />
+                            <ArcSegment
+                                Point="27,45"
+                                Size="10,10"
+                                SweepDirection="Clockwise" />
+                            <LineSegment Point="27,0" />
+                            <LineSegment Point="35,0" />
+                            <LineSegment Point="35,50" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="0,50"
+                                Size="17.5,17.5"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="0,0" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  R - Letter 8  -->
+            <Path
+                Canvas.Left="440"
+                Canvas.Top="150"
+                Fill="#74B9FF"
+                Stroke="#0984E3"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,30,12" />
+                        <RectangleGeometry Rect="0,24,25,8" />
+                        <RectangleGeometry Rect="22,0,8,32" />
+                        <PathGeometry>
+                            <PathFigure StartPoint="25,30">
+                                <LineSegment Point="35,60" />
+                                <LineSegment Point="25,60" />
+                                <LineSegment Point="15,30" />
+                            </PathFigure>
+                        </PathGeometry>
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  E - Letter 9  -->
+            <Path
+                Canvas.Left="500"
+                Canvas.Top="150"
+                Fill="#FDCB6E"
+                Stroke="#E17055"
+                StrokeThickness="3">
+                <Path.Data>
+                    <GeometryGroup>
+                        <RectangleGeometry Rect="0,0,8,60" />
+                        <RectangleGeometry Rect="0,0,35,12" />
+                        <RectangleGeometry Rect="0,24,25,8" />
+                        <RectangleGeometry Rect="0,48,35,12" />
+                    </GeometryGroup>
+                </Path.Data>
+            </Path>
+
+            <!--  S - Letter 10  -->
+            <Path
+                Canvas.Left="560"
+                Canvas.Top="150"
+                Fill="#55A3FF"
+                Stroke="#2D3436"
+                StrokeThickness="3">
+                <Path.Data>
+                    <PathGeometry>
+                        <PathFigure StartPoint="30,10">
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="5,10"
+                                Size="12.5,12.5"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="5,20" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="25,25"
+                                Size="10,10"
+                                SweepDirection="Clockwise" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="25,35"
+                                Size="10,10"
+                                SweepDirection="Clockwise" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="5,40"
+                                Size="10,10"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="5,50" />
+                            <ArcSegment
+                                IsLargeArc="False"
+                                Point="30,50"
+                                Size="12.5,12.5"
+                                SweepDirection="Counterclockwise" />
+                            <LineSegment Point="30,40" />
+                            <LineSegment Point="15,40" />
+                            <LineSegment Point="15,35" />
+                            <LineSegment Point="20,30" />
+                            <LineSegment Point="15,25" />
+                            <LineSegment Point="15,20" />
+                            <LineSegment Point="30,20" />
+                            <LineSegment Point="30,10" />
+                        </PathFigure>
+                    </PathGeometry>
+                </Path.Data>
+            </Path>
+
+            <!--  Decorative elements  -->
+            <Ellipse
+                Canvas.Left="10"
+                Canvas.Top="30"
+                Width="12"
+                Height="12"
+                Fill="#FF6B35"
+                Opacity="0.8" />
+            <Ellipse
+                Canvas.Left="470"
+                Canvas.Top="40"
+                Width="8"
+                Height="8"
+                Fill="#00B894"
+                Opacity="0.8" />
+            <Ellipse
+                Canvas.Left="600"
+                Canvas.Top="130"
+                Width="10"
+                Height="10"
+                Fill="#A29BFE"
+                Opacity="0.8" />
+            <Ellipse
+                Canvas.Left="580"
+                Canvas.Top="70"
+                Width="6"
+                Height="6"
+                Fill="#FD79A8"
+                Opacity="0.8" />
+
+            <!--  Fun particle-like decorations around the text  -->
+            <Polygon
+                Fill="#FDCB6E"
+                Opacity="0.7"
+                Points="650,60 655,50 660,60 655,70" />
+            <Polygon
+                Fill="#74B9FF"
+                Opacity="0.7"
+                Points="15,240 20,235 25,240 20,245" />
+            <Polygon
+                Fill="#E17055"
+                Opacity="0.7"
+                Points="480,40 485,35 490,40 485,45" />
+        </Canvas>
+    </Grid>
+</UserControl>

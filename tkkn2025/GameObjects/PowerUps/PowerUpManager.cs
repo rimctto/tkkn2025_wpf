@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using tkkn2025.GameObjects;
+using tkkn2025.Core.GameModes.SurvivalMode;
 using tkkn2025.Settings;
 
 namespace tkkn2025.GameObjects.PowerUps

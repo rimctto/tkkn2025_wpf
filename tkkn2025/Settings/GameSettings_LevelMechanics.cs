@@ -10,21 +10,34 @@ namespace tkkn2025.Settings
         /// <summary>
         /// Whether level mechanics are enabled
         /// </summary>
-        public static BoolSetting LevelMechanicsEnabled { get; } = new BoolSetting(
-            name: nameof(LevelMechanicsEnabled),
-            displayName: "Enable Level Mechanics",
-            category: "Level Mechanics",
+        public static BoolSetting AreMazeWallsEnabled { get; } = new BoolSetting(
+            name: nameof(AreMazeWallsEnabled),
+            displayName: "Enable Maze Generation",
+            category: "Maze Mode",
             defaultValue: false,
             description: "Enable special level mechanics like StraightSweep attacks"
         );
 
         /// <summary>
+        /// Initial speed for level mechanics when the game starts
+        /// </summary>
+        public static DoubleSetting MazeMode_InitialParticleSpeed { get; } = new DoubleSetting(
+            name: nameof(MazeMode_InitialParticleSpeed),
+            displayName: "Initial Level Speed",
+            category: "Maze Mode",
+            defaultValue: 175.0,
+            min: 50.0,
+            max: 500.0,
+            description: "Initial speed for level mechanic particles at the start of the game"
+        );
+
+        /// <summary>
         /// Speed increase per level for level mechanics
         /// </summary>
-        public static DoubleSetting SpeedIncreasePerLevel { get; } = new DoubleSetting(
-            name: nameof(SpeedIncreasePerLevel),
+        public static DoubleSetting MazeMode_SpeedIncreasePerLevel { get; } = new DoubleSetting(
+            name: nameof(MazeMode_SpeedIncreasePerLevel),
             displayName: "Speed Increase Per Level",
-            category: "Level Mechanics",
+            category: "Maze Mode",
             defaultValue: 50.0,
             min: 0.0,
             max: 200.0,
@@ -32,16 +45,17 @@ namespace tkkn2025.Settings
         );
 
         /// <summary>
-        /// Initial speed for level mechanics when the game starts
+        /// Speed increase per level for level mechanics
         /// </summary>
-        public static DoubleSetting InitialLevelSpeed { get; } = new DoubleSetting(
-            name: nameof(InitialLevelSpeed),
-            displayName: "Initial Level Speed",
-            category: "Level Mechanics",
-            defaultValue: 175.0,
-            min: 50.0,
-            max: 500.0,
-            description: "Initial speed for level mechanic particles at the start of the game"
+        public static DoubleSetting MazeMode_SpeedRamprate { get; } = new DoubleSetting(
+            name: nameof(MazeMode_SpeedIncreasePerLevel),
+            displayName: "Speed Increase Rate (s)",
+            category: "Maze Mode",
+            defaultValue: 50.0,
+            min: 0.0,
+            max: 200.0,
+            description: "How fast the speed ramps up"
         );
+
     }
 }

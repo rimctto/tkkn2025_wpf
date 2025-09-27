@@ -6,12 +6,12 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 
-namespace tkkn2025.GameObjects
+namespace tkkn2025.Core.GameModes.SurvivalMode
 {
     /// <summary>
     /// Represents a repulsor that applies repelling force to particles and follows the ship
     /// </summary>
-    public class Repulsor : GameObject
+    public class Repulsor : Entity
     {
         public float Mass { get; set; }
         public double RemainingTime { get; set; }
@@ -49,7 +49,7 @@ namespace tkkn2025.GameObjects
             Vector2 dirNormalized = dir / dist;
 
             // Force magnitude: F = G * m1 * m2 / r² (Mass is negative for repelling)
-            float force = G * particleMass * Mass / (distSq);
+            float force = G * particleMass * Mass / distSq;
 
             // Acceleration: a = F / m
             Vector2 acceleration = dirNormalized * force / particleMass;

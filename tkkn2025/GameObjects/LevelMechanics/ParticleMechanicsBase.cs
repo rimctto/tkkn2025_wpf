@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using tkkn2025.Core.GameModes.MazeMode;
 
 namespace tkkn2025.GameObjects.LevelMechanics
 {
@@ -12,7 +13,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
     /// Base class for all particle-based level mechanics
     /// Provides common functionality and static canvas variables to avoid repetitive initialization
     /// </summary>
-    public abstract class ParticleMechanicsBase : IParticleMechanics, IDisposable
+    public abstract class ParticleMechanicsBase : Entity, IParticleMechanic, IDisposable
     {
         #region Static Canvas Variables (initialized once per game)
   
@@ -76,7 +77,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
 
         #region IParticleMechanics Implementation
         
-        public static void Reset(Canvas gameCanvas)
+        public static void UpdateCanvasDimensions(Canvas gameCanvas)
         {
             if (gameCanvas == null)
             {
@@ -294,7 +295,7 @@ namespace tkkn2025.GameObjects.LevelMechanics
             }
             
             // Use the current level speed from LevelManager
-            double currentSpeed = LevelManager.CurrentLevelSpeed;
+            double currentSpeed = Maze.CurrentLevelSpeed;
             
             // Normalize direction and apply current speed
             if (direction.Length() > 0.01f)

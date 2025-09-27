@@ -15,7 +15,7 @@ namespace tkkn2025.Settings
             name: nameof(GameMode),
             displayName: "Game Mode",
             category: "Gameplay",
-            defaultValue: Models.GameMode.Standard,
+            defaultValue: Models.GameMode.Survival,
             description: "Choose between different game modes with preset configurations"
         );
 

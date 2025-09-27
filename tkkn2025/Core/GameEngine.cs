@@ -5,13 +5,16 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using tkkn2025.GameObjects;
 using tkkn2025.GameObjects.PowerUps;
 using tkkn2025.GameObjects.Ship;
 using tkkn2025.GameObjects.LevelMechanics;
 using tkkn2025.Settings;
 using tkkn2025.DataAccess;
 using tkkn2025.Helpers;
+using tkkn2025.Settings.Models;
+using tkkn2025.Core.GameModes.SurvivalMode;
+using tkkn2025.Core.GameModes.MazeMode;
+using tkkn2025.Core.Entities.Ship;
 
 namespace tkkn2025.Core
 {
@@ -21,20 +24,19 @@ namespace tkkn2025.Core
     /// </summary>
     public class GameEngine
     {
+
         #region Private Fields
 
         // Game objects
-        private ShipSprite ship = null!;
+        private Ship ship = null!;
         private ParticleManager particleManager = null!;
         private PowerUpManager powerUpManager = null!;
-        private LevelManager levelManager = null!;
+        private Maze mazeGame = null!;
         private Random random = null!;
 
         // Game state tracking
         private bool gameRunning = false;
-        private bool[] keysPressed = new bool[7]; // Up, Down, Left, Right, LeftShift, RightShift, Space
         private Point centerScreen;
-        private Point shipPosition;
 
         // Game loop timing
         private DateTime lastUpdate = DateTime.Now;
@@ -45,19 +47,11 @@ namespace tkkn2025.Core
         private int frameCount = 0;
 
         // Active game settings - snapshot taken when game starts
-        private double activeShipSpeed;
-        private double activeShipBoost;
-        private double activeShipSuperBoost;
         private double activeLevelDuration;
         private double activeNewParticlesPerLevel;
 
         // Power-up effects
         private double currentSpeedMultiplier = 1.0;
-
-        // Super boost double-tap detection
-        private DateTime lastSpaceKeyPress = DateTime.MinValue;
-        private bool isSuperBoostActive = false;
-        private const double DoubleTapThreshold = 0.15; // 150ms for double-tap detection
 
         // Session management
         private Session currentSession = null!;
@@ -96,12 +90,6 @@ namespace tkkn2025.Core
         /// Whether the game is currently running
         /// </summary>
         public bool IsGameRunning => gameRunning;
-
-        /// <summary>
-        /// Current ship position
-        /// </summary>
-        public Point ShipPosition => shipPosition;
-
         /// <summary>
         /// Current game session
         /// </summary>
@@ -130,10 +118,7 @@ namespace tkkn2025.Core
 
             random = new Random();
 
-            // Initialize particle controller - no direct event wiring needed
             particleManager = new ParticleManager(gameCanvas);
-
-            // Initialize power-up manager - no direct event wiring needed
             powerUpManager = new PowerUpManager(gameCanvas, random);
 
             CreateShip();
@@ -147,32 +132,25 @@ namespace tkkn2025.Core
 
         private void CreateShip()
         {
-            ship = new ShipSprite();
-            gameCanvas.Children.Add(ship);
-            ship.Reset(new Point(-100, -100));
-
+            centerScreen = new Point(gameCanvas.ActualWidth / 2, gameCanvas.ActualHeight / 2);
+            ship = new Ship(gameCanvas, new Vector2((float)centerScreen.X, (float)centerScreen.Y));
         }
 
         #endregion
 
         #region Game State Management
 
+        public GameMode GameMode { get; set; } = GameSettings.GameMode;
+
         /// <summary>
         /// Start a new game with current settings
         /// </summary>
         public void StartGame()
         {
-            if (gameRunning) return;
 
-            // Initialize level manager based on settings
-            if (GameSettings.LevelMechanicsEnabled.Value)
-            {
-                levelManager = new LevelManager(LevelManager.GenerateMaze_Medium(), gameCanvas);
-            }
-            else 
-            { 
-                levelManager = new LevelManager(); 
-            }
+            if (gameRunning) return;
+            GameMode = GameSettings.GameMode;
+
 
             gameRunning = true;
             gameStartTime = DateTime.Now;
@@ -183,84 +161,49 @@ namespace tkkn2025.Core
             frameCount = 0;
             currentSpeedMultiplier = 1.0;
 
-            // Update canvas dimensions FIRST before creating level manager
-            UpdateCanvasDimensions();
 
             // Snapshot current settings as active settings for this game
-            activeShipSpeed = GameSettings.ShipSpeed.Value;
-            activeShipBoost = GameSettings.ShipBoost.Value;
-            activeShipSuperBoost = GameSettings.ShipSuperBoost.Value;
             activeLevelDuration = GameSettings.LevelDuration.Value;
             activeNewParticlesPerLevel = GameSettings.NewParticlesPerLevel.Value;
 
-            // Initialize particle controller with game settings
-            ParticleManager.InitializeGameSettings();
 
             // Start a new game in the session (this creates a copy of the current config)
             currentGame = currentSession.StartNewGame();
 
-            // Reset all key states to prevent ship from moving automatically
-            for (int i = 0; i < keysPressed.Length; i++)
-            {
-                keysPressed[i] = false;
-            }
-
-            // Reset super boost state
-            lastSpaceKeyPress = DateTime.MinValue;
-            isSuperBoostActive = false;
-
             // Reset ship position to current center and show neutral
             centerScreen = new Point(gameCanvas.ActualWidth / 2, gameCanvas.ActualHeight / 2);
-            shipPosition = centerScreen;
+            ship.UpdateGameSettings(); // Update ship settings from current game settings
+            ship.UpdateCanvasDimensions(); // Update canvas bounds
             ship.Reset(centerScreen);
-        
-            // Start new game through particle controller
-            particleManager.StartNewGame();
 
-            // Start new game through power-up manager
-            powerUpManager.StartNewGame();
+            UpdateCanvasDimensions();
+
+
+            // Initialize
+            if (GameMode == GameMode.Survival)
+            {
+
+                // Initialize particle controller with game settings
+                ParticleManager.InitializeGameSettings();
+                // Start new game through particle controller
+                particleManager.StartNewGame();
+
+                // Start new game through power-up manager
+                powerUpManager.StartNewGame();
+
+            }
+
+            else if (GameMode == GameMode.Maze)
+            {
+                mazeGame = new Maze(MazeGenerator.GenerateMaze_Medium(ship, gameCanvas.ActualWidth, gameCanvas.ActualHeight), gameCanvas, ship);
+                UpdateCanvasDimensions();
+                mazeGame.Start();
+            }
 
             // Raise game started event
             GameEvents.RaiseGameStarted();
-
-            // Debug output for game start
-            DebugHelper.WriteLine($"Game started with {GameSettings.StartingParticles.Value} particles, Ship Speed: {activeShipSpeed}");
-            DebugHelper.WriteLine($"Level mechanics enabled: {GameSettings.LevelMechanicsEnabled.Value}");
-            DebugHelper.WriteLine($"Ship Super Boost: {activeShipSuperBoost}");
-            
-            levelManager.ActivateMechanics();
         }
 
-        /// <summary>
-        /// Stop the current game
-        /// </summary>
-        public void StopGame()
-        {
-            gameRunning = false;
-
-            // Complete the current game
-            if (currentGame != null)
-            {
-                // Include level mechanic particles in the count
-                int totalParticles = particleManager.ParticleCount;
-                totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
-
-                currentSession.CompleteCurrentGame(totalParticles);
-                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles (Level {levelManager.CurrentLevel})");
-                DebugHelper.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
-
-                // Raise game completed event
-                GameEvents.RaiseGameCompleted(currentGame);
-            }
-
-            // Stop all level mechanics
-            levelManager.StopAllMechanics();
-
-            // Fire event to notify UI
-            GameStopped?.Invoke();
-        }
-
-        #endregion
 
         #region Game Loop
 
@@ -278,6 +221,8 @@ namespace tkkn2025.Core
             // Limit delta time to prevent huge jumps
             deltaTime = Math.Min(deltaTime, 1.0 / 30.0); // Max 30 FPS equivalent
 
+
+            #region Survival Mode
             // Update current speed multiplier from power-ups
             currentSpeedMultiplier = powerUpManager.GetSpeedMultiplier();
 
@@ -285,31 +230,23 @@ namespace tkkn2025.Core
             var effectiveDeltaTime = deltaTime * currentSpeedMultiplier;
 
             UpdateFPS();
-            UpdateShipPosition(effectiveDeltaTime);
+            
+            // Update ship position
+            ship.UpdatePosition(effectiveDeltaTime);
 
             // Update power-ups (use normal delta time for power-up timing)
-            var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
+            var shipVector = new Vector2((float)ship.ShipPosition.X, (float)ship.ShipPosition.Y);
             powerUpManager.Update(deltaTime, shipVector);
 
             // Check power-up collisions
-            powerUpManager.CheckCollisions(shipPosition);
+            powerUpManager.CheckCollisions(ship.ShipPosition);
 
-            // Update level manager (use normal delta time for level progression)
-            levelManager.Update(deltaTime);
-
-            // Check level mechanic collisions
-            if (levelManager.CheckParticleMechanicsCollisions(shipPosition))
-            {
-                // Collision with level mechanic particle detected
-                OnParticleShipCollisionDetected();
-                return;
-            }
 
             // Update particles through controller (with speed multiplier and power-up manager)
-            particleManager.UpdateParticles(effectiveDeltaTime, shipPosition, powerUpManager);
+            particleManager.UpdateParticles(effectiveDeltaTime, ship.ShipPosition, powerUpManager);
 
             // Check collisions through controller
-            particleManager.CheckCollisions(shipPosition);
+            particleManager.CheckCollisions(ship.ShipPosition);
 
             // Handle particle generation timing (use normal delta time for consistent spawning)
             if ((now - lastParticleGeneration).TotalSeconds >= activeLevelDuration)
@@ -318,12 +255,61 @@ namespace tkkn2025.Core
                 lastParticleGeneration = now;
             }
 
+
+            #endregion
+
+
+            #region Maze Mode
+            // Update level manager (use normal delta time for level progression)
+            mazeGame.Update(deltaTime);
+
+            // Check level mechanic collisions
+            if (mazeGame.CheckParticleMechanicsCollisions(ship.ShipPosition))
+            {
+                // Collision with level mechanic particle detected
+                OnParticleShipCollisionDetected();
+                return;
+            }
+            #endregion
+
+
             // Update UI periodically (not every frame)
             if ((now - lastUIUpdate).TotalSeconds >= 0.1) // 10 times per second
             {
                 UpdateUI();
                 lastUIUpdate = now;
             }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Stop the current game
+        /// </summary>
+        public void StopGame()
+        {
+            gameRunning = false;
+
+            // Complete the current game
+            if (currentGame != null)
+            {
+                // Include level mechanic particles in the count
+                int totalParticles = particleManager.ParticleCount;
+                totalParticles += mazeGame.GetActiveLevelMechanicParticleCount();
+
+                currentSession.CompleteCurrentGame(totalParticles);
+                DebugHelper.WriteLine($"Game completed: {currentGame.DurationSeconds:F1}s with {currentGame.FinalParticleCount} particles (Level {mazeGame.CurrentLevel})");
+                DebugHelper.WriteLine($"Session stats: {currentSession.GetSessionStats()}");
+
+                // Raise game completed event
+                GameEvents.RaiseGameCompleted(currentGame);
+            }
+
+            // Stop all level mechanics
+            mazeGame.StopAllMechanics();
+
+            // Fire event to notify UI
+            GameStopped?.Invoke();
         }
 
         #endregion
@@ -339,54 +325,22 @@ namespace tkkn2025.Core
         {
             if (!gameRunning) return false;
 
+            // Let ship handle movement and boost keys
+            if (ship.HandleKeyDown(key))
+            {
+                return true;
+            }
+
+            // Handle non-ship keys
             switch (key)
             {
-                case Key.Up:
-                case Key.W:
-                    keysPressed[0] = true;
-                    return true;
-                case Key.Down:
-                case Key.S:
-                    keysPressed[1] = true;
-                    return true;
-                case Key.Left:
-                case Key.A:
-                    keysPressed[2] = true;
-                    return true;
-                case Key.Right:
-                case Key.D:
-                    keysPressed[3] = true;
-                    return true;
-                case Key.LeftShift:
-                    keysPressed[4] = true;
-                    return true;
-                case Key.RightShift:
-                    keysPressed[5] = true;
-                    return true;
-                case Key.Space:
-                    // Handle double-tap detection for super boost
-                    var now = DateTime.Now;
-                    var timeSinceLastPress = (now - lastSpaceKeyPress).TotalSeconds;
-                    
-                    if (timeSinceLastPress <= DoubleTapThreshold && !isSuperBoostActive)
-                    {
-                        // Double-tap detected - activate super boost
-                        isSuperBoostActive = true;
-                        GameEvents.RaiseMessageRequested("Super Boost Activated!", Brushes.Cyan);
-                        DebugHelper.WriteLine("Super boost activated via double-tap");
-                    }
-                    
-                    lastSpaceKeyPress = now;
-                    
-                    // Space key for boost when game is running
-                    keysPressed[6] = true;
-                    return true;
                 case Key.T:
                     // Debug key to manually trigger level 3 mechanics for testing
-                    levelManager.TriggerMechanicsForLevel(3);
+                    mazeGame.TriggerMechanicsForLevel(3);
                     return true;
+                default:
+                    return false;
             }
-            return false;
         }
 
         /// <summary>
@@ -396,44 +350,8 @@ namespace tkkn2025.Core
         /// <returns>True if the key was handled</returns>
         public bool HandleKeyUp(Key key)
         {
-            switch (key)
-            {
-                case Key.Up:
-                case Key.W:
-                    keysPressed[0] = false;
-                    return true;
-                case Key.Down:
-                case Key.S:
-                    keysPressed[1] = false;
-                    return true;
-                case Key.Left:
-                case Key.A:
-                    keysPressed[2] = false;
-                    return true;
-                case Key.Right:
-                case Key.D:
-                    keysPressed[3] = false;
-                    return true;
-                case Key.LeftShift:
-                    keysPressed[4] = false;
-                    return true;
-                case Key.RightShift:
-                    keysPressed[5] = false;
-                    return true;
-                case Key.Space:
-                    keysPressed[6] = false;
-                    
-                    // Deactivate super boost when space key is released
-                    if (isSuperBoostActive)
-                    {
-                        isSuperBoostActive = false;
-                        GameEvents.RaiseMessageRequested("Super Boost Deactivated", Brushes.LightGray);
-                        DebugHelper.WriteLine("Super boost deactivated");
-                    }
-                    
-                    return true;
-            }
-            return false;
+            // Let ship handle movement and boost keys
+            return ship.HandleKeyUp(key);
         }
 
         /// <summary>
@@ -459,7 +377,7 @@ namespace tkkn2025.Core
             else if (e.RightButton == MouseButtonState.Pressed)
             {
                 // Right click - try to activate repulsor at ship position
-                var shipVector = new Vector2((float)shipPosition.X, (float)shipPosition.Y);
+                var shipVector = new Vector2((float)ship.ShipPosition.X, (float)ship.ShipPosition.Y);
 
                 bool activated = powerUpManager.TryActivateRepulsor(shipVector);
                 if (!activated)
@@ -478,7 +396,10 @@ namespace tkkn2025.Core
             // Update canvas dimensions for all managers
             ParticleManager.UpdateCanvasDimensions();
             powerUpManager.UpdateCanvasDimensions();
-            levelManager.Reset(gameCanvas);
+            if (mazeGame is not null)
+            {
+                mazeGame.Reset(gameCanvas);
+            }
             // Update center screen position based on current canvas size
             centerScreen = new Point(gameCanvas.ActualWidth / 2, gameCanvas.ActualHeight / 2);
         }
@@ -489,10 +410,10 @@ namespace tkkn2025.Core
             var now = DateTime.Now;
             var elapsed = (now - lastFPSUpdate).TotalSeconds;
 
-            if (elapsed >= 1.0) // Update FPS every second
+            if (elapsed >= 0.5) // Update interval in seconds
             {
                 double fps = frameCount / elapsed;
-                
+
                 // Fire event to update UI
                 FPSUpdateRequested?.Invoke(fps);
 
@@ -501,74 +422,12 @@ namespace tkkn2025.Core
             }
         }
 
-        private void UpdateShipPosition(double deltaTime)
-        {
-            double deltaX = 0, deltaY = 0;
-
-            // Check for super boost (double-tap space key detection)
-            bool isSuperBoostPressed = isSuperBoostActive && keysPressed[6]; // Space key held down after double-tap
-
-            // Check if either shift key or space key is pressed for regular boost using the keysPressed array
-            bool isRegularBoostActive = (keysPressed[4] || keysPressed[5] || keysPressed[6]) && !isSuperBoostPressed; // LeftShift or RightShift or Space (but not super boost)
-
-            // Calculate effective ship speed with appropriate boost level
-            double effectiveShipSpeed;
-            if (isSuperBoostPressed)
-            {
-                effectiveShipSpeed = activeShipSpeed + activeShipSuperBoost;
-            }
-            else if (isRegularBoostActive)
-            {
-                effectiveShipSpeed = activeShipSpeed + activeShipBoost;
-            }
-            else
-            {
-                effectiveShipSpeed = activeShipSpeed;
-            }
-
-            // Calculate movement based on time and speed
-            if (keysPressed[0]) deltaY -= effectiveShipSpeed * deltaTime; // Up
-            if (keysPressed[1]) deltaY += effectiveShipSpeed * deltaTime; // Down
-            if (keysPressed[2]) deltaX -= effectiveShipSpeed * deltaTime; // Left
-            if (keysPressed[3]) deltaX += effectiveShipSpeed * deltaTime; // Right
-
-            if (deltaX != 0 || deltaY != 0)
-            {
-                // Keep ship within bounds
-                double newX = Math.Max(20, Math.Min(gameCanvas.ActualWidth - 20, shipPosition.X + deltaX));
-                double newY = Math.Max(20, Math.Min(gameCanvas.ActualHeight - 20, shipPosition.Y + deltaY));
-
-                shipPosition = new Point(newX, newY);
-                Canvas.SetLeft(ship, shipPosition.X - ship.Width / 2);
-                Canvas.SetTop(ship, shipPosition.Y - ship.Height / 2);
-
-                // Update ship visual based on movement direction
-                if (deltaX < 0) // Moving left
-                {
-                    ship.ShowLeftTilt();
-                }
-                else if (deltaX > 0) // Moving right
-                {
-                    ship.ShowRightTilt();
-                }
-                else // No horizontal movement
-                {
-                    ship.ShowNeutral();
-                }
-            }
-            else
-            {
-                // No movement - show neutral position
-                ship.ShowNeutral();
-            }
-        }
-
         private void UpdateUI()
         {
             int totalParticles = particleManager.ParticleCount;
 
             // Add level mechanic particles to the count
-            totalParticles += levelManager.GetActiveLevelMechanicParticleCount();
+            totalParticles += mazeGame.GetActiveLevelMechanicParticleCount();
 
             var uiData = new GameUIData();
             uiData.ParticleCount = totalParticles;
@@ -577,7 +436,7 @@ namespace tkkn2025.Core
             {
                 var elapsed = DateTime.Now - gameStartTime;
                 uiData.GameTime = elapsed;
-                uiData.LevelStatus = levelManager.GetLevelStatus();
+                uiData.LevelStatus = mazeGame.GetLevelStatus();
 
                 // Show active power-up effects
                 if (powerUpManager.IsEffectActive("TimeWarp"))
@@ -585,8 +444,8 @@ namespace tkkn2025.Core
                     uiData.TimeWarpRemaining = powerUpManager.GetEffectRemainingTime("TimeWarp");
                 }
 
-                // Show super boost status
-                uiData.IsSuperBoostActive = isSuperBoostActive;
+                // Show super boost status from ship
+                uiData.IsSuperBoostActive = ship.IsSuperBoostActive;
 
                 // Show stored power-ups
                 uiData.SingularityCount = powerUpManager.GetStoredPowerUpCount("Singularity");
@@ -703,7 +562,7 @@ namespace tkkn2025.Core
             {
                 // Use the new leaderboard system which handles both saving to Firebase and maintaining top 10
                 string? firebaseKey = await currentSession.AddGameToLeaderboardAsync(game);
-                
+
                 if (firebaseKey != null)
                 {
                     DebugHelper.WriteLine($"Game saved to {game.GameMode} leaderboard with Firebase key: {firebaseKey}");
@@ -740,7 +599,8 @@ namespace tkkn2025.Core
         public void Dispose()
         {
             UnsubscribeFromGameEvents();
-            levelManager?.Dispose();
+            ship?.Dispose();
+            mazeGame?.Dispose();
         }
 
         #endregion

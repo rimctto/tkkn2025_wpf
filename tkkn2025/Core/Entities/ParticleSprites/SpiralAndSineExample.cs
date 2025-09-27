@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using tkkn2025.GameObjects.LevelMechanics.ParicleSprites;
 using tkkn2025.GameObjects.LevelMechanics.ParticleSprites;
 
 namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
@@ -16,12 +15,12 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
         /// <param name="canvasWidth">Canvas width</param>
         /// <param name="canvasHeight">Canvas height</param>
         /// <returns>Configured SpiralMechanic</returns>
-        public static SpiralMechanic CreateCenterSpiral(double canvasWidth, double canvasHeight)
+        public static SpiralAndSine CreateCenterSpiral(double canvasWidth, double canvasHeight)
         {
             var centerPosition = new Vector2((float)(canvasWidth / 2), (float)(canvasHeight / 2));
             
             // Create with default configuration
-            var spiral = new SpiralMechanic(
+            var spiral = new SpiralAndSine(
                 position: centerPosition,
                 activationLevel: 1,
                 particleCount: 25
@@ -36,22 +35,21 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
         /// <param name="position">Position for the spiral</param>
         /// <param name="activationLevel">Level at which it activates</param>
         /// <returns>Configured SpiralMechanic</returns>
-        public static SpiralMechanic CreateCustomSpiral(Vector2 position, int activationLevel = 1)
+        public static SpiralAndSine CreateCustomSpiral(Vector2 position, int activationLevel = 1)
         {
             // Create custom configuration
-            var config = new SpiralConfig
+            var config = new SpiralAndSineConfig
             {
                 Radius = 100,
                 ParticleSpacing = 0.002,
-                Width = 4,
-                Height = 4,
+                Size = 4,
                 ParticleCount = 30,
                 Frequency = 0.015,
                 Amplitude = 30,
                 Speed = 0.04
             };
             
-            var spiral = new SpiralMechanic(
+            var spiral = new SpiralAndSine(
                 position: position,
                 activationLevel: activationLevel,
                 particleCount: config.ParticleCount,
@@ -67,9 +65,9 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
         /// <param name="canvasWidth">Canvas width</param>
         /// <param name="canvasHeight">Canvas height</param>
         /// <returns>Array of SpiralMechanics</returns>
-        public static SpiralMechanic[] CreateMultipleSpirals(double canvasWidth, double canvasHeight)
+        public static SpiralAndSine[] CreateMultipleSpirals(double canvasWidth, double canvasHeight)
         {
-            var spirals = new SpiralMechanic[4];
+            var spirals = new SpiralAndSine[4];
             
             // Create spirals at four corners (inset by 100px)
             var positions = new[]
@@ -82,7 +80,7 @@ namespace tkkn2025.GameObjects.LevelMechanics.ParticleSprites
 
             for (int i = 0; i < positions.Length; i++)
             {
-                spirals[i] = new SpiralMechanic(
+                spirals[i] = new SpiralAndSine(
                     position: positions[i],
                     activationLevel: i + 1, // Activate at different levels
                     particleCount: 20

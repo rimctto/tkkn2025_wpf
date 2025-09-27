@@ -11,7 +11,7 @@ using tkkn2025.GameObjects.PowerUps;
 using tkkn2025.Helpers;
 using tkkn2025.Settings;
 
-namespace tkkn2025.GameObjects
+namespace tkkn2025.Core.GameModes.SurvivalMode
 {
     /// <summary>
     /// Manages all particle-related operations including creation, updates, collisions, and pooling

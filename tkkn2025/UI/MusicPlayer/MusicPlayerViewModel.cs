@@ -44,7 +44,7 @@ namespace tkkn2025.UI.MusicPlayer
         {
             get => _isPlaying;
             set => SetProperty(ref _isPlaying, value);
-        }
+        } 
 
         public bool RepeatTrack
         {
@@ -132,7 +132,7 @@ namespace tkkn2025.UI.MusicPlayer
             _mediaPlayer.Volume = 0.5;
 
             // Load default track (should be "Particles" if not set)
-            LoadDefaultTrack();
+            //LoadDefaultTrack();
         }
 
         #endregion

@@ -155,7 +155,7 @@
                         <UniformGrid
                             Margin="0,5,0,10"
                             Columns="2"
-                            Rows="2">
+                            Rows="3">
                             <Button
                                 Name="DrawSpiralButton"
                                 Margin="2"
@@ -172,7 +172,13 @@
                                 Click="DrawLineButton_Click"
                                 Content="Line" />
                             <Button
+                                Name="DrawTextButton"
+                                Margin="2"
+                                Click="DrawTextButton_Click"
+                                Content="Draw Text" />
+                            <Button
                                 Name="ClearCanvasButton"
+                                Grid.ColumnSpan="2"
                                 Margin="2"
                                 Click="ClearCanvasButton_Click"
                                 Content="Clear" />
@@ -230,8 +236,8 @@
                                             Margin="5,0"
                                             Maximum="200"
                                             Minimum="10"
-                                            Value="{Binding Radius, Mode=TwoWay}"
-                                            ValueChanged="RadiusSlider_ValueChanged" />
+                                            ValueChanged="RadiusSlider_ValueChanged"
+                                            Value="{Binding Radius, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
                                             Text="{Binding Radius, StringFormat=F0}"
@@ -255,8 +261,8 @@
                                             Margin="5,0"
                                             Maximum="100"
                                             Minimum="5"
-                                            Value="{Binding ParticleCount, Mode=TwoWay}"
-                                            ValueChanged="ParticleCountSlider_ValueChanged" />
+                                            ValueChanged="ParticleCountSlider_ValueChanged"
+                                            Value="{Binding ParticleCount, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
                                             Text="{Binding ParticleCount}"
@@ -280,8 +286,8 @@
                                             Margin="5,0"
                                             Maximum="0.1"
                                             Minimum="0.001"
-                                            Value="{Binding Speed, Mode=TwoWay}"
-                                            ValueChanged="SpeedSlider_ValueChanged" />
+                                            ValueChanged="SpeedSlider_ValueChanged"
+                                            Value="{Binding Speed, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
                                             Text="{Binding Speed, StringFormat=F3}"
@@ -305,8 +311,8 @@
                                             Margin="5,0"
                                             Maximum="100"
                                             Minimum="5"
-                                            Value="{Binding Amplitude, Mode=TwoWay}"
-                                            ValueChanged="AmplitudeSlider_ValueChanged" />
+                                            ValueChanged="AmplitudeSlider_ValueChanged"
+                                            Value="{Binding Amplitude, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
                                             Text="{Binding Amplitude, StringFormat=F0}"
@@ -330,8 +336,8 @@
                                             Margin="5,0"
                                             Maximum="0.05"
                                             Minimum="0.001"
-                                            Value="{Binding Frequency, Mode=TwoWay}"
-                                            ValueChanged="FrequencySlider_ValueChanged" />
+                                            ValueChanged="FrequencySlider_ValueChanged"
+                                            Value="{Binding Frequency, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
                                             Text="{Binding Frequency, StringFormat=F3}"
@@ -355,11 +361,11 @@
                                             Margin="5,0"
                                             Maximum="10"
                                             Minimum="1"
-                                            Value="{Binding Width, Mode=TwoWay}"
-                                            ValueChanged="ParticleSizeSlider_ValueChanged" />
+                                            ValueChanged="ParticleSizeSlider_ValueChanged"
+                                            Value="{Binding Size, Mode=TwoWay}" />
                                         <TextBox
                                             Grid.Column="2"
-                                            Text="{Binding Width}"
+                                            Text="{Binding Size}"
                                             TextAlignment="Center" />
                                     </Grid>
 

@@ -90,19 +90,14 @@ namespace tkkn2025
         public double AverageGameTime => Games.Where(g => g.IsCompleted).Select(g => g.DurationSeconds).DefaultIfEmpty(0).Average();
         
         // Game mode specific statistics
-        public int StandardGamesPlayed => Games.Count(g => g.IsCompleted && g.GameMode == GameMode.Standard);
         public int SurvivalGamesPlayed => Games.Count(g => g.IsCompleted && g.GameMode == GameMode.Survival);
         public int MazeGamesPlayed => Games.Count(g => g.IsCompleted && g.GameMode == GameMode.Maze);
         
-        public Game? BestStandardGame => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Standard)
-            .OrderByDescending(g => g.DurationSeconds).FirstOrDefault();
         public Game? BestSurvivalGame => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Survival)
             .OrderByDescending(g => g.DurationSeconds).FirstOrDefault();
         public Game? BestMazeGame => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Maze)
             .OrderByDescending(g => g.DurationSeconds).FirstOrDefault();
             
-        public double StandardAverageTime => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Standard)
-            .Select(g => g.DurationSeconds).DefaultIfEmpty(0).Average();
         public double SurvivalAverageTime => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Survival)
             .Select(g => g.DurationSeconds).DefaultIfEmpty(0).Average();
         public double MazeAverageTime => Games.Where(g => g.IsCompleted && g.GameMode == GameMode.Maze)
@@ -706,11 +701,7 @@ namespace tkkn2025
                        $"Overall Average: {AverageGameTime:F1}s\n" +
                        $"Total Play Time: {TotalPlayTime:mm\\:ss}\n\n";
 
-            // Add mode-specific stats
-            if (StandardGamesPlayed > 0)
-            {
-                stats += $"Standard: {StandardGamesPlayed} games, Best: {BestStandardGame?.DurationSeconds:F1}s, Avg: {StandardAverageTime:F1}s\n";
-            }
+            
             if (SurvivalGamesPlayed > 0)
             {
                 stats += $"Survival: {SurvivalGamesPlayed} games, Best: {BestSurvivalGame?.DurationSeconds:F1}s, Avg: {SurvivalAverageTime:F1}s\n";

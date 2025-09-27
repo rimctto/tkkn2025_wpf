@@ -484,12 +484,6 @@ namespace tkkn2025
                 var currentConfig = SettingsManager.ToGameConfig();
                 currentSession?.UpdateGameConfig(currentConfig, true); // Save as new default
 
-                // Update app config with current music player state if available
-                if (currentSession?.AppConfig != null && MusicPlayer?.ViewModel != null)
-                {
-                    MusicPlayer.ViewModel.UpdateAppConfig(currentSession.AppConfig);
-                }
-
                 GameEvents.RaiseMessageRequested("Settings saved as new default", Brushes.LightGreen);
                 DebugHelper.WriteLine($"Game settings auto-saved as default to: {ConfigManager.GetDefaultConfigFilePath()}");
                 DebugHelper.WriteLine($"App config auto-saved to: {ConfigManager.GetAppConfigFilePath()}");

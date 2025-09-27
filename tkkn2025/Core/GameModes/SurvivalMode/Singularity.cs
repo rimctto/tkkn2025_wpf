@@ -5,12 +5,12 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-namespace tkkn2025.GameObjects
+namespace tkkn2025.Core.GameModes.SurvivalMode
 {
     /// <summary>
     /// Represents a singularity that applies gravitational force to particles
     /// </summary>
-    public class Singularity : GameObject
+    public class Singularity : Entity
     {
         public float Mass { get; set; }
         public double RemainingTime { get; set; }
